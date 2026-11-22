@@ -101,7 +101,7 @@ export default function PortalShell({ items, label, title, subtitle, photo, help
           </a>
         )}
         {bell && (
-          <button type="button" onClick={() => go(bell)} aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
+          <button type="button" onClick={() => go(bell)} aria-label={unread ? t('sp.notifications_n_unread', 'Notifications, {n} unread').replace('{n}', unread) : t('sp.notifications', 'Notifications')}
             className={`relative ${helpPhone ? '' : 'ml-auto '}flex h-9 w-9 items-center justify-center rounded-lg ${bell.key === activeKey ? 'bg-zappy-50 text-zappy-700' : 'text-slate-700 hover:bg-slate-100'}`}>
             <Bell size={20} />
             {unread > 0 && (
@@ -122,11 +122,11 @@ export default function PortalShell({ items, label, title, subtitle, photo, help
               className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-white lg:hidden"
               initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-              aria-label="Menu"
+              aria-label={t('sp.menu', 'Menu')}
             >
               <div className="flex items-center justify-between px-4 py-4">
                 <ZappyWordmark size={22} />
-                <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close menu" className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-slate-100">
+                <button type="button" onClick={() => setMenuOpen(false)} aria-label={t('sp.close_menu', 'Close menu')} className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-slate-100">
                   <X size={18} className="text-slate-600" />
                 </button>
               </div>
@@ -138,7 +138,7 @@ export default function PortalShell({ items, label, title, subtitle, photo, help
                       item.key === activeKey ? 'bg-zappy-50 text-zappy-700' : item.locked ? 'text-slate-400 hover:bg-slate-50' : 'text-slate-600 hover:bg-slate-100'}`}>
                     <item.Icon size={18} strokeWidth={2.2} />
                     <span className="flex-1 text-left">{t(labelKey(item.label), item.label)}</span>
-                    {item.locked ? <Lock size={14} className="text-slate-300" aria-label="Locked" /> : <ChevronRight size={15} className="text-slate-300" />}
+                    {item.locked ? <Lock size={14} className="text-slate-300" aria-label={t('sp.locked', 'Locked')} /> : <ChevronRight size={15} className="text-slate-300" />}
                   </button>
                 ))}
               </nav>

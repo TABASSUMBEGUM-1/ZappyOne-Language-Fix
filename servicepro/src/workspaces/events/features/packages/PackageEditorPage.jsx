@@ -9,6 +9,8 @@ import {
 import { Spinner, Card, Field } from '../../components/ui';
 import { uploadFile } from '../../lib/upload';
 import PlacePicker from '../profile/PlacePicker';
+import { useI18n } from '@shared/i18n/I18nProvider';
+import { tl } from '../../lib/labels';
 import { EDITABLE, EMPTY_PACKAGE as EMPTY, packageForm, packageProblems, packageBody } from '@shared/events/partnerBookings';
 
 /**
@@ -17,6 +19,7 @@ import { EDITABLE, EMPTY_PACKAGE as EMPTY, packageForm, packageProblems, package
  * customer pays; the partner sees what they keep before saving.
  */
 export default function PackageEditorPage() {
+  const { t } = useI18n();
   const { id } = useParams();
   const isEdit = !!id;
   const nav = useNavigate();
@@ -43,23 +46,23 @@ export default function PackageEditorPage() {
   }, [me?.partner?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isEdit && isLoading) return <Spinner />;
-  if (isEdit && !theme) return <p className="py-16 text-center text-ink-500">Package not found.</p>;
+  if (isEdit && !theme) return <p className="py-16 text-center text-ink-500">{t('sp.ev.pe.notFound', 'Package not found.')}</p>;
   if (theme && !EDITABLE.includes(theme.status)) {
-    return <p className="py-16 text-center text-ink-500">This package is live. Contact support to change it.</p>;
+    return <p className="py-16 text-center text-ink-500">{t('sp.ev.pe.isLive', 'This package is live. Contact support to change it.')}</p>;
   }
 
   async function upload(file, kind) {
     const isVideo = kind === 'video';
-    if (isVideo && !/^video\//.test(file.type)) return toast.error('Choose a video file (MP4, MOV or WebM)');
-    if (!isVideo && !/^image\//.test(file.type)) return toast.error('Choose a photo');
+    if (isVideo && !/^video\//.test(file.type)) return toast.error(t('sp.ev.pe.needVideo', 'Choose a video file (MP4, MOV or WebM)'));
+    if (!isVideo && !/^image\//.test(file.type)) return toast.error(t('sp.ev.pe.needPhoto', 'Choose a photo'));
     setBusy(kind);
     try {
-      const key = await uploadFile(presign, file, { folder: 'event-photos', maxMb: isVideo ? 50 : 10 });
+      const key = await uploadFile(presign, file, { folder: 'event-photos', maxMb: isVideo ? 50 : 10, t });
       const item = { key, url: URL.createObjectURL(file) };
       if (kind === 'cover') set('cover', item);
       else if (kind === 'video') set('video', item);
       else setForm((f) => ({ ...f, gallery: [...f.gallery, item].slice(0, 12) }));
-    } catch (e) { toast.error(e?.data?.error || e.message || 'Upload failed'); } finally { setBusy(''); }
+    } catch (e) { toast.error(e?.data?.error || e.message || t('sp.ev.pe.upFail', 'Upload failed')); } finally { setBusy(''); }
   }
 
   const price = Number(form.price) || 0;
@@ -68,87 +71,87 @@ export default function PackageEditorPage() {
   const problems = packageProblems(form);
 
   async function save() {
-    if (problems.length) return toast.error(`Add ${problems[0]}`);
+    if (problems.length) return toast.error(t('sp.ev.pe.addX', 'Add {x}').replace('{x}', tl(t, problems[0])));
     const body = packageBody(form);
     try {
       if (isEdit) await update({ id, ...body }).unwrap(); else await create(body).unwrap();
-      toast.success(isEdit ? 'Saved. It goes live after review.' : 'Package sent for review. We usually respond within a day.');
+      toast.success(isEdit ? t('sp.ev.pe.saved', 'Saved. It goes live after review.') : t('sp.ev.pe.sent', 'Package sent for review. We usually respond within a day.'));
       nav('/partner/packages');
-    } catch (e) { toast.error(e?.data?.error || 'Could not save'); }
+    } catch (e) { toast.error(e?.data?.error || t('sp.ev.pe.saveFail', 'Could not save')); }
   }
 
   return (
     <div className="space-y-4 pb-24 lg:pb-0">
-      <Link to="/partner/packages" className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-ink-700"><ArrowLeft size={16} /> Packages</Link>
-      <h1 className="text-[22px] font-bold text-ink-900">{isEdit ? 'Edit package' : 'New package'}</h1>
+      <Link to="/partner/packages" className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-ink-700"><ArrowLeft size={16} /> {t('sp.ev.pk.title', 'Packages')}</Link>
+      <h1 className="text-[22px] font-bold text-ink-900">{isEdit ? t('sp.ev.pe.editH', 'Edit package') : t('sp.ev.pk.new', 'New package')}</h1>
 
       <Card className="space-y-4 p-4">
-        <p className="text-[15px] font-bold text-ink-900">Photos and video</p>
-        <MediaTile label="Cover photo" required item={form.cover} busy={busy === 'cover'} accept="image/*" onFile={(f) => upload(f, 'cover')} onClear={() => set('cover', null)} wide />
+        <p className="text-[15px] font-bold text-ink-900">{t('sp.ev.pe.media', 'Photos and video')}</p>
+        <MediaTile label={t('sp.ev.pe.cover', 'Cover photo')} required item={form.cover} busy={busy === 'cover'} accept="image/*" onFile={(f) => upload(f, 'cover')} onClear={() => set('cover', null)} wide />
         <div>
-          <p className="mb-1.5 text-[13px] font-semibold text-ink-700">More photos <span className="font-normal text-ink-400">({form.gallery.length}/12)</span></p>
+          <p className="mb-1.5 text-[13px] font-semibold text-ink-700">{t('sp.ev.pe.more', 'More photos')} <span className="font-normal text-ink-400">({form.gallery.length}/12)</span></p>
           <div className="flex flex-wrap gap-2">
             {form.gallery.map((g, i) => (
               <span key={g.key} className="relative">
                 <img src={g.url} alt="" className="h-20 w-20 rounded-btn border border-line object-cover" />
-                <button type="button" aria-label="Remove photo" onClick={() => set('gallery', form.gallery.filter((_, j) => j !== i))}
+                <button type="button" aria-label={t('sp.ev.pe.rmPhoto', 'Remove photo')} onClick={() => set('gallery', form.gallery.filter((_, j) => j !== i))}
                   className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-ink-900 text-white"><X size={12} /></button>
               </span>
             ))}
             {form.gallery.length < 12 && (
               <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-btn border border-dashed border-line-strong text-[11px] text-ink-500 hover:bg-canvas">
-                {busy === 'gallery' ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />} Add
+                {busy === 'gallery' ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />} {t('sp.ev.add', 'Add')}
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) upload(e.target.files[0], 'gallery'); e.target.value = ''; }} />
               </label>
             )}
           </div>
         </div>
-        <MediaTile label="Short video (optional, up to 50MB)" item={form.video} busy={busy === 'video'} accept="video/mp4,video/webm,video/quicktime" video onFile={(f) => upload(f, 'video')} onClear={() => set('video', null)} />
+        <MediaTile label={t('sp.ev.pe.video', 'Short video (optional, up to 50MB)')} item={form.video} busy={busy === 'video'} accept="video/mp4,video/webm,video/quicktime" video onFile={(f) => upload(f, 'video')} onClear={() => set('video', null)} />
       </Card>
 
       <Card className="space-y-4 p-4">
-        <Field label="Title" required>
-          <input className="input w-full" maxLength={100} value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Pastel birthday backdrop with balloon arch" />
+        <Field label={t('sp.ev.pe.title', 'Title')} required>
+          <input className="input w-full" maxLength={100} value={form.title} onChange={(e) => set('title', e.target.value)} placeholder={t('sp.ev.pe.titleEg', 'Pastel birthday backdrop with balloon arch')} />
         </Field>
-        <Field label="Category" required>
+        <Field label={t('sp.ev.pe.category', 'Category')} required>
           <select className="input w-full" value={form.categoryId} onChange={(e) => set('categoryId', e.target.value)}>
-            <option value="">Choose…</option>
+            <option value="">{t('sp.ev.pe.choose', 'Choose…')}</option>
             {(cats?.categories || []).map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
           </select>
         </Field>
-        <Field label="Description" hint="Colours, mood, the space it suits.">
+        <Field label={t('sp.ev.pe.desc', 'Description')} hint={t('sp.ev.pe.descHint', 'Colours, mood, the space it suits.')}>
           <textarea className="input w-full" rows={3} maxLength={2000} value={form.description} onChange={(e) => set('description', e.target.value)} />
         </Field>
       </Card>
 
       <Card className="space-y-4 p-4">
-        <Field label="Price the customer pays (₹)" required hint={price ? `You keep about ₹${Math.round(price * (100 - pct) / 100).toLocaleString('en-IN')}.` : 'All-in: setup, materials and travel within the places you serve.'}>
+        <Field label={t('sp.ev.pe.price', 'Price the customer pays (₹)')} required hint={price ? t('sp.ev.pe.keep', 'You keep about {amt}.').replace('{amt}', `₹${Math.round(price * (100 - pct) / 100).toLocaleString('en-IN')}`) : t('sp.ev.pe.allIn', 'All-in: setup, materials and travel within the places you serve.')}>
           <input className="input w-full" inputMode="numeric" value={form.price} onChange={(e) => set('price', e.target.value.replace(/\D/g, ''))} placeholder="4999" />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Setup time (hours)">
+          <Field label={t('sp.ev.pe.setupH', 'Setup time (hours)')}>
             <input className="input w-full" inputMode="decimal" value={form.setupHours} onChange={(e) => set('setupHours', e.target.value.replace(/[^\d.]/g, ''))} />
           </Field>
-          <Field label="Up to guests">
+          <Field label={t('sp.ev.pe.guests', 'Up to guests')}>
             <input className="input w-full" inputMode="numeric" value={form.guestsMax} onChange={(e) => set('guestsMax', e.target.value.replace(/\D/g, ''))} />
           </Field>
         </div>
       </Card>
 
       <Card className="space-y-4 p-4">
-        <ListInput label="What's included" required value={form.included} onChange={(v) => set('included', v)} placeholder="e.g. 60 balloons, backdrop, name banner" />
-        <ListInput label="Not included" value={form.excluded} onChange={(v) => set('excluded', v)} placeholder="e.g. Cake, photographer" />
+        <ListInput label={t('sp.ev.pe.incl', "What's included")} required value={form.included} onChange={(v) => set('included', v)} placeholder={t('sp.ev.pe.inclEg', 'e.g. 60 balloons, backdrop, name banner')} />
+        <ListInput label={t('sp.ev.pe.notIncl', 'Not included')} value={form.excluded} onChange={(v) => set('excluded', v)} placeholder={t('sp.ev.pe.notInclEg', 'e.g. Cake, photographer')} />
       </Card>
 
       <Card className="space-y-2 p-4">
-        <p className="text-[15px] font-bold text-ink-900">Where you offer it <span className="text-red-600">*</span></p>
+        <p className="text-[15px] font-bold text-ink-900">{t('sp.ev.pe.where', 'Where you offer it')} <span className="text-red-600">*</span></p>
         <PlacePicker value={form.cities} onChange={(v) => set('cities', v)} />
       </Card>
 
       <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+64px)] z-20 border-t border-line bg-white p-3 lg:static lg:border-0 lg:bg-transparent lg:p-0">
         <button type="button" onClick={save} disabled={creating || updating || !!busy} className="btn-primary mx-auto w-full max-w-5xl">
           {(creating || updating) && <Loader2 size={16} className="animate-spin" />}
-          {isEdit ? 'Save and send for review' : 'Send for review'}
+          {isEdit ? t('sp.ev.pe.saveSend', 'Save and send for review') : t('sp.ev.pe.sendRev', 'Send for review')}
         </button>
       </div>
     </div>
@@ -156,18 +159,19 @@ export default function PackageEditorPage() {
 }
 
 function MediaTile({ label, required, item, busy, accept, onFile, onClear, video = false, wide = false }) {
+  const { t } = useI18n();
   return (
     <div>
       <p className="mb-1.5 text-[13px] font-semibold text-ink-700">{label}{required && <span className="text-red-600"> *</span>}</p>
       {item ? (
         <div className={`relative overflow-hidden rounded-btn border border-line bg-sunken ${wide ? 'aspect-[16/9]' : 'aspect-video max-w-sm'}`}>
           {video ? <video src={item.url} controls className="h-full w-full object-cover" /> : <img src={item.url} alt="" className="h-full w-full object-cover" />}
-          <button type="button" onClick={onClear} aria-label="Remove" className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink-900/80 text-white"><X size={15} /></button>
+          <button type="button" onClick={onClear} aria-label={t('sp.ev.remove', 'Remove')} className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink-900/80 text-white"><X size={15} /></button>
         </div>
       ) : (
         <label className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-btn border border-dashed border-line-strong bg-white text-[13px] text-ink-500 hover:bg-canvas ${wide ? 'aspect-[16/9]' : 'aspect-video max-w-sm'}`}>
           {busy ? <Loader2 size={22} className="animate-spin text-zappy-600" /> : video ? <Film size={22} /> : <Camera size={22} />}
-          {busy ? 'Uploading…' : video ? 'Upload a video' : 'Upload a photo'}
+          {busy ? t('sp.ev.uploading', 'Uploading…') : video ? t('sp.ev.pe.upVideo', 'Upload a video') : t('sp.ev.pe.upPhoto', 'Upload a photo')}
           <input type="file" accept={accept} className="hidden" onChange={(e) => { if (e.target.files?.[0]) onFile(e.target.files[0]); e.target.value = ''; }} />
         </label>
       )}
@@ -176,6 +180,7 @@ function MediaTile({ label, required, item, busy, accept, onFile, onClear, video
 }
 
 function ListInput({ label, required, value, onChange, placeholder }) {
+  const { t } = useI18n();
   const [draft, setDraft] = useState('');
   const add = () => {
     const parts = draft.split(',').map((s) => s.trim()).filter(Boolean);
@@ -188,14 +193,14 @@ function ListInput({ label, required, value, onChange, placeholder }) {
       <div className="flex gap-2">
         <input className="input flex-1" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={placeholder}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} />
-        <button type="button" onClick={add} className="btn-outline px-4">Add</button>
+        <button type="button" onClick={add} className="btn-outline px-4">{t('sp.ev.add', 'Add')}</button>
       </div>
       {value.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {value.map((v, i) => (
             <span key={`${v}-${i}`} className="chip bg-sunken text-ink-700">
               {v}
-              <button type="button" aria-label={`Remove ${v}`} onClick={() => onChange(value.filter((_, j) => j !== i))}><X size={12} /></button>
+              <button type="button" aria-label={t('sp.ev.pe.removeV', 'Remove {v}').replace('{v}', v)} onClick={() => onChange(value.filter((_, j) => j !== i))}><X size={12} /></button>
             </span>
           ))}
         </div>

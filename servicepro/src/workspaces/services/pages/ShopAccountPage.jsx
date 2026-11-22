@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Loader2, Store, Landmark, Bell, Wallet, ShieldCheck, ChevronRight, Phone, Mail } from 'lucide-react';
 import { useShopMeQuery, useUpdateShopMeMutation } from '@shared/services/api';
+import { useT } from '@shared/i18n/I18nProvider';
 
 /**
  * Profile — the owner's own account: their name, how ZappyOne reaches them,
@@ -14,6 +15,7 @@ import { useShopMeQuery, useUpdateShopMeMutation } from '@shared/services/api';
  */
 export default function ShopAccountPage() {
   const nav = useNavigate();
+  const t = useT();
   const { data, isLoading, isError, refetch } = useShopMeQuery();
   const [save, { isLoading: saving }] = useUpdateShopMeMutation();
   const shop = data?.shop;
@@ -21,26 +23,26 @@ export default function ShopAccountPage() {
   useEffect(() => { if (shop) setOwnerName(shop.ownerName || ''); }, [shop]);
   useFocusField(!!shop);
 
-  if (isError && !shop) return <LoadFailed what="Your profile" onRetry={refetch} />;
-  if (isLoading || !shop) return <PageSkeleton kind="form" label="Loading your profile" />;
+  if (isError && !shop) return <LoadFailed what={t('sp.acc.yourProfile', 'Your profile')} onRetry={refetch} />;
+  if (isLoading || !shop) return <PageSkeleton kind="form" label={t('sp.acc.loading', 'Loading your profile')} />;
 
   async function submit() {
-    try { await save({ ownerName: ownerName.trim() }).unwrap(); toast.success('Saved'); } catch (err) { toast.error(err?.data?.error || 'Could not save'); }
+    try { await save({ ownerName: ownerName.trim() }).unwrap(); toast.success(t('sp.c.saved', 'Saved')); } catch (err) { toast.error(err?.data?.error || t('sp.c.saveFail', 'Could not save')); }
   }
 
   const links = [
-    ['Shop & hours', 'Name, photos, address and opening hours', Store, '/shop/profile'],
-    ['Bank & UPI', 'Where we send your money', Landmark, '/shop/bank'],
-    ['Take out money', 'What ZappyOne owes you, and asking for it', Wallet, '/shop/withdraw'],
-    ['Notifications', 'Everything we have told you', Bell, '/shop/notifications'],
-    ['ID check', 'Your documents and services', ShieldCheck, '/shop/kyc'],
+    [t('sp.shop_hours', 'Shop & hours'), t('sp.acc.shopHint', 'Name, photos, address and opening hours'), Store, '/shop/profile'],
+    [t('sp.acc.bank', 'Bank & UPI'), t('sp.acc.bankHint', 'Where we send your money'), Landmark, '/shop/bank'],
+    [t('sp.take_out_money', 'Take out money'), t('sp.acc.takeHint', 'What ZappyOne owes you, and asking for it'), Wallet, '/shop/withdraw'],
+    [t('sp.acc.notif', 'Notifications'), t('sp.acc.notifHint', 'Everything we have told you'), Bell, '/shop/notifications'],
+    [t('sp.acc.idCheck', 'ID check'), t('sp.acc.idHint', 'Your documents and services'), ShieldCheck, '/shop/kyc'],
   ];
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-16">
       <header className="page-header"><div className="page-header-inner">
-        <button type="button" onClick={() => nav('/shop')} className="back-btn" aria-label="Back"><ArrowLeft size={18} strokeWidth={2.5} /></button>
-        <h1 className="h-card">Profile</h1>
+        <button type="button" onClick={() => nav('/shop')} className="back-btn" aria-label={t('sp.back', 'Back')}><ArrowLeft size={18} strokeWidth={2.5} /></button>
+        <h1 className="h-card">{t('sp.nav.profile', 'Profile')}</h1>
       </div></header>
 
       <div className="mx-auto max-w-lg space-y-4 px-4 pt-4 lg:max-w-2xl">
@@ -49,22 +51,22 @@ export default function ShopAccountPage() {
             {(shop.ownerName || shop.businessName || 'S').trim()[0].toUpperCase()}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-[16px] font-bold text-slate-900">{shop.ownerName || 'Owner'}</p>
+            <p className="truncate text-[16px] font-bold text-slate-900">{shop.ownerName || t('sp.wh.owner', 'Owner')}</p>
             <p className="truncate text-[13px] text-slate-500">{shop.businessName}</p>
           </div>
         </section>
 
         <section className="space-y-3 rounded-2xl bg-white p-4 ring-1 ring-slate-100">
           <label data-field="ownerName" className="block">
-            <span className="mb-1 block text-[12px] font-semibold text-slate-600">Your name (as on your ID)</span>
+            <span className="mb-1 block text-[12px] font-semibold text-slate-600">{t('sp.acc.nameLabel', 'Your name (as on your ID)')}</span>
             <input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} maxLength={100}
               className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-zappy-100" />
           </label>
-          <p className="flex items-center gap-2 text-[13px] text-slate-600"><Phone size={14} className="text-slate-400" /> {shop.phone} <span className="text-[11px] text-slate-400">(sign-in number)</span></p>
-          <p className="flex items-center gap-2 text-[13px] text-slate-600"><Mail size={14} className="text-slate-400" /> {shop.email || 'No email yet'}</p>
+          <p className="flex items-center gap-2 text-[13px] text-slate-600"><Phone size={14} className="text-slate-400" /> {shop.phone} <span className="text-[11px] text-slate-400">{t('sp.acc.signinNo', '(sign-in number)')}</span></p>
+          <p className="flex items-center gap-2 text-[13px] text-slate-600"><Mail size={14} className="text-slate-400" /> {shop.email || t('sp.acc.noEmail', 'No email yet')}</p>
           <button type="button" onClick={submit} disabled={saving || ownerName.trim().length < 2 || ownerName.trim() === (shop.ownerName || '')}
             className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0F172A] text-sm font-bold text-white disabled:opacity-40">
-            {saving && <Loader2 size={14} className="animate-spin" />} Save
+            {saving && <Loader2 size={14} className="animate-spin" />} {t('sp.c.save', 'Save')}
           </button>
         </section>
 

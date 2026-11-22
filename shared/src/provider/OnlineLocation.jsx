@@ -6,6 +6,7 @@ import { useGetWorkerMeQuery } from '../services/api';
 import { getSocket } from '../services/socket';
 import { API_BASE } from '../services/apiBase';
 import { useLocationBroadcast } from './useLocationBroadcast';
+import { useServiceProT } from '../i18n/I18nProvider';
 
 /** How often the app says "still here" while on duty (the server's window is a few minutes). */
 const HEARTBEAT_MS = 60 * 1000;
@@ -23,6 +24,9 @@ const HEARTBEAT_MS = 60 * 1000;
  * showing a stale Online.
  */
 export default function OnlineLocation() {
+  const t = useServiceProT();
+  const tRef = useRef(t);
+  tRef.current = t;
   const { accessToken, role } = useSelector(selectAuth);
   const isWorker = !!accessToken && role === 'worker';
   const { data, refetch } = useGetWorkerMeQuery(undefined, { skip: !isWorker, pollingInterval: 60000 });
@@ -48,16 +52,16 @@ export default function OnlineLocation() {
         const body = res.ok ? await res.json() : null;
         if (body && body.isOnline === false && !told) {
           told = true;
-          toast('You are offline now. Go online to get jobs again.', { id: 'presence-offline' });
+          toast(tRef.current('sp.you_are_offline_now_go_online_to_get_jobs_again', 'You are offline now. Go online to get jobs again.'), { id: 'presence-offline' });
           refetch();
         }
       } catch { /* no network: the next beat tries again */ }
     };
     beat();
-    const t = setInterval(beat, HEARTBEAT_MS);
+    const timer = setInterval(beat, HEARTBEAT_MS);
     const onVisible = () => { if (document.visibilityState === 'visible') { beat(); refetch(); } };
     document.addEventListener('visibilitychange', onVisible);
-    return () => { clearInterval(t); document.removeEventListener('visibilitychange', onVisible); };
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); };
   }, [online, accessToken, refetch]);
 
   // The server set them offline while the app was open: show it straight away.
@@ -66,7 +70,7 @@ export default function OnlineLocation() {
     const socket = getSocket(accessToken);
     const onPresence = (p) => {
       if (p?.online === false) {
-        toast('We lost contact with your phone, so you were set offline. Go online to get jobs again.', { id: 'presence-offline' });
+        toast(tRef.current('sp.we_lost_contact_with_your_phone_so_you_were_set_offline_go_online_to_get_jobs_again', 'We lost contact with your phone, so you were set offline. Go online to get jobs again.'), { id: 'presence-offline' });
         refetch();
       }
     };

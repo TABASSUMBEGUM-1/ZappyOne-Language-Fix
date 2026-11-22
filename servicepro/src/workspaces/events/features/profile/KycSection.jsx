@@ -4,6 +4,7 @@ import { ShieldCheck, Camera, Upload, Loader2, CheckCircle2, Clock, AlertCircle,
 import { useUpdatePartnerMeMutation, usePresignUploadMutation } from '@shared/services/api';
 import { API_BASE } from '@shared/services/apiBase';
 import LiveSelfieCapture from '@shared/components/kyc/LiveSelfieCapture';
+import { useI18n } from '@shared/i18n/I18nProvider';
 import { Card } from '../../components/ui';
 import { uploadFile } from '../../lib/upload';
 
@@ -14,22 +15,23 @@ import { uploadFile } from '../../lib/upload';
  * it back with a note. Documents are private: previews stream through the API.
  */
 const FIELDS = [
-  { key: 'aadharFront', label: 'Aadhaar card, front', required: true },
-  { key: 'aadharBack', label: 'Aadhaar card, back', required: true },
-  { key: 'panCard', label: 'PAN card', required: true },
-  { key: 'liveSelfie', label: 'Live selfie', required: true, camera: true, hint: 'Taken now with your camera' },
-  { key: 'gstCertificate', label: 'GST certificate', hint: 'Optional' },
-  { key: 'businessRegistration', label: 'Business registration', hint: 'Optional: shop act, MSME or similar' },
+  { key: 'aadharFront', tk: 'sp.ev.ky.aadhFront', label: 'Aadhaar card, front', required: true },
+  { key: 'aadharBack', tk: 'sp.ev.ky.aadhBack', label: 'Aadhaar card, back', required: true },
+  { key: 'panCard', tk: 'sp.ev.ky.pan', label: 'PAN card', required: true },
+  { key: 'liveSelfie', tk: 'sp.ev.ky.selfie', label: 'Live selfie', required: true, camera: true, hk: 'sp.ev.ky.selfieH', hint: 'Taken now with your camera' },
+  { key: 'gstCertificate', tk: 'sp.ev.ky.gst', label: 'GST certificate', hk: 'sp.ev.ky.optional', hint: 'Optional' },
+  { key: 'businessRegistration', tk: 'sp.ev.ky.reg', label: 'Business registration', hk: 'sp.ev.ky.regH', hint: 'Optional: shop act, MSME or similar' },
 ];
 
 const STATE = {
-  approved: { label: 'Verified', tone: 'bg-green-50 text-green-700', Icon: BadgeCheck, text: 'You can publish packages and take bookings.' },
-  pending: { label: 'In review', tone: 'bg-amber-50 text-amber-800', Icon: Clock, text: 'We usually respond within 24 hours.' },
-  rejected: { label: 'Needs changes', tone: 'bg-red-50 text-red-700', Icon: AlertCircle },
-  not_submitted: { label: 'Not submitted', tone: 'bg-sunken text-ink-700', Icon: ShieldCheck, text: 'Add the 4 documents we need. Then we check them.' },
+  approved: { tk: 'sp.ev.ky.verified', label: 'Verified', tone: 'bg-green-50 text-green-700', Icon: BadgeCheck, xk: 'sp.ev.ky.verifiedT', text: 'You can publish packages and take bookings.' },
+  pending: { tk: 'sp.ev.ky.inReview', label: 'In review', tone: 'bg-amber-50 text-amber-800', Icon: Clock, xk: 'sp.ev.ky.inReviewT', text: 'We usually respond within 24 hours.' },
+  rejected: { tk: 'sp.ev.ky.needsCh', label: 'Needs changes', tone: 'bg-red-50 text-red-700', Icon: AlertCircle },
+  not_submitted: { tk: 'sp.ev.ky.notSub', label: 'Not submitted', tone: 'bg-sunken text-ink-700', Icon: ShieldCheck, xk: 'sp.ev.ky.notSubT', text: 'Add the 4 documents we need. Then we check them.' },
 };
 
 function DocRow({ field, storedKey, pendingKey, disabled, token, onUploaded }) {
+  const { t } = useI18n();
   const [presign] = usePresignUploadMutation();
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -50,10 +52,10 @@ function DocRow({ field, storedKey, pendingKey, disabled, token, onUploaded }) {
   async function take(file, meta = null) {
     setBusy(true);
     try {
-      const key = await uploadFile(presign, file, { folder: 'kyc-docs', maxMb: 10 });
+      const key = await uploadFile(presign, file, { folder: 'kyc-docs', maxMb: 10, t });
       setPreview(URL.createObjectURL(file));
       onUploaded(field.key, key, meta);
-    } catch (e) { toast.error(e?.data?.error || e.message || 'Upload failed'); } finally { setBusy(false); }
+    } catch (e) { toast.error(e?.data?.error || e.message || t('sp.ev.pe.upFail', 'Upload failed')); } finally { setBusy(false); }
   }
 
   const done = !!(storedKey || pendingKey);
@@ -63,23 +65,23 @@ function DocRow({ field, storedKey, pendingKey, disabled, token, onUploaded }) {
         <LiveSelfieCapture onCancel={() => setCamera(false)}
           onCapture={(blob, meta) => { setCamera(false); take(new File([blob], 'selfie.jpg', { type: 'image/jpeg' }), meta); }} />
       )}
-      <span role={preview ? 'button' : undefined} tabIndex={preview ? 0 : undefined} title={preview ? 'Open full size' : undefined}
+      <span role={preview ? 'button' : undefined} tabIndex={preview ? 0 : undefined} title={preview ? t('sp.ev.ky.openFull', 'Open full size') : undefined}
         onClick={() => preview && window.open(preview, '_blank', 'noopener')}
         className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-btn border border-line bg-sunken text-ink-500 ${preview ? 'cursor-zoom-in' : ''}`}>
         {preview ? <img src={preview} alt="" className="h-full w-full object-cover" /> : field.camera ? <Camera size={18} /> : field.required ? <IdCard size={18} /> : <FileText size={18} />}
         {done && <CheckCircle2 size={16} className="absolute -bottom-0.5 -right-0.5 rounded-full bg-white text-green-600" />}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[14px] font-semibold text-ink-900">{field.label}{field.required && <span className="text-red-600"> *</span>}</span>
-        <span className="block text-[12px] text-ink-500">{pendingKey ? 'Ready to send' : storedKey ? 'Uploaded' : field.hint || 'Clear photo, all corners visible'}</span>
+        <span className="block text-[14px] font-semibold text-ink-900">{t(field.tk, field.label)}{field.required && <span className="text-red-600"> *</span>}</span>
+        <span className="block text-[12px] text-ink-500">{pendingKey ? t('sp.ev.ky.ready', 'Ready to send') : storedKey ? t('sp.ev.ky.uploaded', 'Uploaded') : (field.hk ? t(field.hk, field.hint) : t('sp.ev.ky.clear', 'Clear photo, all corners visible'))}</span>
       </span>
       {!disabled && (field.camera ? (
         <button type="button" onClick={() => setCamera(true)} disabled={busy} className="btn-outline min-h-[38px] px-3 text-[13px]">
-          {busy ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} {done ? 'Retake' : 'Take selfie'}
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} {done ? t('sp.ev.ky.retake', 'Retake') : t('sp.ev.ky.takeSelfie', 'Take selfie')}
         </button>
       ) : (
         <label className="btn-outline min-h-[38px] cursor-pointer px-3 text-[13px]">
-          {busy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} {done ? 'Replace' : 'Upload'}
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} {done ? t('sp.ev.ky.replace', 'Replace') : t('sp.ev.ky.upload', 'Upload')}
           <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => { if (e.target.files?.[0]) take(e.target.files[0]); e.target.value = ''; }} />
         </label>
       ))}
@@ -88,6 +90,7 @@ function DocRow({ field, storedKey, pendingKey, disabled, token, onUploaded }) {
 }
 
 export default function KycSection({ partner, token }) {
+  const { t } = useI18n();
   const [updateMe, { isLoading: saving }] = useUpdatePartnerMeMutation();
   const [pending, setPending] = useState({});
   const [selfieMeta, setSelfieMeta] = useState(null);
@@ -107,8 +110,8 @@ export default function KycSection({ partner, token }) {
   const panOk = !pan || /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan);
 
   async function submit() {
-    if (!ready) return toast.error('Upload all four required documents first');
-    if (!panOk) return toast.error('PAN looks wrong. It is 5 letters, 4 digits, 1 letter.');
+    if (!ready) return toast.error(t('sp.ev.ky.need4', 'Upload all four required documents first'));
+    if (!panOk) return toast.error(t('sp.ev.ky.panBad', 'PAN looks wrong. It is 5 letters, 4 digits, 1 letter.'));
     try {
       await updateMe({
         ...pending,
@@ -116,26 +119,26 @@ export default function KycSection({ partner, token }) {
         panNumber: pan || undefined, gstNumber: gst || undefined,
       }).unwrap();
       setPending({});
-      toast.success('Sent. We will check it');
-    } catch (e) { toast.error(e?.data?.error || 'Could not send. Try again'); }
+      toast.success(t('sp.ev.ky.sent', 'Sent. We will check it'));
+    } catch (e) { toast.error(e?.data?.error || t('sp.ev.ky.sendFail', 'Could not send. Try again')); }
   }
 
   return (
     <Card>
       <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
-        <p className="flex items-center gap-2 text-[15px] font-bold text-ink-900"><ShieldCheck size={18} className="text-zappy-600" /> Verification</p>
-        <span className={`chip ${st.tone}`}><st.Icon size={12} /> {st.label}</span>
+        <p className="flex items-center gap-2 text-[15px] font-bold text-ink-900"><ShieldCheck size={18} className="text-zappy-600" /> {t('sp.ev.ky.title', 'Verification')}</p>
+        <span className={`chip ${st.tone}`}><st.Icon size={12} /> {t(st.tk, st.label)}</span>
       </div>
       <div className="p-4">
         <p className="text-[14px] text-ink-500">
           {clar
-            ? `Please send again: ${FIELDS.filter((f) => asked?.has(f.key)).map((f) => f.label).join(', ')}. ${clar.message} Everything else is kept.`
-            : status === 'rejected' ? `Sent back: ${kyc.reviewNote || 'please re-upload clear documents.'}` : st.text}
+            ? t('sp.ev.ky.sendAgain', 'Please send again: {docs}. {msg} Everything else is kept.').replace('{docs}', FIELDS.filter((f) => asked?.has(f.key)).map((f) => t(f.tk, f.label)).join(', ')).replace('{msg}', clar.message || '')
+            : status === 'rejected' ? t('sp.ev.ky.sentBack', 'Sent back: {note}').replace('{note}', kyc.reviewNote || t('sp.ev.ky.reupload', 'please re-upload clear documents.')) : (st.xk ? t(st.xk, st.text) : st.text)}
         </p>
         {!locked && (
           <div className="mt-3">
             <div className="flex items-center justify-between text-[12px] text-ink-500">
-              <span>Required documents</span><span className="font-semibold tabular-nums text-ink-900">{doneRequired}/{required.length}</span>
+              <span>{t('sp.ev.ky.reqDocs', 'Required documents')}</span><span className="font-semibold tabular-nums text-ink-900">{doneRequired}/{required.length}</span>
             </div>
             <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-sunken">
               <div className={`h-full rounded-full ${ready ? 'bg-green-600' : 'bg-zappy-600'}`} style={{ width: `${(doneRequired / required.length) * 100}%` }} />
@@ -158,18 +161,18 @@ export default function KycSection({ partner, token }) {
           <>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <label className="block">
-                <span className="mb-1.5 block text-[13px] font-semibold text-ink-700">PAN number</span>
+                <span className="mb-1.5 block text-[13px] font-semibold text-ink-700">{t('sp.ev.ky.panNo', 'PAN number')}</span>
                 <input className="input w-full font-mono uppercase" maxLength={10} value={pan} onChange={(e) => setPan(e.target.value.toUpperCase())} placeholder="ABCDE1234F" />
-                {!panOk && <span className="mt-1 block text-[12px] text-red-700">5 letters, 4 digits, 1 letter</span>}
+                {!panOk && <span className="mt-1 block text-[12px] text-red-700">{t('sp.ev.ky.panFmt', '5 letters, 4 digits, 1 letter')}</span>}
               </label>
               <label className="block">
-                <span className="mb-1.5 block text-[13px] font-semibold text-ink-700">GST number <span className="font-normal text-ink-400">(optional)</span></span>
+                <span className="mb-1.5 block text-[13px] font-semibold text-ink-700">{t('sp.ev.ky.gstNo', 'GST number')} <span className="font-normal text-ink-400">{t('sp.c.optional', '(optional)')}</span></span>
                 <input className="input w-full font-mono uppercase" maxLength={15} value={gst} onChange={(e) => setGst(e.target.value.toUpperCase())} placeholder="36ABCDE1234F1Z5" />
               </label>
             </div>
             <button type="button" onClick={submit} disabled={saving || !ready} className="btn-primary mt-4 w-full">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
-              {ready ? 'Send for checking' : `Upload ${required.length - doneRequired} more required`}
+              {ready ? t('sp.ev.ky.send', 'Send for checking') : t('sp.ev.ky.uploadMore', 'Upload {n} more required').replace('{n}', required.length - doneRequired)}
             </button>
           </>
         )}

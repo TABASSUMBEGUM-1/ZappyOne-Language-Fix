@@ -9,8 +9,22 @@ import {
 } from '../../services/api';
 import { useOtpGate } from '../../components/common/OtpGate';
 import { bankFormErrors } from '../bankRules';
+import { useServiceProT } from '../../i18n/I18nProvider';
+
+// bankRules.js is shared with the app and stays English; its messages are translated here.
+const BANK_ERR = {
+  'Enter your UPI ID.': 'sp.wb.e.upi1',
+  'A UPI ID looks like name@bank, for example asif@oksbi.': 'sp.wb.e.upi2',
+  'Enter the account holder name, as the bank has it.': 'sp.wb.e.name',
+  'Enter the account number.': 'sp.wb.e.acc1',
+  'An account number is 6 to 18 digits, numbers only.': 'sp.wb.e.acc2',
+  'Enter the IFSC code.': 'sp.wb.e.ifsc1',
+  'An IFSC is 11 characters, like HDFC0001234 (the 5th is a zero).': 'sp.wb.e.ifsc2',
+};
 
 function AddSheet({ onClose, start = 'bank' }) {
+  const t = useServiceProT();
+  const errT = (m) => (BANK_ERR[m] ? t(BANK_ERR[m], m) : m);
   const [tab, setTab] = useState(start);
   const [form, setForm] = useState({ label: '', accountName: '', accountNumber: '', bankName: '', ifsc: '', upiId: '', upiLabel: '' });
   const [add, { isLoading: saving }] = useAddWorkerBankAccountMutation();
@@ -32,7 +46,7 @@ function AddSheet({ onClose, start = 'bank' }) {
     if (tab === 'upi' && upiName === null) {
       try {
         const r = await checkUpi(form.upiId.trim()).unwrap();
-        if (r.status === 'invalid') { toast.error('This UPI ID does not exist. Check it in your UPI app.'); return; }
+        if (r.status === 'invalid') { toast.error(t('sp.wb.upiBad', 'This UPI ID does not exist. Check it in your UPI app.')); return; }
         // Verified: show whose it is and wait for "Yes, save". Could not check: save as it is.
         if (r.status === 'verified' && r.name) { setUpiName(r.name); return; }
       } catch { /* checking is a help, never a blocker: the server checks again when saving */ }
@@ -41,9 +55,9 @@ function AddSheet({ onClose, start = 'bank' }) {
       // Only this tab's fields: the other tab's empty ones are not part of what is saved.
       const body = tab === 'upi' ? { type: 'upi', upiId: form.upiId.trim(), upiLabel: form.upiLabel.trim() } : { type: 'bank', label: form.label.trim(), accountName: form.accountName.trim(), accountNumber: form.accountNumber.replace(/\s/g, ''), bankName: form.bankName.trim(), ifsc: form.ifsc.trim().toUpperCase() };
       await otp.run(() => add(body).unwrap());
-      toast.success(tab === 'upi' ? 'UPI ID added successfully!' : 'Bank account added successfully!');
+      toast.success(tab === 'upi' ? t('sp.wb.upiAdded', 'UPI ID added successfully!') : t('sp.wb.bankAdded', 'Bank account added successfully!'));
       onClose();
-    } catch (err) { if (err?.message !== 'cancelled') toast.error(err?.data?.error || 'Failed to add payment method'); }
+    } catch (err) { if (err?.message !== 'cancelled') toast.error(err?.data?.error || t('sp.wb.addFail', 'Failed to add payment method')); }
   }
 
   return (
@@ -59,16 +73,16 @@ function AddSheet({ onClose, start = 'bank' }) {
         <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 sm:hidden" />
         
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-black text-slate-800 tracking-wide">Add Destination</h2>
+          <h2 className="text-lg font-black text-slate-800 tracking-wide">{t('sp.wb.addDest', 'Add Destination')}</h2>
           <button onClick={onClose} className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"><X size={16} strokeWidth={2.5} /></button>
         </div>
         
         <div className="flex gap-2 bg-slate-100/80 p-1.5 rounded-2xl mb-6 shadow-inner">
-          {['bank', 'upi'].map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`flex-1 py-3 rounded-xl text-[13px] font-bold transition-all duration-200 flex justify-center items-center gap-2 ${tab === t ? 'bg-white text-zappy-600 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700'}`}>
-              {t === 'bank' ? <Building2 size={16} strokeWidth={2.5} /> : <Smartphone size={16} strokeWidth={2.5} />}
-              {t === 'bank' ? 'Bank Transfer' : 'UPI ID'}
+          {['bank', 'upi'].map(tab_ => (
+            <button key={tab_} onClick={() => setTab(tab_)}
+              className={`flex-1 py-3 rounded-xl text-[13px] font-bold transition-all duration-200 flex justify-center items-center gap-2 ${tab === tab_ ? 'bg-white text-zappy-600 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700'}`}>
+              {tab_ === 'bank' ? <Building2 size={16} strokeWidth={2.5} /> : <Smartphone size={16} strokeWidth={2.5} />}
+              {tab_ === 'bank' ? t('sp.wb.tabBank', 'Bank Transfer') : t('sp.wb.tabUpi', 'UPI ID')}
             </button>
           ))}
         </div>
@@ -78,47 +92,47 @@ function AddSheet({ onClose, start = 'bank' }) {
             {tab === 'bank' ? (
               <motion.div key="bank" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">Account Holder</label>
-                  <input aria-invalid={!!errors.accountName} aria-describedby={errors.accountName ? 'err-accountName' : undefined} className="input-field" placeholder="Name as per bank record" value={form.accountName} onChange={e => set('accountName', e.target.value)} />
-                  {errors.accountName && <p id="err-accountName" className="mt-1 pl-1 text-[12px] font-semibold text-red-600">{errors.accountName}</p>}
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">{t('sp.wb.holder', 'Account Holder')}</label>
+                  <input aria-invalid={!!errors.accountName} aria-describedby={errors.accountName ? 'err-accountName' : undefined} className="input-field" placeholder={t('sp.wb.holderP', 'Name as per bank record')} value={form.accountName} onChange={e => set('accountName', e.target.value)} />
+                  {errors.accountName && <p id="err-accountName" className="mt-1 pl-1 text-[12px] font-semibold text-red-600">{errT(errors.accountName)}</p>}
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">Account Number</label>
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">{t('sp.wb.acNo', 'Account Number')}</label>
                   <input inputMode="numeric" aria-invalid={!!errors.accountNumber} aria-describedby={errors.accountNumber ? 'err-accountNumber' : undefined} className="input-field font-mono" placeholder="0000 0000 0000" value={form.accountNumber} onChange={e => set('accountNumber', e.target.value)} />
-                  {errors.accountNumber && <p id="err-accountNumber" className="mt-1 pl-1 text-[12px] font-semibold text-red-600">{errors.accountNumber}</p>}
+                  {errors.accountNumber && <p id="err-accountNumber" className="mt-1 pl-1 text-[12px] font-semibold text-red-600">{errT(errors.accountNumber)}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">IFSC Code</label>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">{t('sp.wb.ifsc', 'IFSC Code')}</label>
                     <input aria-invalid={!!errors.ifsc} aria-describedby={errors.ifsc ? 'err-ifsc' : undefined} className="input-field font-mono uppercase" placeholder="SBIN0001234" value={form.ifsc} onChange={e => set('ifsc', e.target.value.toUpperCase())} maxLength={11} />
-                  {errors.ifsc && <p id="err-ifsc" className="mt-1 pl-1 text-[12px] font-semibold text-red-600">{errors.ifsc}</p>}
+                  {errors.ifsc && <p id="err-ifsc" className="mt-1 pl-1 text-[12px] font-semibold text-red-600">{errT(errors.ifsc)}</p>}
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">Bank Name</label>
-                    <input className="input-field" placeholder="e.g. State Bank" value={form.bankName} onChange={e => set('bankName', e.target.value)} />
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">{t('sp.wb.bankName', 'Bank Name')}</label>
+                    <input className="input-field" placeholder={t('sp.wb.bankNameP', 'e.g. State Bank')} value={form.bankName} onChange={e => set('bankName', e.target.value)} />
                   </div>
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">Nickname (Optional)</label>
-                  <input className="input-field" placeholder="e.g. Main Salary Account" value={form.label} onChange={e => set('label', e.target.value)} />
+                  <input className="input-field" placeholder={t('sp.wb.nickBankP', 'e.g. Main Salary Account')} value={form.label} onChange={e => set('label', e.target.value)} />
                 </div>
               </motion.div>
             ) : (
               <motion.div key="upi" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">UPI ID</label>
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">{t('sp.wb.tabUpi', 'UPI ID')}</label>
                   <input aria-invalid={!!errors.upiId} aria-describedby={errors.upiId ? 'err-upiId' : undefined} className="input-field font-mono" placeholder="username@bank" value={form.upiId} onChange={e => set('upiId', e.target.value)} />
-                  {errors.upiId && <p id="err-upiId" className="mt-1 pl-1 text-[12px] font-semibold text-red-600">{errors.upiId}</p>}
+                  {errors.upiId && <p id="err-upiId" className="mt-1 pl-1 text-[12px] font-semibold text-red-600">{errT(errors.upiId)}</p>}
                 </div>
                 {upiName && (
                   <p className="flex items-start gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-[13px] text-emerald-900">
                     <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-600" />
-                    <span>Payments to this UPI ID go to <b>{upiName}</b>. Is this you?</span>
+                    <span>{t('sp.wb.paysTo', 'Payments to this UPI ID go to {n}. Is this you?').split('{n}')[0]}<b>{upiName}</b>{t('sp.wb.paysTo', 'Payments to this UPI ID go to {n}. Is this you?').split('{n}')[1]}</span>
                   </p>
                 )}
                 <div>
                   <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">Nickname (Optional)</label>
-                  <input className="input-field" placeholder="e.g. PhonePe / GPay" value={form.upiLabel} onChange={e => set('upiLabel', e.target.value)} />
+                  <input className="input-field" placeholder={t('sp.wb.nickUpiP', 'e.g. PhonePe / GPay')} value={form.upiLabel} onChange={e => set('upiLabel', e.target.value)} />
                 </div>
               </motion.div>
             )}
@@ -128,10 +142,10 @@ function AddSheet({ onClose, start = 'bank' }) {
             <button type="submit" disabled={isLoading}
               className="w-full py-4 rounded-[1.25rem] bg-zappy-600 hover:bg-zappy-700 text-white font-black text-[15px] flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-zappy-600/20 transition-all active:scale-[0.98]">
               {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} strokeWidth={2.5} />}
-              {tab === 'upi' && upiName ? 'Yes, save this UPI ID' : tab === 'upi' ? 'Check and save' : 'Save Securely'}
+              {tab === 'upi' && upiName ? t('sp.wb.yesSave', 'Yes, save this UPI ID') : tab === 'upi' ? t('sp.wb.checkSave', 'Check and save') : t('sp.wb.saveSec', 'Save Securely')}
             </button>
             <p className="text-[10px] text-center text-slate-400 font-medium mt-3 flex items-center justify-center gap-1">
-              <ShieldCheck size={12} className="text-emerald-500" /> Information is securely encrypted
+              <ShieldCheck size={12} className="text-emerald-500" /> {t('sp.wb.enc', 'Information is securely encrypted')}
             </p>
           </div>
         </form>
@@ -141,6 +155,7 @@ function AddSheet({ onClose, start = 'bank' }) {
 }
 
 export default function WorkerBankPage() {
+  const t = useServiceProT();
   const nav = useNavigate();
   const { data, isLoading } = useGetWorkerBankAccountsQuery();
   const [deleteAcc] = useDeleteWorkerBankAccountMutation();
@@ -153,14 +168,14 @@ export default function WorkerBankPage() {
   const upiIds = data?.upiIds ?? [];
 
   async function handleDelete(id, type) {
-    if (!window.confirm('Remove this payment method?')) return;
-    try { await deleteAcc({ id, type }).unwrap(); toast.success('Removed successfully'); }
-    catch { toast.error('Failed to remove'); }
+    if (!window.confirm(t('sp.wb.confirmDel', 'Remove this payment method?'))) return;
+    try { await deleteAcc({ id, type }).unwrap(); toast.success(t('sp.wb.removed', 'Removed successfully')); }
+    catch { toast.error(t('sp.wb.removeFail', 'Failed to remove')); }
   }
 
   async function handleDefault(id, type) {
-    try { await setDefault({ id, type }).unwrap(); toast.success('Set as default'); }
-    catch { toast.error('Failed'); }
+    try { await setDefault({ id, type }).unwrap(); toast.success(t('sp.wb.setDef', 'Set as default')); }
+    catch { toast.error(t('sp.wk.failed', 'Failed')); }
   }
 
   return (
@@ -175,9 +190,9 @@ export default function WorkerBankPage() {
               <motion.button onClick={() => nav(-1)} whileTap={{ scale: 0.9 }} className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white">
                 <ArrowLeft size={20} strokeWidth={2.5} />
               </motion.button>
-              <h1 className="text-white font-black tracking-wide text-lg">Bank & UPI</h1>
+              <h1 className="text-white font-black tracking-wide text-lg">{t('sp.wb.title', 'Bank & UPI')}</h1>
               <motion.button onClick={() => setShowAdd(true)} whileTap={{ scale: 0.9 }} className="h-10 px-4 rounded-full bg-white text-zappy-600 font-bold text-sm flex items-center justify-center gap-1.5 shadow-md">
-                <Plus size={16} strokeWidth={2.5} /> Add
+                <Plus size={16} strokeWidth={2.5} /> {t('sp.wb.add', 'Add')}
               </motion.button>
             </div>
 
@@ -185,8 +200,8 @@ export default function WorkerBankPage() {
               <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/20">
                 <Building2 size={32} className="text-white" strokeWidth={1.5} />
               </div>
-              <p className="text-white font-bold text-lg tracking-tight">Payment Methods</p>
-              <p className="text-white/60 text-xs font-medium mt-1">Manage where you receive your earnings</p>
+              <p className="text-white font-bold text-lg tracking-tight">{t('sp.wb.methods', 'Payment Methods')}</p>
+              <p className="text-white/60 text-xs font-medium mt-1">{t('sp.wb.manage', 'Manage where you receive your earnings')}</p>
             </div>
           </div>
         </header>
@@ -197,7 +212,7 @@ export default function WorkerBankPage() {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 bg-white rounded-[1.5rem] shadow-sm">
               <Loader2 size={24} className="animate-spin text-zappy-400 mb-3" />
-              <p className="text-sm font-semibold text-slate-400">Loading accounts...</p>
+              <p className="text-sm font-semibold text-slate-400">{t('sp.wb.loading', 'Loading accounts...')}</p>
             </div>
           ) : (
             <>
@@ -206,10 +221,10 @@ export default function WorkerBankPage() {
                   <div className="w-16 h-16 rounded-full bg-zappy-50 flex items-center justify-center mx-auto mb-4">
                     <ShieldCheck size={28} className="text-zappy-400" />
                   </div>
-                  <p className="font-bold text-slate-700 text-[15px]">No Payment Methods</p>
-                  <p className="text-[13px] text-slate-500 mt-1.5 mb-6">Add a bank account or UPI ID to withdraw your earnings securely.</p>
+                  <p className="font-bold text-slate-700 text-[15px]">{t('sp.wb.none', 'No Payment Methods')}</p>
+                  <p className="text-[13px] text-slate-500 mt-1.5 mb-6">{t('sp.wb.noneH', 'Add a bank account or UPI ID to withdraw your earnings securely.')}</p>
                   <button onClick={() => setShowAdd(true)} className="px-6 py-3 bg-zappy-600 text-white rounded-xl font-bold text-sm shadow-md hover:bg-zappy-700 transition-colors">
-                    Add Method Now
+                    {t('sp.wb.addNow', 'Add Method Now')}
                   </button>
                 </motion.div>
               )}
@@ -217,7 +232,7 @@ export default function WorkerBankPage() {
               {/* Bank accounts */}
               {banks.length > 0 && (
                 <section>
-                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Bank Accounts</p>
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">{t('sp.wb.banks', 'Bank Accounts')}</p>
                   <div className="space-y-3">
                     {banks.map((b, i) => (
                       <motion.div key={b._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
@@ -229,19 +244,19 @@ export default function WorkerBankPage() {
 
                         {b.isDefault && (
                           <div className="absolute top-0 right-0 bg-zappy-500 text-white text-[9px] font-black px-3 py-1 rounded-bl-xl tracking-widest uppercase flex items-center gap-1">
-                            <CheckCircle2 size={10} /> Default
+                            <CheckCircle2 size={10} /> {t('sp.wb.default', 'Default')}
                           </div>
                         )}
 
                         <div className="relative z-10 flex flex-col h-full justify-between">
                           <div className="mb-4">
-                            <p className="text-xs text-slate-400 font-bold tracking-wider uppercase mb-1">{b.bankName || 'Bank Account'}</p>
+                            <p className="text-xs text-slate-400 font-bold tracking-wider uppercase mb-1">{b.bankName || t('sp.ww.bank', 'Bank Account')}</p>
                             <p className="font-black text-slate-800 text-lg tracking-tight">{b.accountName}</p>
                           </div>
                           
                           <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex justify-between items-center">
                             <div>
-                              <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">A/C Number</p>
+                              <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">{t('sp.wb.acNum', 'A/C Number')}</p>
                               <p className="font-mono font-bold text-slate-700 mt-0.5">•••• {b.accountNumber.slice(-4)}</p>
                             </div>
                             <div className="text-right">
@@ -252,11 +267,11 @@ export default function WorkerBankPage() {
                         </div>
 
                         <div className="relative z-10 flex items-center justify-between mt-4 border-t border-slate-100 pt-3">
-                          <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-md">{b.label || 'Saved'}</span>
+                          <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-md">{b.label || t('sp.wb.saved', 'Saved')}</span>
                           <div className="flex gap-2">
                             {!b.isDefault && (
                               <button onClick={() => handleDefault(b._id, 'bank')} className="px-3 py-1.5 rounded-lg text-xs font-bold text-zappy-600 bg-zappy-50 hover:bg-zappy-100 transition-colors">
-                                Make Default
+                                {t('sp.wb.makeDef', 'Make Default')}
                               </button>
                             )}
                             <button onClick={() => handleDelete(b._id, 'bank')} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors">
@@ -273,7 +288,7 @@ export default function WorkerBankPage() {
               {/* UPI IDs */}
               {upiIds.length > 0 && (
                 <section>
-                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1 mt-6">UPI IDs</p>
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1 mt-6">{t('sp.wb.upis', 'UPI IDs')}</p>
                   <div className="space-y-3">
                     {upiIds.map((u, i) => (
                       <motion.div key={u._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: (banks.length + i) * 0.1 }}
@@ -285,17 +300,17 @@ export default function WorkerBankPage() {
                           </div>
                           <div>
                             <p className="font-black text-slate-800 text-[15px]">{u.upiId}</p>
-                            {u.verifiedName && <p className="mt-0.5 flex items-center gap-1 text-[12px] font-semibold text-emerald-700"><CheckCircle2 size={12} /> Verified: {u.verifiedName}</p>}
+                            {u.verifiedName && <p className="mt-0.5 flex items-center gap-1 text-[12px] font-semibold text-emerald-700"><CheckCircle2 size={12} /> {t('sp.wb.verified', 'Verified: {n}').replace('{n}', u.verifiedName)}</p>}
                             <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded uppercase tracking-wider">{u.label || 'Saved'}</span>
-                              {u.isDefault && <span className="text-[10px] font-bold text-zappy-600 flex items-center gap-0.5"><CheckCircle2 size={10} /> Default</span>}
+                              <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded uppercase tracking-wider">{u.label || t('sp.wb.saved', 'Saved')}</span>
+                              {u.isDefault && <span className="text-[10px] font-bold text-zappy-600 flex items-center gap-0.5"><CheckCircle2 size={10} /> {t('sp.wb.default', 'Default')}</span>}
                             </div>
                           </div>
                         </div>
 
                         <div className="flex flex-col gap-2">
                           {!u.isDefault && (
-                            <button onClick={() => handleDefault(u._id, 'upi')} className="p-2 rounded-lg text-zappy-600 bg-zappy-50 hover:bg-zappy-100 transition-colors" title="Use this one">
+                            <button onClick={() => handleDefault(u._id, 'upi')} className="p-2 rounded-lg text-zappy-600 bg-zappy-50 hover:bg-zappy-100 transition-colors" title={t('sp.wb.useThis', 'Use this one')}>
                               <Star size={14} className="fill-zappy-600" />
                             </button>
                           )}
@@ -312,7 +327,7 @@ export default function WorkerBankPage() {
               {(banks.length > 0 || upiIds.length > 0) && (
                 <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex gap-3 text-[12px] font-medium text-emerald-800 mt-6 shadow-sm">
                   <AlertCircle size={16} className="shrink-0 mt-0.5 text-emerald-600" />
-                  <p>Your default account will be pre-filled when you request a withdrawal from your wallet.</p>
+                  <p>{t('sp.wb.prefill', 'Your default account will be pre-filled when you request a withdrawal from your wallet.')}</p>
                 </div>
               )}
             </>

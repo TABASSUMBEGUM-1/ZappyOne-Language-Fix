@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Target, Zap, TrendingUp, Plus, Edit2, Check, Loader2, X, ChevronRight, Trophy } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useGetWorkerGoalsQuery, useSetWorkerGoalMutation, useGetZoneBenchmarkQuery } from '../../services/api';
+import { useServiceProT } from '../../i18n/I18nProvider';
+
+const periodWord = (t, p) => (p === 'daily' ? t('sp.wg.daily', 'Daily') : p === 'weekly' ? t('sp.wg.weekly', 'Weekly') : p);
 
 function ProgressRing({ pct, size = 96, stroke = 8, color = '#1F4FD8' }) {
   const r = (size - stroke) / 2;
@@ -29,6 +32,7 @@ function ProgressRing({ pct, size = 96, stroke = 8, color = '#1F4FD8' }) {
 }
 
 function GoalCard({ goal, onEdit, index }) {
+  const t = useServiceProT();
   const earned = goal.earnedPaise ?? 0;
   const target = goal.targetPaise ?? 0;
   const pct = target > 0 ? Math.round((earned / target) * 100) : 0;
@@ -56,10 +60,10 @@ function GoalCard({ goal, onEdit, index }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
-              <p className="font-black text-slate-800 text-[15px] capitalize tracking-wide">{goal.period} Goal</p>
+              <p className="font-black text-slate-800 text-[15px] capitalize tracking-wide">{t('sp.wg.goalOf', '{p} Goal').replace('{p}', periodWord(t, goal.period))}</p>
               {pct >= 100 && (
                 <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-1 text-[9px] bg-emerald-100/80 text-emerald-700 font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-emerald-200/50">
-                  <Trophy size={10} /> Achieved
+                  <Trophy size={10} /> {t('sp.wg.achieved', 'Achieved')}
                 </motion.span>
               )}
             </div>
@@ -75,9 +79,9 @@ function GoalCard({ goal, onEdit, index }) {
           
           <div className="mt-2 inline-block">
             {over ? (
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100/50">+₹{((earned - target) / 100).toFixed(0)} over target!</span>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100/50">{t('sp.wg.over', '+₹{n} over target!').replace('{n}', ((earned - target) / 100).toFixed(0))}</span>
             ) : (
-              <span className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">₹{(remaining / 100).toFixed(0)} more to go</span>
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">{t('sp.wg.togo', '₹{n} more to go').replace('{n}', (remaining / 100).toFixed(0))}</span>
             )}
           </div>
         </div>
@@ -97,18 +101,19 @@ function GoalCard({ goal, onEdit, index }) {
 }
 
 function SetGoalSheet({ period, currentTarget, onClose }) {
+  const t = useServiceProT();
   const [val, setVal] = useState(currentTarget ? String(currentTarget / 100) : '');
   const [setGoal, { isLoading }] = useSetWorkerGoalMutation();
 
   async function submit(e) {
     e.preventDefault();
     const amtPaise = Math.round(parseFloat(val) * 100);
-    if (!amtPaise || amtPaise < 100) return toast.error('Set at least ₹1 as goal');
+    if (!amtPaise || amtPaise < 100) return toast.error(t('sp.wg.min1', 'Set at least ₹1 as goal'));
     try {
       await setGoal({ period, targetPaise: amtPaise }).unwrap();
-      toast.success(`${period} goal set!`);
+      toast.success(t('sp.wg.setOk', '{p} goal set!').replace('{p}', periodWord(t, period)));
       onClose();
-    } catch (err) { toast.error(err?.data?.error || 'Failed to set goal'); }
+    } catch (err) { toast.error(err?.data?.error || t('sp.wg.setFail', 'Failed to set goal')); }
   }
 
   const PRESETS = period === 'daily' ? [500, 1000, 1500, 2000] : [5000, 10000, 20000, 30000];
@@ -128,7 +133,7 @@ function SetGoalSheet({ period, currentTarget, onClose }) {
         <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 sm:hidden" />
         
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-black text-slate-800 capitalize tracking-wide">Set {period} Goal</h2>
+          <h2 className="text-lg font-black text-slate-800 capitalize tracking-wide">{t('sp.wg.setTitle', 'Set {p} Goal').replace('{p}', periodWord(t, period))}</h2>
           <button onClick={onClose} className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"><X size={16} strokeWidth={2.5} /></button>
         </div>
         
@@ -144,7 +149,7 @@ function SetGoalSheet({ period, currentTarget, onClose }) {
           </div>
           
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Quick Presets</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">{t('sp.wg.presets', 'Quick Presets')}</p>
             <div className="grid grid-cols-4 gap-2">
               {PRESETS.map(p => (
                 <button key={p} type="button" onClick={() => setVal(String(p))}
@@ -158,7 +163,7 @@ function SetGoalSheet({ period, currentTarget, onClose }) {
           <button type="submit" disabled={isLoading}
             className="w-full py-4 rounded-[1.25rem] bg-zappy-600 hover:bg-zappy-700 text-white font-black text-[15px] flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-zappy-600/20 transition-all active:scale-[0.98]">
             {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} strokeWidth={2.5} />}
-            Save Target
+            {t('sp.wg.save', 'Save Target')}
           </button>
         </form>
       </motion.div>
@@ -167,6 +172,7 @@ function SetGoalSheet({ period, currentTarget, onClose }) {
 }
 
 export default function WorkerGoalsPage() {
+  const t = useServiceProT();
   const nav = useNavigate();
   const { data, isLoading } = useGetWorkerGoalsQuery();
   const { data: benchmark } = useGetZoneBenchmarkQuery();
@@ -188,13 +194,13 @@ export default function WorkerGoalsPage() {
               <motion.button onClick={() => nav(-1)} whileTap={{ scale: 0.9 }} className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white">
                 <ArrowLeft size={20} strokeWidth={2.5} />
               </motion.button>
-              <h1 className="text-white font-black tracking-wide text-lg">Earning targets</h1>
+              <h1 className="text-white font-black tracking-wide text-lg">{t('sp.wg.title', 'Earning targets')}</h1>
               <div className="w-10 h-10" /> {/* Balancer */}
             </div>
 
             <div className="text-center px-4">
-              <p className="text-white/80 text-sm font-medium mb-1">Set targets and crush them.</p>
-              <p className="text-white/50 text-[11px] font-bold uppercase tracking-widest">Track your daily & weekly hustle</p>
+              <p className="text-white/80 text-sm font-medium mb-1">{t('sp.wg.crush', 'Set targets and crush them.')}</p>
+              <p className="text-white/50 text-[11px] font-bold uppercase tracking-widest">{t('sp.wg.track', 'Track your daily & weekly hustle')}</p>
             </div>
           </div>
         </header>
@@ -210,13 +216,13 @@ export default function WorkerGoalsPage() {
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center"><TrendingUp size={12} className="text-white" /></div>
-                    <p className="text-[10px] text-zappy-200 font-bold uppercase tracking-widest">Zone Benchmark</p>
+                    <p className="text-[10px] text-zappy-200 font-bold uppercase tracking-widest">{t('sp.wg.zone', 'Zone Benchmark')}</p>
                   </div>
                   <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-black">Top {Math.round(100 - benchmark.percentile)}%</p>
-                    <span className="text-zappy-300 text-xs font-bold">in your zone</span>
+                    <p className="text-3xl font-black">{t('sp.wg.top', 'Top {n}%').replace('{n}', Math.round(100 - benchmark.percentile))}</p>
+                    <span className="text-zappy-300 text-xs font-bold">{t('sp.wg.inZone', 'in your zone')}</span>
                   </div>
-                  <p className="text-xs text-zappy-200 mt-1 font-medium bg-white/10 inline-block px-2.5 py-1 rounded-full border border-white/10">Avg earning: ₹{(benchmark.zoneAvgPaise / 100).toFixed(0)} / week</p>
+                  <p className="text-xs text-zappy-200 mt-1 font-medium bg-white/10 inline-block px-2.5 py-1 rounded-full border border-white/10">{t('sp.wg.avg', 'Avg earning: ₹{n} / week').replace('{n}', (benchmark.zoneAvgPaise / 100).toFixed(0))}</p>
                   
                   <div className="mt-4 h-2 bg-zappy-900/50 rounded-full overflow-hidden shadow-inner">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${benchmark.percentile}%` }} transition={{ duration: 1, delay: 0.5 }} className="h-full bg-emerald-300 rounded-full" />
@@ -229,17 +235,17 @@ export default function WorkerGoalsPage() {
           {isLoading ? (
             <div className="flex flex-col justify-center items-center py-12">
               <Loader2 size={24} className="animate-spin text-zappy-400 mb-3" />
-              <p className="text-sm font-semibold text-slate-400">Loading goals...</p>
+              <p className="text-sm font-semibold text-slate-400">{t('sp.wg.loading', 'Loading goals...')}</p>
             </div>
           ) : (
             <>
               {/* Daily goal */}
               <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
                 <div className="flex items-center justify-between mb-3 px-2">
-                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Daily Goal</p>
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{t('sp.wg.dailyG', 'Daily Goal')}</p>
                   {!dailyGoal && (
                     <button onClick={() => setEditPeriod('daily')} className="text-[11px] font-bold text-zappy-600 bg-zappy-50 px-2.5 py-1 rounded-full flex items-center gap-1 hover:bg-zappy-100 transition-colors">
-                      <Plus size={12} strokeWidth={2.5} /> Set Target
+                      <Plus size={12} strokeWidth={2.5} /> {t('sp.wg.setT', 'Set Target')}
                     </button>
                   )}
                 </div>
@@ -252,8 +258,8 @@ export default function WorkerGoalsPage() {
                       <Target size={24} strokeWidth={2} className="opacity-40 group-hover:opacity-100" />
                     </div>
                     <div>
-                      <p className="text-[15px] font-bold text-slate-600 group-hover:text-zappy-600">Set Daily Target</p>
-                      <p className="text-xs mt-1 opacity-70">Boost your daily motivation</p>
+                      <p className="text-[15px] font-bold text-slate-600 group-hover:text-zappy-600">{t('sp.wg.setDaily', 'Set Daily Target')}</p>
+                      <p className="text-xs mt-1 opacity-70">{t('sp.wg.setDailyH', 'Boost your daily motivation')}</p>
                     </div>
                   </button>
                 )}
@@ -262,10 +268,10 @@ export default function WorkerGoalsPage() {
               {/* Weekly goal */}
               <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
                 <div className="flex items-center justify-between mb-3 px-2 mt-2">
-                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Weekly Goal</p>
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{t('sp.wg.weeklyG', 'Weekly Goal')}</p>
                   {!weeklyGoal && (
                     <button onClick={() => setEditPeriod('weekly')} className="text-[11px] font-bold text-zappy-600 bg-zappy-50 px-2.5 py-1 rounded-full flex items-center gap-1 hover:bg-zappy-100 transition-colors">
-                      <Plus size={12} strokeWidth={2.5} /> Set Target
+                      <Plus size={12} strokeWidth={2.5} /> {t('sp.wg.setT', 'Set Target')}
                     </button>
                   )}
                 </div>
@@ -278,8 +284,8 @@ export default function WorkerGoalsPage() {
                       <Target size={24} strokeWidth={2} className="opacity-40 group-hover:opacity-100" />
                     </div>
                     <div>
-                      <p className="text-[15px] font-bold text-slate-600 group-hover:text-zappy-600">Set Weekly Target</p>
-                      <p className="text-xs mt-1 opacity-70">Plan your weekly income</p>
+                      <p className="text-[15px] font-bold text-slate-600 group-hover:text-zappy-600">{t('sp.wg.setWeekly', 'Set Weekly Target')}</p>
+                      <p className="text-xs mt-1 opacity-70">{t('sp.wg.setWeeklyH', 'Plan your weekly income')}</p>
                     </div>
                   </button>
                 )}
@@ -292,8 +298,8 @@ export default function WorkerGoalsPage() {
                   <Zap size={18} className="text-amber-600 fill-amber-600/20" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="text-[13px] font-bold leading-tight">Track Your Hustle</p>
-                  <p className="text-[11px] font-medium opacity-80 mt-0.5">View detailed job-by-job breakdown</p>
+                  <p className="text-[13px] font-bold leading-tight">{t('sp.wg.hustle', 'Track Your Hustle')}</p>
+                  <p className="text-[11px] font-medium opacity-80 mt-0.5">{t('sp.wg.hustleH', 'View detailed job-by-job breakdown')}</p>
                 </div>
                 <ChevronRight size={18} className="text-amber-400 group-hover:translate-x-1 transition-transform" />
               </motion.button>

@@ -2,6 +2,8 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   LayoutDashboard, Wrench, Users, IndianRupee, Store, ShieldCheck, PlusCircle, Bell, UserRound, Star, MessageSquareQuote, Scale, FileText, Wallet, Landmark, KanbanSquare, BarChart3, Repeat, Headphones } from 'lucide-react';
+import { useT } from '@shared/i18n/I18nProvider';
+import { labelKey } from '@shared/i18n/translations';
 import PortalShell from '@shared/components/worker/PortalShell';
 import ProfileGate, { ALWAYS } from './ProfileGate';
 import { STAFF_HELP_PHONE, ownerPages as sharedOwnerPages } from '@shared/provider/partnerPages';
@@ -32,6 +34,7 @@ const TECHNICIAN_PAGES = [
 
 export default function ServiceProShell() {
   const nav = useNavigate();
+  const t = useT();
   const dispatch = useDispatch();
   const { role, accessToken } = useSelector(selectAuth);
   const isOwner = role === 'shop';
@@ -56,9 +59,9 @@ export default function ServiceProShell() {
   return (
     <PortalShell
       items={lockUntilComplete(isOwner ? ownerPages(workspace) : TECHNICIAN_PAGES, profile)}
-      label={isOwner ? (workspace?.domains?.[0]?.name || 'ServicePro partner') : 'Team'}
+      label={isOwner ? (workspace?.domains?.[0]?.name ? t(labelKey(workspace.domains[0].name), workspace.domains[0].name) : t('sp.servicepro_partner', 'ServicePro partner')) : t('sp.team', 'Team')}
       title={isOwner ? shopMe?.shop?.businessName : workerMe?.worker?.name}
-      subtitle={isOwner ? shopMe?.shop?.phone : myShop?.shop?.name && `Working for ${myShop.shop.name}`}
+      subtitle={isOwner ? shopMe?.shop?.phone : myShop?.shop?.name && t('sp.wh.workingFor', 'Working for {name}').replace('{name}', myShop.shop.name)}
       photo={account?.photoUrl}
       helpPhone={STAFF_HELP_PHONE}
       onSignOut={signOut}

@@ -50,7 +50,7 @@ export default function TradeToday({ home = 'workshop', kinds }) {
                 </motion.button>
               ))}
               {!c.items.length && <p className="px-1 py-2 text-[12px] text-slate-400">{t('sp.nothing_here', 'Nothing here')}</p>}
-              {c.items.length > 4 && <button type="button" onClick={() => nav('/shop/orders')} className="px-1 text-[12px] font-bold text-zappy-600">{c.items.length - 4} more</button>}
+              {c.items.length > 4 && <button type="button" onClick={() => nav('/shop/orders')} className="px-1 text-[12px] font-bold text-zappy-600">{t('sp.td.more', '{n} more').replace('{n}', c.items.length - 4)}</button>}
             </div>
           </div>
         ))}
@@ -58,7 +58,7 @@ export default function TradeToday({ home = 'workshop', kinds }) {
     );
   } else {
     const rows = todaysTimeline(jobs, visitData?.items || []);
-    if (!rows.length) body = <p className="py-6 text-center text-sm text-slate-500">Nothing booked for today yet. New bookings appear here as they come in.</p>;
+    if (!rows.length) body = <p className="py-6 text-center text-sm text-slate-500">{t('sp.td.empty', 'Nothing booked for today yet. New bookings appear here as they come in.')}</p>;
     else if (home === 'appointments') {
       body = (
         <ol className="divide-y divide-slate-100">
@@ -77,7 +77,7 @@ export default function TradeToday({ home = 'workshop', kinds }) {
     <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-[15px] font-black text-[#0F172A]"><Icon size={16} className="text-zappy-600" /> {title}</h2>
-        <button type="button" onClick={() => nav('/shop/orders')} className="flex items-center text-[12px] font-bold text-zappy-600">All <ChevronRight size={13} /></button>
+        <button type="button" onClick={() => nav('/shop/orders')} className="flex items-center text-[12px] font-bold text-zappy-600">{t('sp.td.all', 'All')} <ChevronRight size={13} /></button>
       </div>
       {body}
     </section>

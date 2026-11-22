@@ -20,6 +20,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Camera, RefreshCw, CheckCircle2, X, Loader2, AlertTriangle, MapPin } from 'lucide-react';
 import { onePosition } from '../../utils/position';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 const STEPS = ['ready', 'streaming', 'countdown', 'preview', 'error'];
 
@@ -27,9 +29,10 @@ export default function LiveSelfieCapture({
   onCapture,
   onCancel,
   facingMode = 'user',
-  title = 'Live Selfie',
+  title,
   instruction,
 }) {
+  const t = useServiceProT();
   const videoRef   = useRef(null);
   const canvasRef  = useRef(null);
   const streamRef  = useRef(null);
@@ -39,7 +42,7 @@ export default function LiveSelfieCapture({
   const [countdown, setCountdown] = useState(3);
   const [blob, setBlob]         = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [errorMsg, setErrorMsg]   = useState('');
+  const [errorMsg, setErrorMsg]   = useState(''); // '', 'denied', 'notfound', or 'other:<message>'
   const [geoStatus, setGeoStatus] = useState('fetching'); // fetching | ok | denied
   const [geoError, setGeoError] = useState('');
 
@@ -78,10 +81,10 @@ export default function LiveSelfieCapture({
     } catch (err) {
       setErrorMsg(
         err.name === 'NotAllowedError'
-          ? 'Camera permission denied. Please allow camera access and try again.'
+          ? 'denied'
           : err.name === 'NotFoundError'
-          ? 'No front camera found on this device.'
-          : `Camera error: ${err.message}`
+          ? 'notfound'
+          : `other:${err.message}`
       );
       setStep('error');
     }
@@ -89,7 +92,7 @@ export default function LiveSelfieCapture({
 
   // Stop and release stream
   const stopCamera = useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current?.getTracks().forEach((tr) => tr.stop());
     streamRef.current = null;
   }, []);
 
@@ -175,9 +178,9 @@ export default function LiveSelfieCapture({
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <Camera size={17} className="text-zappy-600" />
-            <span className="font-bold text-slate-800 text-sm">{title}</span>
+            <span className="font-bold text-slate-800 text-sm">{title ? t(labelKey(title), title) : t('sp.live_selfie', 'Live Selfie')}</span>
           </div>
-          <button onClick={() => { stopCamera(); onCancel(); }} className="text-slate-400 hover:text-slate-700 transition">
+          <button onClick={() => { stopCamera(); onCancel(); }} aria-label={t('sp.close_camera', 'Close camera')} className="text-slate-400 hover:text-slate-700 transition">
             <X size={18} />
           </button>
         </div>
@@ -192,12 +195,12 @@ export default function LiveSelfieCapture({
             <div className="flex items-center gap-1.5">
               <MapPin size={12} className={geoStatus === 'ok' ? 'text-green-600' : geoStatus === 'fetching' ? 'text-amber-500' : 'text-red-500'} />
               <span className={`text-[11px] font-bold ${geoStatus === 'ok' ? 'text-green-700' : geoStatus === 'fetching' ? 'text-amber-700' : 'text-red-600'}`}>
-                {geoStatus === 'ok' ? 'Location captured ✓' : geoStatus === 'fetching' ? 'Fetching location…' : 'Location needed'}
+                {geoStatus === 'ok' ? t('sp.location_captured', 'Location captured ✓') : geoStatus === 'fetching' ? t('sp.fetching_location', 'Fetching location…') : t('sp.location_needed', 'Location needed')}
               </span>
             </div>
             {geoStatus === 'denied' && (
               <button onClick={fetchGeo} className="text-[11px] font-bold text-red-600 underline shrink-0">
-                Retry
+                {t('sp.retry', 'Retry')}
               </button>
             )}
           </div>
@@ -236,12 +239,12 @@ export default function LiveSelfieCapture({
               <div className="absolute bottom-4 inset-x-0 flex justify-center">
                 <div className="bg-black/60 rounded-xl px-4 py-2 text-center">
                   <p className="text-white text-xs font-bold">
-                    {isSelfie ? 'Position your face inside the oval' : 'Fit the whole thing in the frame'}
+                    {isSelfie ? t('sp.position_your_face_inside_the_oval', 'Position your face inside the oval') : t('sp.fit_the_whole_thing_in_the_frame', 'Fit the whole thing in the frame')}
                   </p>
                   <p className="text-white/70 text-[11px] mt-0.5">
-                    {instruction || (isSelfie
-                      ? 'Look straight, Good lighting, No glasses'
-                      : 'Stand back, Keep any signage readable')}
+                    {instruction ? t(labelKey(instruction), instruction) : (isSelfie
+                      ? t('sp.look_straight_good_lighting_no_glasses', 'Look straight, Good lighting, No glasses')
+                      : t('sp.stand_back_keep_any_signage_readable', 'Stand back, Keep any signage readable'))}
                   </p>
                 </div>
               </div>
@@ -251,18 +254,18 @@ export default function LiveSelfieCapture({
             {step === 'countdown' && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30">
                 <div className="bg-black/70 rounded-2xl px-6 py-4 text-center">
-                  <p className="text-white/80 text-xs font-bold mb-1">STAY STILL - CAPTURING IN</p>
+                  <p className="text-white/80 text-xs font-bold mb-1">{t('sp.stay_still_capturing_in', 'STAY STILL - CAPTURING IN')}</p>
                   <p className="text-white text-6xl font-black tabular-nums">{countdown}</p>
-                  {countdown === 3 && <p className="text-white/70 text-xs mt-1">Blink naturally</p>}
-                  {countdown === 2 && <p className="text-white/70 text-xs mt-1">Hold steady…</p>}
-                  {countdown === 1 && <p className="text-green-400 text-xs mt-1 font-bold">Capturing!</p>}
+                  {countdown === 3 && <p className="text-white/70 text-xs mt-1">{t('sp.blink_naturally', 'Blink naturally')}</p>}
+                  {countdown === 2 && <p className="text-white/70 text-xs mt-1">{t('sp.hold_steady', 'Hold steady…')}</p>}
+                  {countdown === 1 && <p className="text-green-400 text-xs mt-1 font-bold">{t('sp.capturing', 'Capturing!')}</p>}
                 </div>
               </div>
             )}
 
             {/* preview */}
             {step === 'preview' && previewUrl && (
-              <img src={previewUrl} alt="Selfie preview" className="w-full h-full object-cover" />
+              <img src={previewUrl} alt={t('sp.selfie_preview', 'Selfie preview')} className="w-full h-full object-cover" />
             )}
 
             {/* ready state */}
@@ -272,8 +275,8 @@ export default function LiveSelfieCapture({
                   <Camera size={28} className="text-zappy-400" />
                 </div>
                 <p className="text-slate-400 text-xs font-medium text-center px-4">
-                  Your front camera will open for a live photo.
-                  <br />Gallery upload is not allowed for selfies.
+                  {t('sp.your_front_camera_will_open_for_a_live_photo', 'Your front camera will open for a live photo.')}
+                  <br />{t('sp.gallery_upload_is_not_allowed_for_selfies', 'Gallery upload is not allowed for selfies.')}
                 </p>
               </div>
             )}
@@ -282,7 +285,7 @@ export default function LiveSelfieCapture({
             {step === 'error' && (
               <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-slate-900 p-6">
                 <AlertTriangle size={28} className="text-red-400" />
-                <p className="text-red-300 text-xs font-medium text-center leading-relaxed">{errorMsg}</p>
+                <p className="text-red-300 text-xs font-medium text-center leading-relaxed">{errorMsg === 'denied' ? t('sp.camera_permission_denied_please_allow_camera_access_and_try_again', 'Camera permission denied. Please allow camera access and try again.') : errorMsg === 'notfound' ? t('sp.no_front_camera_found_on_this_device', 'No front camera found on this device.') : t('sp.camera_error_msg', 'Camera error: {msg}').replace('{msg}', errorMsg.replace(/^other:/, ''))}</p>
               </div>
             )}
           </div>
@@ -294,9 +297,9 @@ export default function LiveSelfieCapture({
           {step === 'streaming' && (
             <div className="grid grid-cols-3 gap-2">
               {[
-                { label: 'Face visible', ok: true },
-                { label: 'Good light',   ok: true },
-                { label: 'Look forward', ok: true },
+                { label: t('sp.face_visible', 'Face visible'), ok: true },
+                { label: t('sp.good_light', 'Good light'), ok: true },
+                { label: t('sp.look_forward', 'Look forward'), ok: true },
               ].map(({ label, ok }) => (
                 <div key={label} className="flex items-center gap-1.5 bg-green-50 rounded-lg px-2 py-1.5">
                   <CheckCircle2 size={10} className="text-green-500 shrink-0" />
@@ -310,19 +313,19 @@ export default function LiveSelfieCapture({
           <div className="space-y-2">
             {step === 'ready' && (
               <button onClick={startCamera} className="w-full flex items-center justify-center gap-2 bg-zappy-600 hover:bg-zappy-700 text-white font-bold text-sm py-3 rounded-2xl transition">
-                <Camera size={16} /> Open Camera
+                <Camera size={16} /> {t('sp.open_camera', 'Open Camera')}
               </button>
             )}
 
             {step === 'streaming' && (
               <button onClick={beginCountdown} className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold text-sm py-3 rounded-2xl transition">
-                <Camera size={16} /> Take Photo
+                <Camera size={16} /> {t('sp.take_photo', 'Take Photo')}
               </button>
             )}
 
             {step === 'countdown' && (
               <button disabled className="w-full flex items-center justify-center gap-2 bg-green-400 text-white font-bold text-sm py-3 rounded-2xl opacity-80">
-                <Loader2 size={15} className="animate-spin" /> Capturing…
+                <Loader2 size={15} className="animate-spin" /> {t('sp.capturing_progress', 'Capturing…')}
               </button>
             )}
 
@@ -332,20 +335,20 @@ export default function LiveSelfieCapture({
                   <div className="flex items-center gap-1.5 bg-red-50 rounded-xl px-3 py-2 mb-2">
                     <AlertTriangle size={12} className="text-red-500 shrink-0" />
                     <span className="text-[11px] font-semibold text-red-600">
-                      {geoStatus === 'fetching' ? 'Getting your location… please wait' : `${geoError || 'Location is required to submit.'} Then tap Retry above.`}
+                      {geoStatus === 'fetching' ? t('sp.getting_your_location_please_wait', 'Getting your location… please wait') : t('sp.msg_then_tap_retry_above', '{msg} Then tap Retry above.').replace('{msg}', geoError ? t(labelKey(geoError), geoError) : t('sp.location_is_required_to_submit', 'Location is required to submit.'))}
                     </span>
                   </div>
                 )}
                 <div className="flex gap-2">
                   <button onClick={retake} className="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm py-3 rounded-2xl transition">
-                    <RefreshCw size={14} /> Retake
+                    <RefreshCw size={14} /> {t('sp.retake', 'Retake')}
                   </button>
                   <button
                     onClick={accept}
                     disabled={geoStatus !== 'ok'}
                     className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm py-3 rounded-2xl transition"
                   >
-                    <CheckCircle2 size={14} /> Use Photo
+                    <CheckCircle2 size={14} /> {t('sp.use_photo', 'Use Photo')}
                   </button>
                 </div>
               </>
@@ -353,7 +356,7 @@ export default function LiveSelfieCapture({
 
             {step === 'error' && (
               <button onClick={() => { setStep('ready'); setErrorMsg(''); }} className="w-full flex items-center justify-center gap-2 bg-zappy-600 hover:bg-zappy-700 text-white font-bold text-sm py-3 rounded-2xl transition">
-                <RefreshCw size={14} /> Try Again
+                <RefreshCw size={14} /> {t('sp.try_again', 'Try Again')}
               </button>
             )}
           </div>

@@ -52,11 +52,14 @@ export function meantPm(opensAt, closesAt) {
 }
 
 // "Opens 10:00 AM", "Opens tomorrow 9:30 AM", "Opens Mon 10:00 AM" from the server's opensNext ({ day, opensAt, daysAhead }).
-export function opensLabel(next) {
+// `tr` is the optional translate function (Service Pro passes it); without it the label stays English.
+export function opensLabel(next, tr) {
   if (!next?.opensAt) return null;
   const t = to12Hour(next.opensAt);
-  const when = next.daysAhead === 0 ? '' : next.daysAhead === 1 ? 'tomorrow ' : `${DAYS[next.day]} `;
-  return `Opens ${when}${t.hour}:${t.minute} ${t.meridiem}`;
+  const tx = (k, fb) => (tr ? tr(k, fb) : fb);
+  const when = next.daysAhead === 0 ? '' : next.daysAhead === 1 ? tx('sp.hdr.tomorrow', 'tomorrow ') : `${tx(`sp.day.${next.day}`, DAYS[next.day])} `;
+  const time = `${t.hour}:${t.minute} ${t.meridiem}`;
+  return tr ? tr('sp.hdr.opens', 'Opens {when}{time}').replace('{when}', when).replace('{time}', time) : `Opens ${when}${time}`;
 }
 
 /** The first open day with no times, if any — check before saving. */

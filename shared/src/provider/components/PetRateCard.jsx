@@ -3,6 +3,8 @@ import toast from 'react-hot-toast';
 import { Loader2, PawPrint } from 'lucide-react';
 import { usePetProviderRatesQuery, useSavePetProviderRatesMutation } from '../../services/api';
 import PriceNotice from './PriceNotice';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 const SIZE = { small: 'Small', medium: 'Medium', large: 'Large', extra_large: 'Extra large' };
 const toR = (p) => (p == null ? '' : String(Math.round(p / 100)));
@@ -10,6 +12,7 @@ const toP = (r) => (Number(r) >= 1 ? Math.round(Number(r) * 100) : null);
 
 // A pet care provider's own prices for one pet service: a price per pet size for each type of job, plus their own add-on, pickup and return fees. ZappyOne sets none.
 export default function PetRateCard({ category }) {
+  const t = useServiceProT();
   const { data, isLoading } = usePetProviderRatesQuery();
   const [save, { isLoading: saving }] = useSavePetProviderRatesMutation();
   const [rates, setRates] = useState({});
@@ -38,8 +41,8 @@ export default function PetRateCard({ category }) {
         addonPrices: data.addons.map((a) => ({ code: a.code, pricePaise: toP(addons[a.code]) })),
         pickupPaise: toP(fees.pickup) || 0, returnPaise: toP(fees.ret) || 0,
       }).unwrap();
-      toast.success('Your prices are live');
-    } catch (e) { toast.error(e?.data?.error || 'Could not save'); }
+      toast.success(t('sp.your_prices_are_live', 'Your prices are live'));
+    } catch (e) { toast.error(e?.data?.error || t('sp.could_not_save', 'Could not save')); }
   }
 
   const money = (value, onChange, label) => (
@@ -55,18 +58,18 @@ export default function PetRateCard({ category }) {
       <div className="flex items-start gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-btn bg-zappy-50 text-zappy-700"><PawPrint size={18} /></span>
         <div>
-          <h2 className="text-[18px] font-extrabold text-ink-900">Your prices</h2>
-          <p className="text-[13px] text-ink-500">Set your own price for each pet size. Leave a size empty if you do not take it. Live as soon as you save.</p>
+          <h2 className="text-[18px] font-extrabold text-ink-900">{t('sp.your_prices', 'Your prices')}</h2>
+          <p className="text-[13px] text-ink-500">{t('sp.set_your_own_price_for_each_pet_size_leave_a_size_empty_if_you_do_not_take_it_live_as_soon_as_you_save', 'Set your own price for each pet size. Leave a size empty if you do not take it. Live as soon as you save.')}</p>
         </div>
       </div>
       {mine.map((s) => (
         <div key={s.code} className="card space-y-2">
-          <p className="text-[14px] font-bold text-ink-900">{s.name} <span className="font-medium text-ink-500">· price for {s.per}</span></p>
+          <p className="text-[14px] font-bold text-ink-900">{s.name} <span className="font-medium text-ink-500">{t('sp.price_for_per', '· price for {per}').replace('{per}', t(labelKey(s.per), s.per))}</span></p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {s.sizes.map((z) => (
               <label key={z} className="block text-[12px] font-semibold text-ink-500" onBlur={() => z === s.sizes[0] && fill(s.code, s.sizes)}>
-                {SIZE[z] || z}
-                <span className="mt-1 block">{money(rates[s.code]?.[z] ?? '', (v) => setRates((r) => ({ ...r, [s.code]: { ...r[s.code], [z]: v } })), `${s.name}, ${SIZE[z]}`)}</span>
+                {SIZE[z] ? t(labelKey(SIZE[z]), SIZE[z]) : z}
+                <span className="mt-1 block">{money(rates[s.code]?.[z] ?? '', (v) => setRates((r) => ({ ...r, [s.code]: { ...r[s.code], [z]: v } })), `${s.name}, ${SIZE[z] ? t(labelKey(SIZE[z]), SIZE[z]) : z}`)}</span>
               </label>
             ))}
           </div>
@@ -74,7 +77,7 @@ export default function PetRateCard({ category }) {
       ))}
       {data.addons.length > 0 && (
         <div className="card space-y-2">
-          <p className="text-[14px] font-bold text-ink-900">Add-ons you offer <span className="font-medium text-ink-500">· leave empty to not offer one</span></p>
+          <p className="text-[14px] font-bold text-ink-900">{t('sp.add_ons_you_offer', 'Add-ons you offer')} <span className="font-medium text-ink-500">{t('sp.leave_empty_to_not_offer_one', '· leave empty to not offer one')}</span></p>
           <div className="grid gap-2 sm:grid-cols-2">
             {data.addons.map((a) => (
               <label key={a.code} className="flex items-center justify-between gap-3 text-[13px] text-ink-700">
@@ -86,10 +89,10 @@ export default function PetRateCard({ category }) {
         </div>
       )}
       <div className="card grid grid-cols-2 gap-3">
-        <label className="block text-[12px] font-semibold text-ink-500">Pickup fee<span className="mt-1 block">{money(fees.pickup, (v) => setFees((f) => ({ ...f, pickup: v })), 'Pickup fee')}</span></label>
-        <label className="block text-[12px] font-semibold text-ink-500">Drop-back fee<span className="mt-1 block">{money(fees.ret, (v) => setFees((f) => ({ ...f, ret: v })), 'Drop-back fee')}</span></label>
+        <label className="block text-[12px] font-semibold text-ink-500">{t('sp.pickup_fee', 'Pickup fee')}<span className="mt-1 block">{money(fees.pickup, (v) => setFees((f) => ({ ...f, pickup: v })), t('sp.pickup_fee', 'Pickup fee'))}</span></label>
+        <label className="block text-[12px] font-semibold text-ink-500">{t('sp.drop_back_fee', 'Drop-back fee')}<span className="mt-1 block">{money(fees.ret, (v) => setFees((f) => ({ ...f, ret: v })), t('sp.drop_back_fee', 'Drop-back fee'))}</span></label>
       </div>
-      <button type="button" onClick={submit} disabled={saving} className="btn-primary h-12 w-full">{saving && <Loader2 size={16} className="animate-spin" />} Save my prices{priced ? ` (${priced} priced)` : ''}</button>
+      <button type="button" onClick={submit} disabled={saving} className="btn-primary h-12 w-full">{saving && <Loader2 size={16} className="animate-spin" />} {t('sp.save_my_prices', 'Save my prices')}{priced ? ` ${t('sp.n_priced', '({n} priced)').replace('{n}', priced)}` : ''}</button>
     </div>
   );
 }

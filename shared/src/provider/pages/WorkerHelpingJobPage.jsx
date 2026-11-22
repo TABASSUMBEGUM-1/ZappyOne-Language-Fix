@@ -30,6 +30,8 @@ import JobMapCard, { pointOf } from '../../components/worker/JobMapCard';
 import JobEarningsCard from '../../components/worker/JobEarningsCard';
 import { useLivePoll } from '../../hooks/useSocket';
 import { stageLabel } from '../useProviderJobs';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 /**
  * Worker execution — §10, §11, §12, §13, §27, §28, §29.
@@ -43,6 +45,7 @@ function Shell({ children }) {
 }
 
 export default function WorkerHelpingJobPage() {
+  const t = useServiceProT();
   const { id } = useParams();
   const nav = useNavigate();
   const { data, isLoading, refetch } = useGetHelpingTaskQuery(id, { pollingInterval: useLivePoll(10000) });
@@ -58,7 +61,7 @@ export default function WorkerHelpingJobPage() {
   const sharing = usePublishTripLocation(id, Boolean(trip));
 
   if (isLoading) return <div className="flex justify-center py-24"><Loader2 size={24} className="animate-spin text-zappy-400" /></div>;
-  if (!data?.task) return <div className="text-center py-24 text-slate-400">Task not found</div>;
+  if (!data?.task) return <div className="text-center py-24 text-slate-400">{t('sp.whj.notFound', 'Task not found')}</div>;
 
   const { task } = data;
   const isReturn = ['return', 'exchange'].includes(task.serviceType);
@@ -76,29 +79,29 @@ export default function WorkerHelpingJobPage() {
       }
       await gate.run((code) => advance({ id: task._id, status, code }).unwrap().then((r) => { refetch(); return r; }));
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not update the task');
+      toast.error(err?.data?.error || t('sp.whj.cantUpdate', 'Could not update the task'));
     }
   }
 
   async function finish() {
     try {
       await gate.run((code) => complete({ id: task._id, code }).unwrap().then((r) => {
-        toast.success('Task completed and settled');
+        toast.success(t('sp.whj.doneOk', 'Task completed and settled'));
         nav('/worker/work');
         return r;
       }));
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not complete the task');
+      toast.error(err?.data?.error || t('sp.whj.cantComplete', 'Could not complete the task'));
     }
   }
 
   async function recordCash() {
     try {
       await collectCash(task._id).unwrap();
-      toast.success('Service fee recorded');
+      toast.success(t('sp.whj.feeOk', 'Service fee recorded'));
       refetch();
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not record the payment');
+      toast.error(err?.data?.error || t('sp.whj.cantRecord', 'Could not record the payment'));
     }
   }
 
@@ -116,7 +119,7 @@ export default function WorkerHelpingJobPage() {
         <button type="button" onClick={() => nav(-1)} className="p-1 -ml-1"><ArrowLeft size={20} /></button>
         <div className="min-w-0">
           <h1 className="text-lg font-black text-[#0F172A] truncate">{task.title || task.reference}</h1>
-          <p className="text-xs text-slate-400">{stageLabel('helping', task.status)}</p>
+          <p className="text-xs text-slate-400">{t(labelKey(stageLabel('helping', task.status)), stageLabel('helping', task.status))}</p>
         </div>
         <JobChatButton jobId={task._id} className="ml-auto shrink-0" />
       </div>
@@ -126,7 +129,7 @@ export default function WorkerHelpingJobPage() {
         <OnSiteCard onSite={task.onSite} />
         <GiveBackCard jobId={task._id} status={task.status} />
         {!HELPING_DONE.includes(task.status) && !['CANCELLED', 'FAILED'].includes(task.status) && (
-          <JobMapCard to={pointOf(task.pickupLocation)} label="Pickup" />
+          <JobMapCard to={pointOf(task.pickupLocation)} label={t('sp.whj.pickup', 'Pickup')} />
         )}
 
         {task.instructions && (
@@ -140,7 +143,7 @@ export default function WorkerHelpingJobPage() {
             {nextMoves.map((s) => (
               <button key={s} type="button" onClick={() => move(s)}
                 className="w-full rounded-2xl bg-[#0F172A] text-white font-bold py-3.5">
-                {helpingMoveLabel(s, task)}
+                {t(labelKey(helpingMoveLabel(s, task)), helpingMoveLabel(s, task))}
               </button>
             ))}
           </div>
@@ -150,7 +153,7 @@ export default function WorkerHelpingJobPage() {
           <ProofPhotos
             photos={arrivalPhotos} onChange={setArrivalPhotos}
             folder="helping/arrival" max={2}
-            title="Arrival photo" hint="A quick photo confirms you're at the right place."
+            title={t('sp.whj.arrPhoto', 'Arrival photo')} hint={t('sp.whj.arrHint', 'A quick photo confirms you\'re at the right place.')}
           />
         )}
 
@@ -161,13 +164,13 @@ export default function WorkerHelpingJobPage() {
         {pendingApproval && (
           <div className="flex items-start gap-2 rounded-2xl border-2 border-amber-300 bg-amber-50 p-3.5 text-xs text-amber-800">
             <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-            <span>Waiting on the customer's decision. You'll be notified the moment they answer.</span>
+            <span>{t('sp.whj.waitCust', 'Waiting on the customer\'s decision. You\'ll be notified the moment they answer.')}</span>
           </div>
         )}
 
         {['IN_PROGRESS', 'AT_DROPOFF', 'HANDED_OVER'].includes(task.status) && !pendingApproval && due.itemsPending && (
           <p className="rounded-2xl border-2 border-slate-200 bg-white p-3.5 text-xs text-slate-600">
-            Mark every item as bought or unavailable. The customer's bill is worked out from your receipts.
+            {t('sp.whj.markAll', 'Mark every item as bought or unavailable. The customer\'s bill is worked out from your receipts.')}
           </p>
         )}
 
@@ -179,7 +182,7 @@ export default function WorkerHelpingJobPage() {
             paid={false}
             collecting={collecting}
             onCollect={recordCash}
-            what={due.itemsPaise > 0 ? 'items and service fee' : 'service fee'}
+            what={due.itemsPaise > 0 ? t('sp.items_and_service_fee', 'items and service fee') : t('sp.service_fee', 'service fee')}
             jobId={task._id}
             claim={task.payClaim}
           />
@@ -188,7 +191,7 @@ export default function WorkerHelpingJobPage() {
         {finishesAt(task).includes(task.status) && !pendingApproval && settledUp && (
           <button type="button" onClick={finish} disabled={completing}
             className="w-full rounded-2xl bg-emerald-600 text-white font-bold py-3.5 disabled:opacity-50">
-            {completing ? 'Completing…' : 'Complete task'}
+            {completing ? t('sp.whj.completing', 'Completing…') : t('sp.whj.complete', 'Complete task')}
           </button>
         )}
         {HELPING_DONE.includes(task.status) && <JobEarningsCard jobId={task._id} />}
@@ -198,7 +201,7 @@ export default function WorkerHelpingJobPage() {
         {/* Safety: on every live job, one hold away. */}
         {!HELPING_NO_SOS.includes(task.status) && (
           <div className="space-y-1.5 pt-2">
-            <p className="text-[12px] font-semibold text-slate-500">Feeling unsafe or need urgent help?</p>
+            <p className="text-[12px] font-semibold text-slate-500">{t('sp.whj.unsafe', 'Feeling unsafe or need urgent help?')}</p>
             <SOSButton jobId={task._id} kind="helping" service={task.serviceType} />
           </div>
         )}
@@ -210,6 +213,7 @@ export default function WorkerHelpingJobPage() {
 /* Shopping / pickup execution — §12, §13, §14 */
 
 function ShoppingExecution({ task, onChanged, disabled }) {
+  const t = useServiceProT();
   const [updateItem] = useUpdateHelpingItemMutation();
   const [proposeAlt] = useProposeHelpingAlternativeMutation();
   const [recordAdvance] = useRecordHelpingAdvanceMutation();
@@ -222,13 +226,13 @@ function ShoppingExecution({ task, onChanged, disabled }) {
       await updateItem({
         id: task._id, itemId: item._id, status: 'purchased', actualPricePaise: Math.round(price * 100),
       }).unwrap();
-      toast.success('Marked purchased');
+      toast.success(t('sp.whj.markedBought', 'Marked purchased'));
       onChanged();
     } catch (err) {
       if (err?.data?.code === 'APPROVAL_REQUIRED') {
-        toast.error('That price is above what the customer approved - propose it as an alternative instead');
+        toast.error(t('sp.whj.overPrice', 'That price is above what the customer approved - propose it as an alternative instead'));
       } else {
-        toast.error(err?.data?.error || 'Could not save this');
+        toast.error(err?.data?.error || t('sp.whj.cantSave', 'Could not save this'));
       }
     }
   }
@@ -238,7 +242,7 @@ function ShoppingExecution({ task, onChanged, disabled }) {
       await updateItem({ id: task._id, itemId: item._id, status, reason: 'Not available in store' }).unwrap();
       onChanged();
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not save this');
+      toast.error(err?.data?.error || t('sp.whj.cantSave', 'Could not save this'));
     }
   }
 
@@ -246,11 +250,11 @@ function ShoppingExecution({ task, onChanged, disabled }) {
     if (!advanceAmount) return;
     try {
       await recordAdvance({ id: task._id, amountPaise: Math.round(Number(advanceAmount) * 100) }).unwrap();
-      toast.success('Saved. We pay you back from this job’s money.');
+      toast.success(t('sp.whj.advSaved', 'Saved. We pay you back from this job’s money.'));
       setAdvanceAmount('');
       onChanged();
     } catch (err) {
-      toast.error(err?.data?.error || 'That is more than the advance limit - the customer must fund it');
+      toast.error(err?.data?.error || t('sp.whj.advLimit', 'That is more than the advance limit - the customer must fund it'));
     }
   }
 
@@ -262,22 +266,22 @@ function ShoppingExecution({ task, onChanged, disabled }) {
           onPurchase={(price) => markPurchased(item, price)}
           onUnavailable={(status) => markUnavailable(item, status)}
           onAlternative={(alt) => proposeAlt({ id: task._id, itemId: item._id, ...alt }).unwrap()
-            .then(() => { toast.success('Sent for approval'); onChanged(); })
-            .catch((err) => toast.error(err?.data?.error || 'Could not send this'))}
+            .then(() => { toast.success(t('sp.whj.sentApp', 'Sent for approval')); onChanged(); })
+            .catch((err) => toast.error(err?.data?.error || t('sp.whj.cantSend', 'Could not send this')))}
         />
       ))}
 
       {task.itemMoney?.paymentModel === 'worker_advance' && (
         <div className="rounded-2xl border-2 border-slate-200 bg-white p-4 space-y-2">
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500 flex items-center gap-1.5">
-            <Banknote size={13} /> You're fronting this purchase
+            <Banknote size={13} /> {t('sp.whj.fronting', 'You\'re fronting this purchase')}
           </p>
           <div className="flex gap-2">
             <input type="number" value={advanceAmount} onChange={(e) => setAdvanceAmount(e.target.value)}
-              placeholder="Amount paid at till (₹)" className="flex-1 rounded-xl border-2 border-slate-200 p-2.5" />
-            <button type="button" onClick={sendAdvance} className="rounded-xl bg-slate-900 text-white font-bold px-4">Record</button>
+              placeholder={t('sp.whj.advPh', 'Amount paid at till (₹)')} className="flex-1 rounded-xl border-2 border-slate-200 p-2.5" />
+            <button type="button" onClick={sendAdvance} className="rounded-xl bg-slate-900 text-white font-bold px-4">{t('sp.whj.record', 'Record')}</button>
           </div>
-          <p className="text-[11px] text-slate-400">You'll be reimbursed exactly this amount when the task settles.</p>
+          <p className="text-[11px] text-slate-400">{t('sp.whj.reimb', 'You\'ll be reimbursed exactly this amount when the task settles.')}</p>
         </div>
       )}
     </div>
@@ -285,6 +289,7 @@ function ShoppingExecution({ task, onChanged, disabled }) {
 }
 
 function ItemRow({ item, disabled, onPurchase, onUnavailable, onAlternative }) {
+  const t = useServiceProT();
   const [price, setPrice] = useState('');
   const [showAlt, setShowAlt] = useState(false);
   const [alt, setAlt] = useState({ name: '', pricePaise: '', quantity: item.quantity, photoKey: '', note: '' });
@@ -299,29 +304,29 @@ function ItemRow({ item, disabled, onPurchase, onUnavailable, onAlternative }) {
           {(item.preferredBrand || item.preferredVariant) && (
             <p className="text-xs text-slate-400">{[item.preferredBrand, item.preferredVariant].filter(Boolean).join(', ')}</p>
           )}
-          <p className="text-xs text-slate-500 mt-0.5">Max: {formatPaise(item.maxApprovedPricePaise)}</p>
+          <p className="text-xs text-slate-500 mt-0.5">{t('sp.whj.max', 'Max: {n}').replace('{n}', formatPaise(item.maxApprovedPricePaise))}</p>
         </div>
-        <span className="text-[10px] font-bold uppercase text-zappy-500 shrink-0">{item.status.replace(/_/g, ' ')}</span>
+        <span className="text-[10px] font-bold uppercase text-zappy-500 shrink-0">{t(labelKey(item.status.replace(/_/g, ' ')), item.status.replace(/_/g, ' '))}</span>
       </div>
 
       {!done && !disabled && (
         <>
           <div className="flex gap-2">
             <input type="number" value={price} onChange={(e) => setPrice(e.target.value)}
-              placeholder="Price paid (₹)" className="flex-1 rounded-xl border-2 border-slate-200 p-2 text-sm" />
+              placeholder={t('sp.whj.pricePh', 'Price paid (₹)')} className="flex-1 rounded-xl border-2 border-slate-200 p-2 text-sm" />
             <button type="button" onClick={() => price && onPurchase(Number(price))}
               className="rounded-xl bg-emerald-600 text-white font-bold px-3 text-sm flex items-center gap-1">
-              <Check size={14} /> Bought
+              <Check size={14} /> {t('sp.whj.bought', 'Bought')}
             </button>
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={() => onUnavailable('not_found')}
               className="flex-1 rounded-xl border-2 border-slate-200 font-bold py-2 text-xs flex items-center justify-center gap-1">
-              <X size={12} /> Not found
+              <X size={12} /> {t('sp.whj.notFoundBtn', 'Not found')}
             </button>
             <button type="button" onClick={() => setShowAlt((v) => !v)}
               className="flex-1 rounded-xl border-2 border-amber-200 text-amber-700 font-bold py-2 text-xs">
-              Propose alternative
+              {t('sp.whj.propose', 'Propose alternative')}
             </button>
           </div>
         </>
@@ -330,13 +335,13 @@ function ItemRow({ item, disabled, onPurchase, onUnavailable, onAlternative }) {
       {showAlt && !done && (
         <div className="rounded-xl bg-amber-50 p-3 space-y-2">
           <input value={alt.name} onChange={(e) => setAlt((a) => ({ ...a, name: e.target.value }))}
-            placeholder="Alternative product name" className="w-full rounded-lg border-2 border-amber-200 p-2 text-sm" />
+            placeholder={t('sp.whj.altName', 'Alternative product name')} className="w-full rounded-lg border-2 border-amber-200 p-2 text-sm" />
           <div className="flex gap-2">
             <input type="number" value={alt.pricePaise} onChange={(e) => setAlt((a) => ({ ...a, pricePaise: e.target.value }))}
-              placeholder="Its price (₹)" className="flex-1 rounded-lg border-2 border-amber-200 p-2 text-sm" />
+              placeholder={t('sp.whj.altPrice', 'Its price (₹)')} className="flex-1 rounded-lg border-2 border-amber-200 p-2 text-sm" />
           </div>
           <ImageUploadField value={alt.photoKey} onChange={(v) => setAlt((a) => ({ ...a, photoKey: v }))}
-            folder="helping/alternatives" label="photo of the item" />
+            folder="helping/alternatives" label={t('sp.whj.altPhoto', 'photo of the item')} />
           <button
             type="button"
             onClick={() => {
@@ -346,7 +351,7 @@ function ItemRow({ item, disabled, onPurchase, onUnavailable, onAlternative }) {
             disabled={!alt.name || !alt.pricePaise}
             className="w-full rounded-lg bg-amber-600 text-white font-bold py-2 text-sm disabled:opacity-50"
           >
-            Send to customer for approval
+            {t('sp.whj.sendApp', 'Send to customer for approval')}
           </button>
         </div>
       )}
@@ -357,6 +362,7 @@ function ItemRow({ item, disabled, onPurchase, onUnavailable, onAlternative }) {
 /* Return / exchange execution — §27, §28, §29 */
 
 function ReturnExecution({ task, onChanged }) {
+  const t = useServiceProT();
   const [proofs, setProofs] = useState([]);
   const [tracking, setTracking] = useState('');
   const [ack, setAck] = useState('');
@@ -367,24 +373,24 @@ function ReturnExecution({ task, onChanged }) {
 
   async function submitHandover() {
     const keys = readyKeys(proofs);
-    if (!keys.length) { toast.error('At least one photo of the handover is needed'); return; }
+    if (!keys.length) { toast.error(t('sp.whj.needPhoto', 'At least one photo of the handover is needed')); return; }
     try {
       // Every proof also lives on the task's own proof log for the report.
       await Promise.all(keys.map((k) => addProof({ id: task._id, kind: 'merchant_acknowledgement', key: k }).unwrap()));
       await handover({
         id: task._id, trackingNumber: tracking, acknowledgement: ack, proofKeys: keys,
       }).unwrap();
-      toast.success('Handover recorded');
+      toast.success(t('sp.whj.handOk', 'Handover recorded'));
       onChanged();
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not record the handover');
+      toast.error(err?.data?.error || t('sp.whj.cantHand', 'Could not record the handover'));
     }
   }
 
   if (done) {
     return (
       <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-        Handover recorded - the merchant's own process takes it from here.
+        {t('sp.whj.handDone', 'Handover recorded - the merchant\'s own process takes it from here.')}
       </div>
     );
   }
@@ -393,19 +399,19 @@ function ReturnExecution({ task, onChanged }) {
 
   return (
     <div className="rounded-2xl border-2 border-slate-200 bg-white p-4 space-y-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Handover</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{t('sp.whj.handover', 'Handover')}</p>
       {task.returnDetail?.merchantInstructions && (
         <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-2.5">{task.returnDetail.merchantInstructions}</p>
       )}
       <ProofPhotos photos={proofs} onChange={setProofs} folder="helping/handover" max={3}
-        title="Handover / receipt photo" hint="A courier receipt, store acknowledgement, or clear handover photo." />
+        title={t('sp.whj.handPhoto', 'Handover / receipt photo')} hint={t('sp.whj.handHint', 'A courier receipt, store acknowledgement, or clear handover photo.')} />
       <input value={tracking} onChange={(e) => setTracking(e.target.value)}
-        placeholder="Tracking / AWB number (if any)" className="w-full rounded-xl border-2 border-slate-200 p-2.5 text-sm" />
+        placeholder={t('sp.whj.tracking', 'Tracking / AWB number (if any)')} className="w-full rounded-xl border-2 border-slate-200 p-2.5 text-sm" />
       <input value={ack} onChange={(e) => setAck(e.target.value)}
-        placeholder="Merchant acknowledgement (if any)" className="w-full rounded-xl border-2 border-slate-200 p-2.5 text-sm" />
+        placeholder={t('sp.whj.merchAck', 'Merchant acknowledgement (if any)')} className="w-full rounded-xl border-2 border-slate-200 p-2.5 text-sm" />
       <button type="button" onClick={submitHandover} disabled={isLoading}
         className="w-full rounded-xl bg-[#0F172A] text-white font-bold py-3 disabled:opacity-50">
-        {isLoading ? 'Recording…' : 'Confirm handover'}
+        {isLoading ? t('sp.whj.recording', 'Recording…') : t('sp.whj.confirmHand', 'Confirm handover')}
       </button>
     </div>
   );

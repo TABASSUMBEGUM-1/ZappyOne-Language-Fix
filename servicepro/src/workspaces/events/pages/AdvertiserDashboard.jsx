@@ -36,16 +36,17 @@ import {
 import { openCheckout } from '@shared/services/cashfree';
 import { logout, selectAuth } from '@shared/modules/auth/authSlice';
 import toast from 'react-hot-toast';
+import { useI18n } from '@shared/i18n/I18nProvider';
 
 /* Helpers */
 const PLACEMENTS = [
-  { id: 'home_banner',       label: '🏠 Home Banner',        desc: 'Top of homepage carousel - highest reach' },
-  { id: 'category_listing',  label: '📋 Category Listing',   desc: 'Sponsored slot in event/service categories' },
-  { id: 'search_ads',        label: '🔍 Search Results',      desc: 'Appear above organic search results' },
-  { id: 'detail_cross_sell', label: '🔗 Detail Cross-sell',   desc: 'Shown on service detail page as add-on' },
-  { id: 'booking_success',   label: '🎉 Booking Success',     desc: 'Highest-value: shown after booking (converts best)' },
-  { id: 'order_tracking',    label: '📍 Order Tracking',      desc: 'While customer waits - contextual only' },
-  { id: 'wallet_page',       label: '💰 Wallet Page',         desc: 'Cashback & rewards context ads' },
+  { id: 'home_banner',       emoji: '🏠', label: 'Home Banner',        desc: 'Top of homepage carousel - highest reach' },
+  { id: 'category_listing',  emoji: '📋', label: 'Category Listing',   desc: 'Sponsored slot in event/service categories' },
+  { id: 'search_ads',        emoji: '🔍', label: 'Search Results',      desc: 'Appear above organic search results' },
+  { id: 'detail_cross_sell', emoji: '🔗', label: 'Detail Cross-sell',   desc: 'Shown on service detail page as add-on' },
+  { id: 'booking_success',   emoji: '🎉', label: 'Booking Success',     desc: 'Highest-value: shown after booking (converts best)' },
+  { id: 'order_tracking',    emoji: '📍', label: 'Order Tracking',      desc: 'While customer waits - contextual only' },
+  { id: 'wallet_page',       emoji: '💰', label: 'Wallet Page',         desc: 'Cashback & rewards context ads' },
 ];
 
 const BILLING_MODELS = [
@@ -97,6 +98,7 @@ function StatBox({ label, value, sub, icon: Icon, color }) {
 
 /* Campaign form modal */
 function CampaignModal({ initial, onClose, onSave }) {
+  const { t } = useI18n();
   const [form, setForm] = useState(initial || EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -106,7 +108,7 @@ function CampaignModal({ initial, onClose, onSave }) {
   async function handleImageUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) return toast.error('Image must be under 2MB');
+    if (file.size > 2 * 1024 * 1024) return toast.error(t('sp.ev.ad.big2mb', 'Image must be under 2MB'));
     
     setUploadingImage(true);
     try {
@@ -119,9 +121,9 @@ function CampaignModal({ initial, onClose, onSave }) {
       await fetch(url, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
       const finalUrl = url.split('?')[0];
       set('content.imageUrl', finalUrl);
-      toast.success('Image uploaded!');
+      toast.success(t('sp.ev.ad.imgOk', 'Image uploaded!'));
     } catch (err) {
-      toast.error('Upload failed');
+      toast.error(t('sp.ev.ad.upFail', 'Upload failed'));
     } finally {
       setUploadingImage(false);
     }
@@ -140,9 +142,9 @@ function CampaignModal({ initial, onClose, onSave }) {
   }
 
   async function handleSave() {
-    if (!form.title || !form.content.headline) return toast.error('Title and headline required');
-    if (!form.placements.length) return toast.error('Select at least one placement');
-    if (!form.billing.rate || !form.billing.budget) return toast.error('Set bid rate and total budget');
+    if (!form.title || !form.content.headline) return toast.error(t('sp.ev.ad.needTitle', 'Title and headline required'));
+    if (!form.placements.length) return toast.error(t('sp.ev.ad.needPl', 'Select at least one placement'));
+    if (!form.billing.rate || !form.billing.budget) return toast.error(t('sp.ev.ad.needBid', 'Set bid rate and total budget'));
 
     setSaving(true);
     try {
@@ -166,7 +168,7 @@ function CampaignModal({ initial, onClose, onSave }) {
         },
       });
       onClose();
-    } catch (e) { toast.error(e?.data?.error || 'Save failed'); }
+    } catch (e) { toast.error(e?.data?.error || t('sp.ev.ad.saveFail', 'Save failed')); }
     finally { setSaving(false); }
   }
 
@@ -179,8 +181,8 @@ function CampaignModal({ initial, onClose, onSave }) {
 
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
           <div>
-            <h2 className="font-black text-slate-900">{initial ? 'Edit Campaign' : 'Create Campaign'}</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Campaigns go to admin review before going live</p>
+            <h2 className="font-black text-slate-900">{initial ? t('sp.ev.ad.edit', 'Edit Campaign') : t('sp.ev.ad.create', 'Create Campaign')}</h2>
+            <p className="text-xs text-slate-400 mt-0.5">{t('sp.ev.ad.reviewNote', 'Campaigns go to admin review before going live')}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors">
             <X size={15} className="text-slate-600" />
@@ -191,26 +193,26 @@ function CampaignModal({ initial, onClose, onSave }) {
 
           {/* Basics */}
           <div className="space-y-3">
-            <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Campaign Details</p>
-            <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="Campaign name (internal)"
+            <p className="text-xs font-black text-slate-500 uppercase tracking-wider">{t('sp.ev.ad.details', 'Campaign Details')}</p>
+            <input value={form.title} onChange={e => set('title', e.target.value)} placeholder={t('sp.ev.ad.nameP', 'Campaign name (internal)')}
               className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-zappy-400 outline-none font-medium" />
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1.5">Ad Type</label>
+                <label className="text-xs font-bold text-slate-600 block mb-1.5">{t('sp.ev.ad.adType', 'Ad Type')}</label>
                 <select value={form.type} onChange={e => set('type', e.target.value)}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none bg-white focus:border-zappy-400">
                   {[['sponsored_listing','Sponsored Listing'],['banner','Banner'],['video','Video'],['featured_theme','Featured Theme'],['cross_sell','Cross-Sell'],['lead_gen','Lead Generation']].map(([v,l]) => (
-                    <option key={v} value={v}>{l}</option>
+                    <option key={v} value={v}>{t('sp.ev.ad.ty.' + v, l)}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1.5">Audience</label>
+                <label className="text-xs font-bold text-slate-600 block mb-1.5">{t('sp.ev.ad.audience', 'Audience')}</label>
                 <select value={form.audience} onChange={e => set('audience', e.target.value)}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none bg-white focus:border-zappy-400">
-                  <option value="users">Users</option>
-                  <option value="workers">Workers</option>
-                  <option value="both">Everyone</option>
+                  <option value="users">{t('sp.ev.ad.au.users', 'Users')}</option>
+                  <option value="workers">{t('sp.ev.ad.au.workers', 'Workers')}</option>
+                  <option value="both">{t('sp.ev.ad.au.both', 'Everyone')}</option>
                 </select>
               </div>
             </div>
@@ -218,7 +220,7 @@ function CampaignModal({ initial, onClose, onSave }) {
 
           {/* Placements */}
           <div className="space-y-3">
-            <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Ad Placements</p>
+            <p className="text-xs font-black text-slate-500 uppercase tracking-wider">{t('sp.ev.ad.placements', 'Ad Placements')}</p>
             <div className="grid grid-cols-1 gap-2">
               {PLACEMENTS.map(p => (
                 <label key={p.id} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${form.placements.includes(p.id) ? 'border-zappy-400 bg-zappy-50' : 'border-slate-200 hover:border-slate-300'}`}>
@@ -227,8 +229,8 @@ function CampaignModal({ initial, onClose, onSave }) {
                     {form.placements.includes(p.id) && <div className="w-2 h-2 bg-white rounded-full" />}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-bold text-slate-900">{p.label}</p>
-                    <p className="text-[11px] text-slate-400">{p.desc}</p>
+                    <p className="text-sm font-bold text-slate-900">{p.emoji} {t('sp.ev.ad.pl.' + p.id, p.label)}</p>
+                    <p className="text-[11px] text-slate-400">{t('sp.ev.ad.pl.' + p.id + '.d', p.desc)}</p>
                   </div>
                 </label>
               ))}
@@ -237,13 +239,13 @@ function CampaignModal({ initial, onClose, onSave }) {
 
           {/* Creative */}
           <div className="space-y-3">
-            <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Ad Creative</p>
+            <p className="text-xs font-black text-slate-500 uppercase tracking-wider">{t('sp.ev.ad.creative', 'Ad Creative')}</p>
             {[
-              { k: 'content.headline', label: 'Headline *', placeholder: 'Get 20% off Birthday Decoration!' },
-              { k: 'content.body',     label: 'Description', placeholder: 'Limited slots available this month' },
-              { k: 'content.ctaText',  label: 'CTA Button',  placeholder: 'Book Now' },
-              { k: 'content.ctaLink',  label: 'CTA Link',    placeholder: '/events or https://...' },
-              { k: 'content.badgeText',label: 'Badge Text',  placeholder: 'HOT DEAL (optional)' },
+              { k: 'content.headline', label: t('sp.ev.ad.headline', 'Headline *'), placeholder: t('sp.ev.ad.headlineP', 'Get 20% off Birthday Decoration!') },
+              { k: 'content.body',     label: t('sp.ev.ad.desc', 'Description'), placeholder: t('sp.ev.ad.descP', 'Limited slots available this month') },
+              { k: 'content.ctaText',  label: t('sp.ev.ad.cta', 'CTA Button'),  placeholder: t('sp.ev.ad.ctaP', 'Book Now') },
+              { k: 'content.ctaLink',  label: t('sp.ev.ad.ctaLink', 'CTA Link'),    placeholder: t('sp.ev.ad.ctaLinkP', '/events or https://...') },
+              { k: 'content.badgeText',label: t('sp.ev.ad.badge', 'Badge Text'),  placeholder: t('sp.ev.ad.badgeP', 'HOT DEAL (optional)') },
             ].map(({ k, label, placeholder }) => (
               <div key={k}>
                 <label className="text-xs font-bold text-slate-600 block mb-1">{label}</label>
@@ -253,7 +255,7 @@ function CampaignModal({ initial, onClose, onSave }) {
             ))}
 
             <div>
-              <label className="text-xs font-bold text-slate-600 block mb-1.5">Ad Image (Optional)</label>
+              <label className="text-xs font-bold text-slate-600 block mb-1.5">{t('sp.ev.ad.image', 'Ad Image (Optional)')}</label>
               <label className={`block border-2 border-dashed rounded-2xl p-4 transition-all ${form.content.imageUrl ? 'border-zappy-400 bg-zappy-50/50' : 'border-slate-200 hover:border-zappy-300 hover:bg-slate-50 cursor-pointer'}`}>
                 <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploadingImage} />
                 <div className="flex items-center gap-4">
@@ -263,12 +265,12 @@ function CampaignModal({ initial, onClose, onSave }) {
                      <UploadCloud size={20} className="text-zappy-500" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-700 truncate">{form.content.imageUrl ? 'Image Uploaded' : 'Upload Image'}</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5 truncate">{form.content.imageUrl ? form.content.imageUrl : 'PNG, JPG up to 2MB'}</p>
+                    <p className="text-sm font-bold text-slate-700 truncate">{form.content.imageUrl ? t('sp.ev.ad.imgDone', 'Image Uploaded') : t('sp.ev.ad.imgUp', 'Upload Image')}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5 truncate">{form.content.imageUrl ? form.content.imageUrl : t('sp.ev.ad.imgHint', 'PNG, JPG up to 2MB')}</p>
                   </div>
                   {form.content.imageUrl && !uploadingImage && (
                     <button type="button" onClick={(e) => { e.preventDefault(); set('content.imageUrl', ''); }} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50">
-                      Remove
+                      {t('sp.ev.ad.remove', 'Remove')}
                     </button>
                   )}
                 </div>
@@ -276,14 +278,14 @@ function CampaignModal({ initial, onClose, onSave }) {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">Background Color</label>
+                <label className="text-xs font-bold text-slate-600 block mb-1">{t('sp.ev.ad.bg', 'Background Color')}</label>
                 <div className="flex items-center gap-2">
                   <input type="color" value={form.content.backgroundColor} onChange={e => set('content.backgroundColor', e.target.value)} className="w-10 h-9 rounded-lg border border-slate-200 cursor-pointer p-0.5" />
                   <input value={form.content.backgroundColor} onChange={e => set('content.backgroundColor', e.target.value)} className="flex-1 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none" />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">Text Color</label>
+                <label className="text-xs font-bold text-slate-600 block mb-1">{t('sp.ev.ad.fg', 'Text Color')}</label>
                 <div className="flex items-center gap-2">
                   <input type="color" value={form.content.textColor} onChange={e => set('content.textColor', e.target.value)} className="w-10 h-9 rounded-lg border border-slate-200 cursor-pointer p-0.5" />
                   <input value={form.content.textColor} onChange={e => set('content.textColor', e.target.value)} className="flex-1 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none" />
@@ -294,7 +296,7 @@ function CampaignModal({ initial, onClose, onSave }) {
             <div className="rounded-xl overflow-hidden h-20 flex items-center px-4" style={{ background: form.content.backgroundColor }}>
               <div>
                 {form.content.badgeText && <span className="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded-full">{form.content.badgeText}</span>}
-                <p className="font-black text-sm mt-0.5" style={{ color: form.content.textColor }}>{form.content.headline || 'Your headline here'}</p>
+                <p className="font-black text-sm mt-0.5" style={{ color: form.content.textColor }}>{form.content.headline || t('sp.ev.ad.hereP', 'Your headline here')}</p>
                 <p className="text-[11px] opacity-80 mt-0.5" style={{ color: form.content.textColor }}>{form.content.body}</p>
                 <span className="text-[10px] font-bold mt-1 block" style={{ color: form.content.textColor }}>{form.content.ctaText} →</span>
               </div>
@@ -303,9 +305,9 @@ function CampaignModal({ initial, onClose, onSave }) {
 
           {/* Targeting */}
           <div className="space-y-3">
-            <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Targeting</p>
+            <p className="text-xs font-black text-slate-500 uppercase tracking-wider">{t('sp.ev.ad.targeting', 'Targeting')}</p>
             <div>
-              <label className="text-xs font-bold text-slate-600 block mb-1.5">Event Categories (select to target)</label>
+              <label className="text-xs font-bold text-slate-600 block mb-1.5">{t('sp.ev.ad.cats', 'Event Categories (select to target)')}</label>
               <div className="flex flex-wrap gap-1.5">
                 {(catData?.categories || []).map(c => {
                   const on = form.targeting.eventCategories.includes(c._id);
@@ -317,17 +319,17 @@ function CampaignModal({ initial, onClose, onSave }) {
                   );
                 })}
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">Empty = shown in all categories</p>
+              <p className="text-[10px] text-slate-400 mt-1">{t('sp.ev.ad.catsH', 'Empty = shown in all categories')}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">Target Cities (comma separated)</label>
-                <input value={form.targeting.cities} onChange={e => set('targeting.cities', e.target.value)} placeholder="bangalore, mumbai"
+                <label className="text-xs font-bold text-slate-600 block mb-1">{t('sp.ev.ad.cities', 'Target Cities (comma separated)')}</label>
+                <input value={form.targeting.cities} onChange={e => set('targeting.cities', e.target.value)} placeholder={t('sp.ev.ad.citiesP', 'bangalore, mumbai')}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-zappy-400 outline-none" />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">Search Keywords</label>
-                <input value={form.targeting.keywords} onChange={e => set('targeting.keywords', e.target.value)} placeholder="birthday, wedding"
+                <label className="text-xs font-bold text-slate-600 block mb-1">{t('sp.ev.ad.kw', 'Search Keywords')}</label>
+                <input value={form.targeting.keywords} onChange={e => set('targeting.keywords', e.target.value)} placeholder={t('sp.ev.ad.kwP', 'birthday, wedding')}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-zappy-400 outline-none" />
               </div>
             </div>
@@ -335,15 +337,15 @@ function CampaignModal({ initial, onClose, onSave }) {
 
           {/* Schedule */}
           <div className="space-y-3">
-            <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Schedule</p>
+            <p className="text-xs font-black text-slate-500 uppercase tracking-wider">{t('sp.ev.ad.schedule', 'Schedule')}</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">Start Date</label>
+                <label className="text-xs font-bold text-slate-600 block mb-1">{t('sp.ev.ad.start', 'Start Date')}</label>
                 <input type="date" value={form.schedule.startAt} onChange={e => set('schedule.startAt', e.target.value)}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-zappy-400 outline-none" />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">End Date</label>
+                <label className="text-xs font-bold text-slate-600 block mb-1">{t('sp.ev.ad.end', 'End Date')}</label>
                 <input type="date" value={form.schedule.endAt} onChange={e => set('schedule.endAt', e.target.value)}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-zappy-400 outline-none" />
               </div>
@@ -352,15 +354,15 @@ function CampaignModal({ initial, onClose, onSave }) {
 
           {/* Billing */}
           <div className="space-y-3">
-            <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Budget & Bidding</p>
+            <p className="text-xs font-black text-slate-500 uppercase tracking-wider">{t('sp.ev.ad.budgetBid', 'Budget & Bidding')}</p>
             <div className="grid grid-cols-1 gap-2">
               {BILLING_MODELS.map(m => (
                 <label key={m.id} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${form.billing.model === m.id ? 'border-zappy-400 bg-zappy-50' : 'border-slate-200'}`}>
                   <input type="radio" name="billingModel" value={m.id} checked={form.billing.model === m.id} onChange={() => set('billing.model', m.id)} className="hidden" />
                   <div className={`w-4 h-4 rounded-full border-2 shrink-0 ${form.billing.model === m.id ? 'border-zappy-500 bg-zappy-500' : 'border-slate-300'}`} />
                   <div>
-                    <p className="text-sm font-bold text-slate-900">{m.label}</p>
-                    <p className="text-[11px] text-slate-400">{m.desc}</p>
+                    <p className="text-sm font-bold text-slate-900">{t('sp.ev.ad.bm.' + m.id, m.label)}</p>
+                    <p className="text-[11px] text-slate-400">{t('sp.ev.ad.bm.' + m.id + '.d', m.desc)}</p>
                   </div>
                 </label>
               ))}
@@ -368,19 +370,19 @@ function CampaignModal({ initial, onClose, onSave }) {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="text-xs font-bold text-slate-600 block mb-1">
-                  {form.billing.model === 'cpm' ? 'Bid (₹ per 1K views)' : form.billing.model === 'cpc' ? 'Bid (₹ per click)' : form.billing.model === 'cpl' ? 'Bid (₹ per lead)' : 'Fixed Budget (₹)'}
+                  {form.billing.model === 'cpm' ? t('sp.ev.ad.bidM', 'Bid (₹ per 1K views)') : form.billing.model === 'cpc' ? t('sp.ev.ad.bidC', 'Bid (₹ per click)') : form.billing.model === 'cpl' ? t('sp.ev.ad.bidL', 'Bid (₹ per lead)') : t('sp.ev.ad.fixedB', 'Fixed Budget (₹)')}
                 </label>
-                <input type="number" min="0" step="0.5" value={form.billing.rate} onChange={e => set('billing.rate', e.target.value)} placeholder="e.g. 2.50"
+                <input type="number" min="0" step="0.5" value={form.billing.rate} onChange={e => set('billing.rate', e.target.value)} placeholder={t('sp.ev.ad.rateP', 'e.g. 2.50')}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-zappy-400 outline-none" />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">Total Budget (₹)</label>
-                <input type="number" min="0" value={form.billing.budget} onChange={e => set('billing.budget', e.target.value)} placeholder="e.g. 5000"
+                <label className="text-xs font-bold text-slate-600 block mb-1">{t('sp.ev.ad.total', 'Total Budget (₹)')}</label>
+                <input type="number" min="0" value={form.billing.budget} onChange={e => set('billing.budget', e.target.value)} placeholder={t('sp.ev.ad.totalP', 'e.g. 5000')}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-zappy-400 outline-none" />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">Daily Cap (₹)</label>
-                <input type="number" min="0" value={form.billing.dailyCapPaise} onChange={e => set('billing.dailyCapPaise', e.target.value)} placeholder="0 = no cap"
+                <label className="text-xs font-bold text-slate-600 block mb-1">{t('sp.ev.ad.cap', 'Daily Cap (₹)')}</label>
+                <input type="number" min="0" value={form.billing.dailyCapPaise} onChange={e => set('billing.dailyCapPaise', e.target.value)} placeholder={t('sp.ev.ad.capP', '0 = no cap')}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-zappy-400 outline-none" />
               </div>
             </div>
@@ -388,11 +390,11 @@ function CampaignModal({ initial, onClose, onSave }) {
         </div>
 
         <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
-          <button onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+          <button onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">{t('sp.ev.ad.cancel', 'Cancel')}</button>
           <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave} disabled={saving}
             className="px-5 py-2.5 bg-zappy-600 text-white rounded-xl font-bold text-sm flex items-center gap-2 disabled:opacity-50 shadow-sm shadow-zappy-200">
             {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-            {saving ? 'Submitting…' : 'Submit for Review'}
+            {saving ? t('sp.ev.ad.submitting', 'Submitting…') : t('sp.ev.ad.submit', 'Submit for Review')}
           </motion.button>
         </div>
       </motion.div>
@@ -404,6 +406,7 @@ function CampaignModal({ initial, onClose, onSave }) {
 const QUICK_TOPUP = [50000, 100000, 200000, 500000]; // paise
 
 function TopUpModal({ onClose, onSuccess }) {
+  const { t } = useI18n();
   const [createOrder] = useCreateAdTopUpOrderMutation();
   const [verifyTopUp] = useVerifyAdTopUpMutation();
   const [custom, setCustom] = useState('');
@@ -421,11 +424,11 @@ function TopUpModal({ onClose, onSuccess }) {
         purpose:          'Ad Wallet Top-up',
       });
       await verifyTopUp({ cfOrderId: checkoutResp.cfOrderId, cfPaymentId: checkoutResp.cfPaymentId }).unwrap();
-      toast.success(`₹${amountPaise / 100} added to ad wallet!`);
+      toast.success(t('sp.ev.ad.tuAdded', '₹{n} added to ad wallet!').replace('{n}', amountPaise / 100));
       onSuccess?.();
       onClose();
     } catch (err) {
-      const msg = err?.message || err?.data?.error || 'Top-up failed';
+      const msg = err?.message || err?.data?.error || t('sp.ev.ad.tuFail', 'Top-up failed');
       if (!msg.includes('cancelled')) toast.error(msg);
     } finally {
       setBusy(false);
@@ -434,7 +437,7 @@ function TopUpModal({ onClose, onSuccess }) {
 
   function handleCustom() {
     const amt = parseInt(custom, 10);
-    if (!amt || amt < 100) { toast.error('Minimum top-up is ₹100'); return; }
+    if (!amt || amt < 100) { toast.error(t('sp.ev.ad.tuMin', 'Minimum top-up is ₹100')); return; }
     handleTopUp(amt * 100);
   }
 
@@ -446,8 +449,8 @@ function TopUpModal({ onClose, onSuccess }) {
         className="bg-white rounded-card p-7 w-full max-w-sm shadow-2xl">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="font-black text-slate-900 text-lg">Add Ad Credits</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Credits are used to run your campaigns</p>
+            <h3 className="font-black text-slate-900 text-lg">{t('sp.ev.ad.tuT', 'Add Ad Credits')}</h3>
+            <p className="text-xs text-slate-400 mt-0.5">{t('sp.ev.ad.tuH', 'Credits are used to run your campaigns')}</p>
           </div>
           {!busy && <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-slate-100 transition-colors"><X size={18} className="text-slate-400" /></button>}
         </div>
@@ -467,7 +470,7 @@ function TopUpModal({ onClose, onSuccess }) {
           <div className="relative flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">₹</span>
             <input
-              type="number" min="100" placeholder="Custom amount"
+              type="number" min="100" placeholder={t('sp.ev.ad.custom', 'Custom amount')}
               value={custom} onChange={e => setCustom(e.target.value)}
               disabled={busy}
               className="w-full pl-7 pr-3 py-3 rounded-xl border border-slate-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
@@ -475,11 +478,11 @@ function TopUpModal({ onClose, onSuccess }) {
           </div>
           <button onClick={handleCustom} disabled={busy || !custom}
             className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-40 flex items-center gap-1.5">
-            {busy ? <Loader2 size={14} className="animate-spin" /> : 'Pay'}
+            {busy ? <Loader2 size={14} className="animate-spin" /> : t('sp.ev.ad.pay', 'Pay')}
           </button>
         </div>
 
-        <p className="text-[10px] text-slate-400 text-center mt-3">Secured by Cashfree, UPI, Cards, Net Banking</p>
+        <p className="text-[10px] text-slate-400 text-center mt-3">{t('sp.ev.ad.secured', 'Secured by Cashfree, UPI, Cards, Net Banking')}</p>
       </motion.div>
     </motion.div>
   );
@@ -487,12 +490,13 @@ function TopUpModal({ onClose, onSuccess }) {
 
 /* Campaign row */
 function CampaignRow({ ad, onEdit }) {
+  const { t } = useI18n();
   const [updateCampaign] = useUpdateMyCampaignMutation();
 
   async function togglePause() {
     const next = ad.status === 'active' ? 'paused' : 'active';
-    try { await updateCampaign({ id: ad._id, status: next }).unwrap(); toast.success(next === 'active' ? 'Resumed' : 'Paused'); }
-    catch (e) { toast.error(e?.data?.error || 'Failed'); }
+    try { await updateCampaign({ id: ad._id, status: next }).unwrap(); toast.success(next === 'active' ? t('sp.ev.ad.resumed', 'Resumed') : t('sp.ev.ad.pausedT', 'Paused')); }
+    catch (e) { toast.error(e?.data?.error || t('sp.ev.ad.failed', 'Failed')); }
   }
 
   const statusColor = STATUS_COLORS[ad.status] || STATUS_COLORS.draft;
@@ -507,16 +511,16 @@ function CampaignRow({ ad, onEdit }) {
           <p className="text-xs text-slate-500 mt-0.5 truncate">{ad.content?.headline}</p>
         </div>
         <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-black ${statusColor}`}>
-          {ad.status?.replace('_', ' ')}
+          {t('sp.ev.ad.st.' + ad.status, ad.status?.replace('_', ' '))}
         </span>
       </div>
 
       <div className="grid grid-cols-4 gap-2 text-center">
         {[
-          { label: 'Views',  value: impressions.toLocaleString('en-IN') },
-          { label: 'Clicks', value: clicks.toLocaleString('en-IN') },
-          { label: 'CTR',    value: `${ctr(impressions, clicks)}%` },
-          { label: 'Spent',  value: fmtRupees(ad.stats?.spend) },
+          { label: t('sp.ev.ad.views', 'Views'),  value: impressions.toLocaleString('en-IN') },
+          { label: t('sp.ev.ad.clicks', 'Clicks'), value: clicks.toLocaleString('en-IN') },
+          { label: t('sp.ev.ad.ctr', 'CTR'),    value: `${ctr(impressions, clicks)}%` },
+          { label: t('sp.ev.ad.spent', 'Spent'),  value: fmtRupees(ad.stats?.spend) },
         ].map(({ label, value }) => (
           <div key={label} className="bg-slate-50 rounded-xl py-2">
             <p className="text-sm font-black text-slate-900">{value}</p>
@@ -527,7 +531,7 @@ function CampaignRow({ ad, onEdit }) {
 
       <div className="flex items-center gap-2 text-xs text-slate-400 flex-wrap">
         {(ad.placements || []).slice(0, 3).map(p => (
-          <span key={p} className="px-2 py-0.5 bg-zappy-50 text-zappy-600 rounded-lg font-semibold">{p.replace('_', ' ')}</span>
+          <span key={p} className="px-2 py-0.5 bg-zappy-50 text-zappy-600 rounded-lg font-semibold">{t('sp.ev.ad.pl.' + p, p.replace('_', ' '))}</span>
         ))}
         {(ad.placements || []).length > 3 && <span className="text-slate-400">+{ad.placements.length - 3}</span>}
       </div>
@@ -535,24 +539,24 @@ function CampaignRow({ ad, onEdit }) {
       <div className="flex gap-2">
         {['draft', 'rejected'].includes(ad.status) && (
           <button onClick={() => onEdit(ad)} className="flex-1 py-2 bg-zappy-50 text-zappy-700 rounded-xl text-xs font-bold hover:bg-zappy-100 transition-colors flex items-center justify-center gap-1">
-            <Megaphone size={11} />Edit & Submit
+            <Megaphone size={11} />{t('sp.ev.ad.editSub', 'Edit & Submit')}
           </button>
         )}
         {['active', 'paused'].includes(ad.status) && (
           <button onClick={togglePause} className="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors flex items-center justify-center gap-1">
-            {ad.status === 'active' ? <><Pause size={11} />Pause</> : <><Play size={11} />Resume</>}
+            {ad.status === 'active' ? <><Pause size={11} />{t('sp.ev.ad.pause', 'Pause')}</> : <><Play size={11} />{t('sp.ev.ad.resume', 'Resume')}</>}
           </button>
         )}
         {ad.status === 'pending_approval' && (
           <div className="flex-1 py-2 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1">
-            <Clock size={11} />Under Review
+            <Clock size={11} />{t('sp.ev.ad.review', 'Under Review')}
           </div>
         )}
       </div>
 
       {ad.adminNote && (
         <div className="text-[11px] text-red-600 bg-red-50 rounded-xl px-3 py-2">
-          Admin note: {ad.adminNote}
+          {t('sp.ev.ad.adminNote', 'Admin note: {n}').replace('{n}', ad.adminNote)}
         </div>
       )}
     </div>
@@ -561,12 +565,13 @@ function CampaignRow({ ad, onEdit }) {
 
 /* Main Dashboard */
 const TABS = [
-  { id: 'campaigns', label: 'Campaigns',  Icon: Megaphone  },
-  { id: 'wallet',    label: 'Wallet',     Icon: Wallet     },
-  { id: 'help',      label: 'How it works', Icon: Zap    },
+  { id: 'campaigns', label: 'Campaigns',  tk: 'tabCamp', Icon: Megaphone  },
+  { id: 'wallet',    label: 'Wallet',     tk: 'tabWallet', Icon: Wallet     },
+  { id: 'help',      label: 'How it works', tk: 'tabHelp', Icon: Zap    },
 ];
 
 export default function AdvertiserDashboard() {
+  const { t, lang } = useI18n();
   const dispatch    = useDispatch();
   const nav         = useNavigate();
   const { profile } = useSelector(selectAuth);
@@ -594,7 +599,7 @@ export default function AdvertiserDashboard() {
   async function handleSave(form) {
     if (editAd) await updateCampaign({ id: editAd._id, ...form }).unwrap();
     else        await createCampaign({ ...form, _advertiserName: profile?.name || '' }).unwrap();
-    toast.success(editAd ? 'Campaign updated - pending review' : 'Campaign submitted for review! 🎉');
+    toast.success(editAd ? t('sp.ev.ad.updated', 'Campaign updated - pending review') : t('sp.ev.ad.submitted', 'Campaign submitted for review! 🎉'));
     refetch();
   }
 
@@ -615,7 +620,7 @@ export default function AdvertiserDashboard() {
             </div>
             <div>
               <p className="font-black text-navy-900 text-2xl tracking-tight leading-none">ZappyOne Ads</p>
-              <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-1">Advertiser Portal</p>
+              <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-1">{t('sp.ev.ad.portal', 'Advertiser Portal')}</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -627,7 +632,7 @@ export default function AdvertiserDashboard() {
               <span className="text-sm font-black text-emerald-700">{fmtRupees(wallet?.creditsPaise)}</span>
             </div>
             <motion.button whileTap={{ scale: 0.96 }} onClick={() => setShowTopUp(true)} className="flex items-center gap-1.5 px-4 py-2.5 bg-zappy-gradient text-white rounded-[14px] text-sm font-bold shadow-md shadow-zappy-200 transition-all hover:opacity-90 ring-2 ring-white">
-              <Plus size={14} />Add Credits
+              <Plus size={14} />{t('sp.ev.ad.addCr', 'Add Credits')}
             </motion.button>
             <div className="w-px h-8 bg-slate-200 mx-1" />
             <button onClick={handleLogout} className="w-11 h-11 flex items-center justify-center bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-500 rounded-[14px] border border-slate-100 transition-colors">
@@ -640,21 +645,21 @@ export default function AdvertiserDashboard() {
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatBox label="Active Campaigns" value={activeCnt}                                   icon={Megaphone}         color="bg-zappy-50 border-zappy-200 text-zappy-600" />
-          <StatBox label="Total Impressions" value={totalImp.toLocaleString('en-IN')}            icon={Eye}               color="bg-cyan-50 border-cyan-200 text-cyan-600" />
-          <StatBox label="Total Clicks"      value={totalClicks.toLocaleString('en-IN')}         icon={MousePointerClick} color="bg-amber-50 border-amber-200 text-amber-600" sub={`CTR ${ctr(totalImp, totalClicks)}%`} />
-          <StatBox label="Total Spent"       value={fmtRupees(totalSpent)}                       icon={IndianRupee}       color="bg-emerald-50 border-emerald-200 text-emerald-600" />
+          <StatBox label={t('sp.ev.ad.sActive', 'Active Campaigns')} value={activeCnt}                                   icon={Megaphone}         color="bg-zappy-50 border-zappy-200 text-zappy-600" />
+          <StatBox label={t('sp.ev.ad.sImp', 'Total Impressions')} value={totalImp.toLocaleString('en-IN')}            icon={Eye}               color="bg-cyan-50 border-cyan-200 text-cyan-600" />
+          <StatBox label={t('sp.ev.ad.sClicks', 'Total Clicks')}      value={totalClicks.toLocaleString('en-IN')}         icon={MousePointerClick} color="bg-amber-50 border-amber-200 text-amber-600" sub={`CTR ${ctr(totalImp, totalClicks)}%`} />
+          <StatBox label={t('sp.ev.ad.sSpent', 'Total Spent')}       value={fmtRupees(totalSpent)}                       icon={IndianRupee}       color="bg-emerald-50 border-emerald-200 text-emerald-600" />
         </div>
 
         {/* Tabs */}
         <div className="flex gap-2 bg-slate-100/80 p-1.5 rounded-card border border-slate-200/50">
-          {TABS.map(({ id, label, Icon }) => (
+          {TABS.map(({ id, label, tk, Icon }) => (
             <button key={id} onClick={() => setActiveTab(id)}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold transition-all relative outline-none ${activeTab === id ? 'text-zappy-700' : 'text-slate-500 hover:text-slate-700 hover:bg-white/40'}`}>
               {activeTab === id && (
                 <motion.div layoutId="adstabs" className="absolute inset-0 bg-white rounded-2xl shadow-sm border border-slate-200/60" />
               )}
-              <span className="relative z-10 flex items-center gap-2"><Icon size={14} className={activeTab === id ? 'text-zappy-500' : ''} />{label}</span>
+              <span className="relative z-10 flex items-center gap-2"><Icon size={14} className={activeTab === id ? 'text-zappy-500' : ''} />{t('sp.ev.ad.' + tk, label)}</span>
             </button>
           ))}
         </div>
@@ -663,10 +668,10 @@ export default function AdvertiserDashboard() {
         {activeTab === 'campaigns' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-bold text-slate-700">{data?.total || 0} campaign{data?.total !== 1 ? 's' : ''}</p>
+              <p className="text-sm font-bold text-slate-700">{data?.total === 1 ? t('sp.ev.ad.count1', '1 campaign') : t('sp.ev.ad.countN', '{n} campaigns').replace('{n}', data?.total || 0)}</p>
               <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setEditAd(null); setShowForm(true); }}
                 className="flex items-center gap-1.5 px-4 py-2 bg-zappy-600 text-white rounded-xl text-xs font-bold shadow-sm shadow-zappy-200">
-                <Plus size={13} />New Campaign
+                <Plus size={13} />{t('sp.ev.ad.new', 'New Campaign')}
               </motion.button>
             </div>
 
@@ -679,10 +684,10 @@ export default function AdvertiserDashboard() {
                   <div className="w-24 h-24 bg-zappy-gradient rounded-card flex items-center justify-center mx-auto mb-6 shadow-xl shadow-zappy-200 rotate-3 transition-transform hover:rotate-6">
                     <Megaphone size={40} className="text-white drop-shadow-md -rotate-3" />
                   </div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Supercharge your growth</h2>
-                  <p className="text-sm text-slate-500 mt-2 mb-8 max-w-sm mx-auto">Create highly targeted ad campaigns to reach thousands of high-intent customers right when they are looking to book.</p>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">{t('sp.ev.ad.empT', 'Supercharge your growth')}</h2>
+                  <p className="text-sm text-slate-500 mt-2 mb-8 max-w-sm mx-auto">{t('sp.ev.ad.empB', 'Create highly targeted ad campaigns to reach thousands of high-intent customers right when they are looking to book.')}</p>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }} onClick={() => setShowForm(true)} className="px-8 py-4 bg-zappy-gradient text-white rounded-2xl text-sm font-black shadow-lg shadow-zappy-200 flex items-center justify-center gap-2 mx-auto ring-2 ring-white">
-                    <Plus size={16} /> Create First Campaign
+                    <Plus size={16} /> {t('sp.ev.ad.first', 'Create First Campaign')}
                   </motion.button>
                 </div>
               </div>
@@ -700,28 +705,28 @@ export default function AdvertiserDashboard() {
         {activeTab === 'wallet' && (
           <div className="space-y-4">
             <div className=" bg-zappy-600 rounded-card p-6 text-white">
-              <p className="text-white/70 text-xs font-medium uppercase tracking-wide">Available Balance</p>
+              <p className="text-white/70 text-xs font-medium uppercase tracking-wide">{t('sp.ev.ad.avail', 'Available Balance')}</p>
               <p className="text-4xl font-black mt-1">{fmtRupees(wallet?.creditsPaise)}</p>
               <div className="flex gap-4 mt-4 text-xs">
-                <div><p className="text-white/60">Total Added</p><p className="font-black">{fmtRupees(wallet?.lifetimeTopUpPaise)}</p></div>
-                <div><p className="text-white/60">Total Spent</p><p className="font-black">{fmtRupees(wallet?.lifetimeSpentPaise)}</p></div>
+                <div><p className="text-white/60">{t('sp.ev.ad.totAdded', 'Total Added')}</p><p className="font-black">{fmtRupees(wallet?.lifetimeTopUpPaise)}</p></div>
+                <div><p className="text-white/60">{t('sp.ev.ad.totSpent', 'Total Spent')}</p><p className="font-black">{fmtRupees(wallet?.lifetimeSpentPaise)}</p></div>
               </div>
               <button onClick={() => setShowTopUp(true)} className="mt-4 flex items-center gap-2 bg-white/20 hover:bg-white/30 transition-colors text-white font-bold text-sm px-4 py-2 rounded-xl">
-                <Plus size={14} />Add Credits
+                <Plus size={14} />{t('sp.ev.ad.addCr', 'Add Credits')}
               </button>
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-100 p-4">
-              <p className="text-xs font-black text-slate-500 uppercase tracking-wider mb-3">Transaction History</p>
+              <p className="text-xs font-black text-slate-500 uppercase tracking-wider mb-3">{t('sp.ev.ad.txHist', 'Transaction History')}</p>
               {(wallet?.ledger || []).slice().reverse().slice(0, 20).length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-6">No transactions yet</p>
+                <p className="text-sm text-slate-400 text-center py-6">{t('sp.ev.ad.txNone', 'No transactions yet')}</p>
               ) : (
                 <div className="space-y-2">
                   {(wallet?.ledger || []).slice().reverse().slice(0, 20).map((tx, i) => (
                     <div key={i} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
                       <div>
                         <p className="text-xs font-semibold text-slate-700 capitalize">{tx.type}</p>
-                        <p className="text-[10px] text-slate-400">{tx.note}, {new Date(tx.at).toLocaleDateString('en-IN')}</p>
+                        <p className="text-[10px] text-slate-400">{tx.note}, {new Date(tx.at).toLocaleDateString(`${lang}-IN`)}</p>
                       </div>
                       <span className={`text-sm font-black ${tx.amountPaise > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                         {tx.amountPaise > 0 ? '+' : ''}{fmtRupees(Math.abs(tx.amountPaise))}
@@ -749,19 +754,19 @@ export default function AdvertiserDashboard() {
                   <Icon size={18} className="text-zappy-600" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-zappy-500 font-black uppercase tracking-wider">Step {step}</p>
-                  <p className="font-bold text-slate-900 text-sm mt-0.5">{title}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
+                  <p className="text-[10px] text-zappy-500 font-black uppercase tracking-wider">{t('sp.ev.ad.step', 'Step {n}').replace('{n}', step)}</p>
+                  <p className="font-bold text-slate-900 text-sm mt-0.5">{t(`sp.ev.ad.h${step}t`, title)}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{t(`sp.ev.ad.h${step}d`, desc)}</p>
                 </div>
               </div>
             ))}
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-              <p className="text-xs font-black text-amber-800 mb-1">💡 Pricing Guide</p>
+              <p className="text-xs font-black text-amber-800 mb-1">💡 {t('sp.ev.ad.priceG', 'Pricing Guide')}</p>
               <div className="space-y-1 text-xs text-amber-700">
-                <p>• CPC: ₹0.50–₹5 per click depending on category</p>
-                <p>• CPM: ₹2–₹10 per 1000 impressions</p>
-                <p>• Booking success placement has 3× higher conversion rate</p>
-                <p>• Unused credits are refundable - no risk</p>
+                <p>• {t('sp.ev.ad.pg1', 'CPC: ₹0.50–₹5 per click depending on category')}</p>
+                <p>• {t('sp.ev.ad.pg2', 'CPM: ₹2–₹10 per 1000 impressions')}</p>
+                <p>• {t('sp.ev.ad.pg3', 'Booking success placement has 3× higher conversion rate')}</p>
+                <p>• {t('sp.ev.ad.pg4', 'Unused credits are refundable - no risk')}</p>
               </div>
             </div>
           </div>

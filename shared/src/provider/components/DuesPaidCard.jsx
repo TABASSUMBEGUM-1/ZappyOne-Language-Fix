@@ -1,4 +1,5 @@
 import { CircleCheck } from 'lucide-react';
+import { useServiceProT } from '../../i18n/I18nProvider';
 
 // "Payment done" once a partner has paid ZappyOne everything (workerHome duesPaidView).
 export default function DuesPaidCard({ paid }) {
@@ -15,6 +16,7 @@ export default function DuesPaidCard({ paid }) {
 
 // The last payment under what is still owed (a part payment).
 export function LastPaidLine({ paid }) {
+  const t = useServiceProT();
   if (!paid || paid.cleared) return null;
-  return <p className="mt-2 flex items-center gap-1.5 text-[12.5px] font-semibold tabular-nums text-emerald-700"><CircleCheck size={14} /> Last paid: {paid.line}</p>;
+  return <p className="mt-2 flex items-center gap-1.5 text-[12.5px] font-semibold tabular-nums text-emerald-700"><CircleCheck size={14} /> {t('sp.last_paid_line', 'Last paid: {line}').replace('{line}', paid.line)}</p>;
 }

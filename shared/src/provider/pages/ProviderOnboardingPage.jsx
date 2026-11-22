@@ -1,7 +1,9 @@
-import { cleanDetail, detailHelp, detailRule, fixLine, missingLine } from '../detailRules';
+import { cleanDetail, detailHelp, detailRule } from '../detailRules';
 import { useScrollTopOnChange } from '../../components/common/ScrollToTop';
 import MyServiceRequests from '../components/MyServiceRequests';
 import { useState, useMemo } from 'react';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -60,11 +62,11 @@ function Thumb({ src }) {
  */
 
 const STATUS_META = {
-  draft: { label: 'Not submitted', tone: 'slate', icon: FileText },
-  pending_review: { label: 'Under review', tone: 'amber', icon: Clock },
-  approved: { label: 'Approved', tone: 'emerald', icon: Check },
-  rejected: { label: 'Needs changes', tone: 'red', icon: AlertTriangle },
-  suspended: { label: 'Paused', tone: 'red', icon: Ban },
+  draft: { k: 'wpo.s.draft', label: 'Not submitted', tone: 'slate', icon: FileText },
+  pending_review: { k: 'wpo.s.pending_review', label: 'Under review', tone: 'amber', icon: Clock },
+  approved: { k: 'wpo.s.approved', label: 'Approved', tone: 'emerald', icon: Check },
+  rejected: { k: 'wpo.s.rejected', label: 'Needs changes', tone: 'red', icon: AlertTriangle },
+  suspended: { k: 'wpo.s.suspended', label: 'Paused', tone: 'red', icon: Ban },
 };
 
 // Static class strings — Tailwind cannot see classes assembled at runtime.
@@ -76,12 +78,13 @@ const TONE = {
 };
 
 function StatusChip({ status }) {
+  const t = useServiceProT();
   const meta = STATUS_META[status];
   if (!meta) return null;
   const Icon = meta.icon;
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${TONE[meta.tone]}`}>
-      <Icon size={11} /> {meta.label}
+      <Icon size={11} /> {t('sp.'+meta.k, meta.label)}
     </span>
   );
 }
@@ -113,9 +116,10 @@ function Header({ title, subtitle, onBack }) {
 /* Where the provider stands */
 
 function Summary({ status, onAddService, onOpenEnrolment }) {
+  const t = useServiceProT();
   const nav = useNavigate();
-  const kindLabel = status.providerKind === 'shop' ? 'Shop' : 'Independent technician';
-  const name = status.profile?.businessName || status.profile?.name || 'Your account';
+  const kindLabel = status.providerKind === 'shop' ? t('sp.wpo.shop', 'Shop') : t('sp.wpo.indep', 'Independent technician');
+  const name = status.profile?.businessName || status.profile?.name || t('sp.wpo.yourAcct', 'Your account');
 
   return (
     <Shell>
@@ -140,18 +144,18 @@ function Summary({ status, onAddService, onOpenEnrolment }) {
       */}
       {status.isLive ? (
         <div className="card bg-emerald-50 ring-emerald-200">
-          <p className="text-[11px] font-black uppercase tracking-wide text-emerald-700">You're live</p>
+          <p className="text-[11px] font-black uppercase tracking-wide text-emerald-700">{t('sp.wpo.live', "You're live")}</p>
           <p className="text-sm font-semibold text-emerald-900 mt-0.5">
-            Customers can find and book you.
+            {t('sp.wpo.liveSub', 'Customers can find and book you.')}
           </p>
         </div>
       ) : (
         <div className="card bg-zappy-50 ring-zappy-100">
           <p className="text-[11px] font-black uppercase tracking-wide text-zappy-700">
-            Not visible to customers yet
+            {t('sp.wpo.notVisible', 'Not visible to customers yet')}
           </p>
           {status.nextStep && (
-            <p className="text-sm font-semibold text-zappy-900 mt-0.5">{status.nextStep.label}</p>
+            <p className="text-sm font-semibold text-zappy-900 mt-0.5">{t(labelKey(status.nextStep.label), status.nextStep.label)}</p>
           )}
 
           {(status.storefront || []).some((s) => !s.done) && (
@@ -166,7 +170,7 @@ function Summary({ status, onAddService, onOpenEnrolment }) {
                     {s.done && <Check size={10} className="text-white" strokeWidth={3} />}
                   </span>
                   <span className={`text-xs ${s.done ? 'text-slate-400 line-through' : 'font-semibold text-zappy-900'}`}>
-                    {s.label}
+                    {t(labelKey(s.label), s.label)}
                   </span>
                 </li>
               ))}
@@ -175,12 +179,12 @@ function Summary({ status, onAddService, onOpenEnrolment }) {
         </div>
       )}
 
-      <p className="text-xs font-bold text-slate-500 uppercase tracking-wide px-1 pt-1">Your services</p>
+      <p className="text-xs font-bold text-slate-500 uppercase tracking-wide px-1 pt-1">{t('sp.wpo.yourServices', 'Your services')}</p>
 
       {!status.enrolments.length && (
         <div className="card text-center py-8">
-          <p className="text-sm font-bold text-slate-700">Nothing chosen yet</p>
-          <p className="text-xs text-slate-400 mt-1">Pick what you work on to start getting jobs.</p>
+          <p className="text-sm font-bold text-slate-700">{t('sp.wpo.nothing', 'Nothing chosen yet')}</p>
+          <p className="text-xs text-slate-400 mt-1">{t('sp.wpo.pickWork', 'Pick what you work on to start getting jobs.')}</p>
         </div>
       )}
 
@@ -202,12 +206,12 @@ function Summary({ status, onAddService, onOpenEnrolment }) {
 
       <button onClick={onAddService}
         className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-zappy-600 py-3">
-        <Plus size={15} /> Add a service
+        <Plus size={15} /> {t('sp.wpo.addService', 'Add a service')}
       </button>
 
       {status.repairVerticals?.length > 0 && (
         <button onClick={() => nav('/provider/services')} className="btn-primary w-full">
-          Set up your pricing and stock
+          {t('sp.wpo.setupPricing', 'Set up your pricing and stock')}
         </button>
       )}
     </Shell>
@@ -217,13 +221,14 @@ function Summary({ status, onAddService, onOpenEnrolment }) {
 /* Pick a domain */
 
 function DomainStep({ onPick }) {
+  const t = useServiceProT();
   const { data, isLoading } = useProviderDomainsQuery();
   if (isLoading) return <Spinner />;
 
   return (
     <Shell>
       <p className="text-xs text-slate-500 px-1">
-        Choose the kind of work you do. You can add more later.
+        {t('sp.wpo.chooseWork', 'Choose the kind of work you do. You can add more later.')}
       </p>
       {(data?.domains || []).map((d) => (
         <button key={d.code} onClick={() => onPick(d)}
@@ -243,6 +248,7 @@ function DomainStep({ onPick }) {
 /* Pick the services inside it */
 
 function LineStep({ domain, onPick, onRequest }) {
+  const t = useServiceProT();
   const { data, isLoading } = useProviderServiceLinesQuery(domain.code);
   const [enrol] = useProviderEnrolMutation();
   const [picked, setPicked] = useState([]);
@@ -258,27 +264,27 @@ function LineStep({ domain, onPick, onRequest }) {
     setAdding(true);
     const started = [];
     for (const code of picked) {
-      try { await enrol({ lineCode: code }).unwrap(); started.push(code); } catch (err) { toast.error(err?.data?.error || 'Could not start one of them'); }
+      try { await enrol({ lineCode: code }).unwrap(); started.push(code); } catch (err) { toast.error(err?.data?.error || t('sp.wpo.startFail', 'Could not start one of them')); }
     }
     setAdding(false);
     if (!started.length) return;
-    if (started.length > 1) toast.success(`${started.length} services added. Your documents carry over to each one.`);
+    if (started.length > 1) toast.success(t('sp.wpo.addedN', '{n} services added. Your documents carry over to each one.').replace('{n}', started.length));
     onPick(lines.find((l) => l.code === started[0]));
   }
 
   return (
     <Shell>
-      <p className="-mt-1 text-[13px] text-slate-500">Tick every service you do. You send your documents once.</p>
+      <p className="-mt-1 text-[13px] text-slate-500">{t('sp.wpo.tickAll', 'Tick every service you do. You send your documents once.')}</p>
       {lines.length > 5 && (
         <label className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 focus-within:border-zappy-600 focus-within:ring-2 focus-within:ring-zappy-100">
           <Search size={16} className="shrink-0 text-slate-400" />
-          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search, e.g. sofa, bathroom, AC"
-            aria-label="Search services" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
-          {q && <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="text-slate-400 hover:text-slate-600"><X size={16} /></button>}
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('sp.wpo.searchPh', 'Search, e.g. sofa, bathroom, AC')}
+            aria-label={t('sp.wpo.searchAria', 'Search services')} className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
+          {q && <button type="button" onClick={() => setQ('')} aria-label={t('sp.wpo.clearAria', 'Clear search')} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>}
         </label>
       )}
       {q && !shown.length && (
-        <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">No service matches "{q}". Tap "My service isn't listed" below to ask for it.</p>
+        <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{t('sp.wpo.noMatch', 'No service matches "{q}". Tap "My service isn\'t listed" below to ask for it.').replace('{q}', q)}</p>
       )}
       {shown.map((l) => {
         const live = l.status === 'live';
@@ -297,7 +303,7 @@ function LineStep({ domain, onPick, onRequest }) {
                     ? <StatusChip status={l.myStatus} />
                     : !live && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-bold">
-                        Opening soon
+                        {t('sp.wpo.soon', 'Opening soon')}
                       </span>
                     )}
                 </div>
@@ -312,14 +318,14 @@ function LineStep({ domain, onPick, onRequest }) {
 
       <button onClick={onRequest}
         className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-zappy-600 py-3">
-        <Plus size={15} /> My service isn't listed
+        <Plus size={15} /> {t('sp.wpo.notListed', "My service isn't listed")}
       </button>
 
       {picked.length > 0 && (
         <div className="sticky bottom-0 -mx-4 border-t border-slate-100 bg-white/95 px-4 py-3 backdrop-blur">
           <button type="button" onClick={addPicked} disabled={adding} className="btn-primary h-12 w-full">
             {adding ? <Loader2 size={16} className="animate-spin" /> : null}
-            Add {picked.length} service{picked.length === 1 ? '' : 's'}
+            {(picked.length === 1 ? t('sp.wpo.addN1', 'Add {n} service') : t('sp.wpo.addNN', 'Add {n} services')).replace('{n}', picked.length)}
           </button>
         </div>
       )}
@@ -331,6 +337,7 @@ const blankJob = () => ({ name: '', includes: '', minutes: '', price: '', photos
 
 // Provider proposes a service we do not carry, with photos and their own jobs and prices; on approval it becomes their menu. Several can be sent one after another.
 function RequestSheet({ domain, onClose }) {
+  const t = useServiceProT();
   const [form, setForm] = useState({ proposedName: '', description: '', years: '', modes: ['doorstep'] });
   const [photos, setPhotos] = useState([]);
   const [jobs, setJobs] = useState([blankJob()]);
@@ -352,53 +359,53 @@ function RequestSheet({ domain, onClose }) {
       }).unwrap();
       setSent((n) => n + 1);
       // Live at once when it can be; otherwise what keeps it for ZappyOne, and anything worth fixing either way.
-      if (res.opened) toast.success(`${res.opened.name} is live. Customers near you can book it now.`, { duration: 6000 });
-      else toast.success('Sent. ZappyOne will check it and tell you.', { duration: 5000 });
+      if (res.opened) toast.success(t('sp.wpo.isLive', '{n} is live. Customers near you can book it now.').replace('{n}', res.opened.name), { duration: 6000 });
+      else toast.success(t('sp.wpo.sentCheck', 'Sent. ZappyOne will check it and tell you.'), { duration: 5000 });
       for (const w of res.warnings || []) toast(w.message, { duration: 9000 });
       setForm({ proposedName: '', description: '', years: '', modes: ['doorstep'] });
       setPhotos([]);
       setJobs([blankJob()]);
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not send that');
+      toast.error(err?.data?.error || t('sp.wpo.cantSend', 'Could not send that'));
     }
   }
 
   const field = 'h-11 w-full rounded-btn border border-line-strong bg-white px-3 text-[15px] text-ink-900 outline-none transition placeholder:text-ink-400 focus:border-zappy-600 focus:ring-2 focus:ring-zappy-100';
   const label = 'mb-1.5 block text-[13px] font-semibold text-ink-700';
-  const MODES = [['doorstep', "At the customer's place", Home], ['workshop', 'At my shop', Store]];
+  const MODES = [['doorstep', t('sp.wpo.atCust', "At the customer's place"), Home], ['workshop', t('sp.wpo.atShop', 'At my shop'), Store]];
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-900/50 sm:items-center" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby="req-title" className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-sheet bg-white sm:max-w-lg sm:rounded-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 border-b border-line px-5 pb-3 pt-5">
           <div className="min-w-0">
-            <h3 id="req-title" className="text-[18px] font-extrabold text-ink-900">Tell us what you do</h3>
-            <p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-500">Once ZappyOne approves it, this becomes your menu at your prices.{sent > 0 && <span className="ml-1 font-semibold text-emerald-700">{sent} sent so far.</span>}</p>
+            <h3 id="req-title" className="text-[18px] font-extrabold text-ink-900">{t('sp.wpo.tellUs', 'Tell us what you do')}</h3>
+            <p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-500">{t('sp.wpo.tellUsSub', 'Once ZappyOne approves it, this becomes your menu at your prices.')}{sent > 0 && <span className="ml-1 font-semibold text-emerald-700">{t('sp.wpo.sentSoFar', '{n} sent so far.').replace('{n}', sent)}</span>}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink-500 hover:bg-sunken"><X size={18} /></button>
+          <button type="button" onClick={onClose} aria-label={t('sp.wpo.close', 'Close')} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink-500 hover:bg-sunken"><X size={18} /></button>
         </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
           <div>
-            <label className={label} htmlFor="req-name">Service name</label>
-            <input id="req-name" className={field} placeholder="e.g. Smart watch repair" maxLength={120}
+            <label className={label} htmlFor="req-name">{t('sp.wpo.svcName', 'Service name')}</label>
+            <input id="req-name" className={field} placeholder={t('sp.wpo.svcNamePh', 'e.g. Smart watch repair')} maxLength={120}
               value={form.proposedName} onChange={(e) => setForm((f) => ({ ...f, proposedName: e.target.value }))} />
           </div>
           <div>
-            <label className={label} htmlFor="req-about">What exactly do you do?</label>
+            <label className={label} htmlFor="req-about">{t('sp.wpo.whatExactly', 'What exactly do you do?')}</label>
             <textarea id="req-about" rows={3} maxLength={1000} className={`${field} h-auto resize-none py-2.5`}
-              placeholder="The work, the brands or items you handle, anything customers should know"
+              placeholder={t('sp.wpo.whatExactlyPh', 'The work, the brands or items you handle, anything customers should know')}
               value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
           </div>
 
           <div>
-            <p className={label}>Photos of your work <span className="font-normal text-ink-400">up to 6</span></p>
-            <p className="-mt-1 mb-1.5 text-[12px] text-ink-500">The first photo is the cover customers see for this service.</p>
+            <p className={label}>{t('sp.wpo.photosOfWork', 'Photos of your work')} <span className="font-normal text-ink-400">{t('sp.wpo.upTo6', 'up to 6')}</span></p>
+            <p className="-mt-1 mb-1.5 text-[12px] text-ink-500">{t('sp.wpo.coverPhoto', 'The first photo is the cover customers see for this service.')}</p>
             <PhotoTiles value={photos} onChange={setPhotos} max={6} folder="line-requests" />
           </div>
 
           <div>
-            <p className={label}>Where you do it</p>
+            <p className={label}>{t('sp.wpo.whereDo', 'Where you do it')}</p>
             <div className="grid grid-cols-2 gap-2">
               {MODES.map(([m, l, Icon]) => {
                 const on = form.modes.includes(m);
@@ -414,40 +421,40 @@ function RequestSheet({ domain, onClose }) {
           </div>
 
           <div className="max-w-[10rem]">
-            <label className={label} htmlFor="req-years">Years doing it</label>
-            <input id="req-years" className={field} inputMode="numeric" value={form.years} onChange={(e) => setForm((f) => ({ ...f, years: e.target.value.replace(/\D/g, '').slice(0, 2) }))} placeholder="e.g. 5" />
+            <label className={label} htmlFor="req-years">{t('sp.wpo.years', 'Years doing it')}</label>
+            <input id="req-years" className={field} inputMode="numeric" value={form.years} onChange={(e) => setForm((f) => ({ ...f, years: e.target.value.replace(/\D/g, '').slice(0, 2) }))} placeholder={t('sp.wpo.yearsPh', 'e.g. 5')} />
           </div>
 
           <div className="space-y-3">
-            <p className={`${label} mb-0`}>Your jobs and prices</p>
+            <p className={`${label} mb-0`}>{t('sp.wpo.jobsPrices', 'Your jobs and prices')}</p>
             {jobs.map((j, i) => (
               <div key={i} className="space-y-3 rounded-card border border-line bg-canvas p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-bold uppercase tracking-[0.08em] text-ink-400">Job {i + 1}</span>
-                  {jobs.length > 1 && <button type="button" onClick={() => setJobs((js) => js.filter((_, n) => n !== i))} className="text-[12.5px] font-semibold text-ink-500 hover:text-red-700">Remove</button>}
+                  <span className="text-[12px] font-bold uppercase tracking-[0.08em] text-ink-400">{t('sp.wpo.jobN', 'Job {n}').replace('{n}', i + 1)}</span>
+                  {jobs.length > 1 && <button type="button" onClick={() => setJobs((js) => js.filter((_, n) => n !== i))} className="text-[12.5px] font-semibold text-ink-500 hover:text-red-700">{t('sp.wpo.remove', 'Remove')}</button>}
                 </div>
                 <div className="flex gap-3">
-                  <PhotoTiles value={j.photos} onChange={(v) => setJob(i, 'photos', v)} max={1} size="h-[92px] w-[92px]" label="Photo" folder="line-requests" />
+                  <PhotoTiles value={j.photos} onChange={(v) => setJob(i, 'photos', v)} max={1} size="h-[92px] w-[92px]" label={t('sp.wpo.photo', 'Photo')} folder="line-requests" />
                   <div className="min-w-0 flex-1 space-y-2">
-                    <input className={field} placeholder="Job name, e.g. Strap replacement" aria-label="Job name" value={j.name} maxLength={80} onChange={(e) => setJob(i, 'name', e.target.value)} />
+                    <input className={field} placeholder={t('sp.wpo.jobNamePh', 'Job name, e.g. Strap replacement')} aria-label={t('sp.wpo.jobNameAria', 'Job name')} value={j.name} maxLength={80} onChange={(e) => setJob(i, 'name', e.target.value)} />
                     <div className="grid grid-cols-2 gap-2">
                       <span className="flex h-11 items-center rounded-btn border border-line-strong bg-white px-3 focus-within:border-zappy-600 focus-within:ring-2 focus-within:ring-zappy-100">
-                        <input className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-400" placeholder="30" aria-label="Minutes it takes" inputMode="numeric" value={j.minutes} onChange={(e) => setJob(i, 'minutes', e.target.value.replace(/\D/g, '').slice(0, 4))} />
-                        <span className="text-[12.5px] text-ink-400">min</span>
+                        <input className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-400" placeholder="30" aria-label={t('sp.wpo.minAria', 'Minutes it takes')} inputMode="numeric" value={j.minutes} onChange={(e) => setJob(i, 'minutes', e.target.value.replace(/\D/g, '').slice(0, 4))} />
+                        <span className="text-[12.5px] text-ink-400">{t('sp.wpo.min', 'min')}</span>
                       </span>
                       <span className="flex h-11 items-center rounded-btn border border-line-strong bg-white px-3 focus-within:border-zappy-600 focus-within:ring-2 focus-within:ring-zappy-100">
                         <span className="text-[14px] font-semibold text-ink-400">₹</span>
-                        <input className="min-w-0 flex-1 bg-transparent pl-1 text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-ink-400" placeholder="Price" aria-label="Your price in rupees" inputMode="numeric" value={j.price} onChange={(e) => setJob(i, 'price', e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                        <input className="min-w-0 flex-1 bg-transparent pl-1 text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-ink-400" placeholder={t('sp.wpo.pricePh', 'Price')} aria-label={t('sp.wpo.priceAria', 'Your price in rupees')} inputMode="numeric" value={j.price} onChange={(e) => setJob(i, 'price', e.target.value.replace(/\D/g, '').slice(0, 6))} />
                       </span>
                     </div>
                   </div>
                 </div>
-                <input className={field} placeholder="What's included, separated by commas" aria-label="What is included" value={j.includes} maxLength={300} onChange={(e) => setJob(i, 'includes', e.target.value)} />
+                <input className={field} placeholder={t('sp.wpo.includedPh', "What's included, separated by commas")} aria-label={t('sp.wpo.includedAria', 'What is included')} value={j.includes} maxLength={300} onChange={(e) => setJob(i, 'includes', e.target.value)} />
               </div>
             ))}
             {jobs.length < 20 && (
               <button type="button" onClick={() => setJobs((js) => [...js, blankJob()])} className="flex w-full items-center justify-center gap-1.5 rounded-card border border-dashed border-line-strong py-3 text-[13.5px] font-semibold text-zappy-700 hover:border-zappy-400">
-                <Plus size={15} /> Add another job
+                <Plus size={15} /> {t('sp.wpo.addAnother', 'Add another job')}
               </button>
             )}
           </div>
@@ -455,7 +462,7 @@ function RequestSheet({ domain, onClose }) {
 
         <div className="border-t border-line px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
           <button type="button" onClick={send} disabled={isLoading || form.proposedName.trim().length < 2 || !filled.length} className="btn-primary h-12 w-full">
-            {isLoading ? <><Loader2 size={16} className="animate-spin" /> Sending…</> : filled.length ? `Send request with ${filled.length} job${filled.length === 1 ? '' : 's'}` : 'Add a job with time and price to send'}
+            {isLoading ? <><Loader2 size={16} className="animate-spin" /> {t('sp.wpo.sending', 'Sending…')}</> : filled.length ? (filled.length === 1 ? t('sp.wpo.sendReq1', 'Send request with {n} job') : t('sp.wpo.sendReqN', 'Send request with {n} jobs')).replace('{n}', filled.length) : t('sp.wpo.addJobSend', 'Add a job with time and price to send')}
           </button>
         </div>
       </div>
@@ -473,6 +480,7 @@ function RequestSheet({ domain, onClose }) {
  * without this component knowing anything about either.
  */
 function VerifyStep({ lineCode, onDone }) {
+  const t = useServiceProT();
   const { data, isLoading, refetch } = useProviderLineRequirementsQuery(lineCode);
   const [presign] = usePresignUploadMutation();
   const [save] = useProviderSaveEnrolmentMutation();
@@ -509,9 +517,9 @@ function VerifyStep({ lineCode, onDone }) {
     return (
       <Shell>
         <div className="card bg-amber-50 ring-amber-200">
-          <p className="text-sm font-bold text-amber-900">Verification isn't configured for this service yet</p>
+          <p className="text-sm font-bold text-amber-900">{t('sp.wpo.notCfg', "Verification isn't configured for this service yet")}</p>
           <p className="text-xs text-amber-700 mt-1">
-            We'll let you know as soon as it is - you don't need to do anything.
+            {t('sp.wpo.notCfgSub', "We'll let you know as soon as it is - you don't need to do anything.")}
           </p>
         </div>
       </Shell>
@@ -537,7 +545,7 @@ function VerifyStep({ lineCode, onDone }) {
   async function upload(code, picked, meta = null) {
     const file = await prepareImage(picked);
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) return toast.error('File too large - max 5MB');
+    if (file.size > 5 * 1024 * 1024) return toast.error(t('sp.wpo.tooLarge', 'File too large - max 5MB'));
     try {
       setUploading(code);
       const contentType = file.type || 'image/jpeg';
@@ -557,14 +565,20 @@ function VerifyStep({ lineCode, onDone }) {
         }],
       }).unwrap();
       await refetch();
-      toast.success(meta ? 'Photo captured' : 'Uploaded');
+      toast.success(meta ? t('sp.wpo.captured', 'Photo captured') : t('sp.wpo.uploaded', 'Uploaded'));
     } catch (err) {
-      toast.error(err?.data?.error || err?.message || 'The photo did not upload. Check your internet and try again.');
+      toast.error(err?.data?.error || err?.message || t('sp.wpo.upFail', 'The photo did not upload. Check your internet and try again.'));
     } finally {
       setUploading(null);
       setCapturing(null);
     }
   }
+
+  // Local, translated versions of the shared missingLine / fixLine (detailRules.js is mobile-synced).
+  const nameOf = (x) => { const raw = x.label || String(x.code || '').replace(/_/g, ' '); return raw ? t(labelKey(raw), raw) : ''; };
+  const missingT = (list) => { const n = list.map(nameOf).filter(Boolean); return n.length ? t('sp.wpo.pleaseAdd', 'Please add: {n}').replace('{n}', n.join(', ')) : t('sp.wpo.stillNeeded', 'Some items are still needed'); };
+  const fixT = (list) => { const n = list.map(nameOf).filter(Boolean); return n.length ? t('sp.wpo.pleaseFix', 'Please fix your {n}').replace('{n}', n.join(` ${t('sp.wpo.and', 'and')} `)) : t('sp.wpo.pleaseCheck', 'Please check your details'); };
+  const helpT = (f) => { const h = detailHelp(f); return t(labelKey(h), h); };
 
   async function send() {
     try {
@@ -578,18 +592,18 @@ function VerifyStep({ lineCode, onDone }) {
 
       await submit(enrolment._id).unwrap();
       setMissing([]);
-      toast.success('Sent to ZappyOne to check');
+      toast.success(t('sp.wpo.sentCheck2', 'Sent to ZappyOne to check'));
       onDone();
     } catch (err) {
       const body = err?.data;
       if (body?.code === 'INCOMPLETE') {
         setMissing(body.missing || []);
-        toast.error(missingLine(body.missing || []));
+        toast.error(missingT(body.missing || []));
       } else if (body?.code === 'BAD_FORMAT') {
         setMissing((body.fields || []).map((f) => ({ ...f, kind: 'field' })));
-        toast.error(fixLine(body.fields || []));
+        toast.error(fixT(body.fields || []));
       } else {
-        toast.error(body?.error || 'Could not send. Try again');
+        toast.error(body?.error || t('sp.wpo.cantSendTry', 'Could not send. Try again'));
       }
     }
   }
@@ -613,42 +627,42 @@ function VerifyStep({ lineCode, onDone }) {
 
       {enrolment?.status === 'pending_review' && (
         <div className="card bg-amber-50 ring-amber-200">
-          <p className="text-sm font-bold text-amber-900">We're reviewing your documents</p>
+          <p className="text-sm font-bold text-amber-900">{t('sp.wpo.reviewing', "We're reviewing your documents")}</p>
           <p className="text-xs text-amber-700 mt-1">
-            Usually within a day. We'll notify you the moment it's decided.
+            {t('sp.wpo.reviewingSub', "Usually within a day. We'll notify you the moment it's decided.")}
           </p>
         </div>
       )}
       {enrolment?.status === 'approved' && (
         <div className="card bg-emerald-50 ring-emerald-200">
-          <p className="text-sm font-bold text-emerald-900">You're approved for {data.line.name}</p>
-          <p className="text-xs text-emerald-700 mt-1">Set up your services and pricing to start receiving jobs.</p>
+          <p className="text-sm font-bold text-emerald-900">{t('sp.wpo.approvedFor', "You're approved for {n}").replace('{n}', data.line.name)}</p>
+          <p className="text-xs text-emerald-700 mt-1">{t('sp.wpo.approvedSub', 'Set up your services and pricing to start receiving jobs.')}</p>
         </div>
       )}
       {redo && (
         <div className="card bg-red-50 ring-red-200">
           <p className="text-sm font-bold text-red-900">
-            Please send {redo.size === 1 ? 'this document' : 'these documents'} again
+            {redo.size === 1 ? t('sp.wpo.sendAgain1', 'Please send this document again') : t('sp.wpo.sendAgainN', 'Please send these documents again')}
           </p>
           <ul className="mt-1.5 space-y-0.5">
             {reqs.documents.filter((d) => redo.has(d.code)).map((d) => (
-              <li key={d.code} className="text-xs font-semibold text-red-800">{d.label}{sentAgain(d.code) ? ' (done)' : ''}</li>
+              <li key={d.code} className="text-xs font-semibold text-red-800">{t(labelKey(d.label), d.label)}{sentAgain(d.code) ? ` ${t('sp.wpo.done', '(done)')}` : ''}</li>
             ))}
           </ul>
           {enrolment.reviewNote && <p className="text-xs text-red-700 mt-1.5 leading-relaxed">{enrolment.reviewNote}</p>}
-          <p className="text-[11px] text-red-600 mt-1.5">Everything else you sent is fine and stays as it is.</p>
+          <p className="text-[11px] text-red-600 mt-1.5">{t('sp.wpo.elseFine', 'Everything else you sent is fine and stays as it is.')}</p>
         </div>
       )}
       {!redo && enrolment?.status === 'rejected' && enrolment.reviewNote && (
         <div className="card bg-red-50 ring-red-200">
-          <p className="text-sm font-bold text-red-900">Needs changes</p>
+          <p className="text-sm font-bold text-red-900">{t('sp.wpo.s.rejected', 'Needs changes')}</p>
           <p className="text-xs text-red-700 mt-1 leading-relaxed">{enrolment.reviewNote}</p>
         </div>
       )}
 
       {/* Verify identity in a minute when ZappyOne has an instant check; otherwise our team reviews the uploads. */}
       {!decided && reqs.documents.some((d) => ['aadhaar', 'owner_id', 'pan'].includes(d.code)) && <InstantIdCheck />}
-      <p className="text-xs font-bold text-slate-500 uppercase tracking-wide px-1">Documents</p>
+      <p className="text-xs font-bold text-slate-500 uppercase tracking-wide px-1">{t('sp.wpo.documents', 'Documents')}</p>
       {reqs.documents.map((d) => {
         const again = redo?.has(d.code);
         // Locked when the reviewer accepted it; open (and not yet done) when they asked for it again.
@@ -663,15 +677,15 @@ function VerifyStep({ lineCode, onDone }) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm text-[#0F172A]">
-                  {d.label}{!d.required && <span className="text-slate-400 font-normal">, optional</span>}
+                  {t(labelKey(d.label), d.label)}{!d.required && <span className="text-slate-400 font-normal">{t('sp.wpo.optional', ', optional')}</span>}
                 </p>
                 {again
-                  ? <p className="text-xs font-semibold text-red-700 mt-0.5 leading-relaxed">{uploaded ? 'New copy added. Submit when ready.' : 'Asked for again: send a new, clear copy.'}</p>
+                  ? <p className="text-xs font-semibold text-red-700 mt-0.5 leading-relaxed">{uploaded ? t('sp.wpo.newCopy', 'New copy added. Submit when ready.') : t('sp.wpo.askedAgain', 'Asked for again: send a new, clear copy.')}</p>
                   : redo
-                    ? <p className="text-xs text-emerald-700 mt-0.5">Accepted</p>
+                    ? <p className="text-xs text-emerald-700 mt-0.5">{t('sp.wpo.accepted', 'Accepted')}</p>
                     : carried.has(d.code)
-                  ? <p className="text-xs text-emerald-700 mt-0.5 leading-relaxed">We already have this from your ID check. Nothing to do.</p>
-                  : d.hint && <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{d.hint}</p>}
+                  ? <p className="text-xs text-emerald-700 mt-0.5 leading-relaxed">{t('sp.wpo.haveFromId', 'We already have this from your ID check. Nothing to do.')}</p>
+                  : d.hint && <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{t(labelKey(d.hint), d.hint)}</p>}
               </div>
               {!locked && (again || !carried.has(d.code)) && (d.capture ? (
                 /*
@@ -687,13 +701,13 @@ function VerifyStep({ lineCode, onDone }) {
                 >
                   {uploading === d.code
                     ? <Loader2 size={13} className="animate-spin" />
-                    : <><Camera size={13} /> {uploaded ? 'Retake' : 'Take photo'}</>}
+                    : <><Camera size={13} /> {uploaded ? t('sp.wpo.retake', 'Retake') : t('sp.wpo.takePhoto', 'Take photo')}</>}
                 </button>
               ) : (
                 <label className={`btn-secondary cursor-pointer text-xs py-2 px-3 shrink-0 ${uploading === d.code ? 'opacity-50' : ''}`}>
                   {uploading === d.code
                     ? <Loader2 size={13} className="animate-spin" />
-                    : <><Upload size={13} /> {uploaded ? 'Replace' : 'Upload'}</>}
+                    : <><Upload size={13} /> {uploaded ? t('sp.wpo.replace', 'Replace') : t('sp.wpo.upload', 'Upload')}</>}
                   <input type="file" accept="image/*,application/pdf" className="hidden"
                     onChange={(e) => upload(d.code, e.target.files?.[0])} />
                 </label>
@@ -705,11 +719,11 @@ function VerifyStep({ lineCode, onDone }) {
 
       {reqs.fields.length > 0 && (
         <>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide px-1 pt-2">Details</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide px-1 pt-2">{t('sp.wpo.details', 'Details')}</p>
           {reqs.fields.map((f) => (
             <div key={f.code} className="card">
               <label className="text-xs font-semibold text-slate-600">
-                {f.label}{!f.required && <span className="text-slate-400 font-normal">, optional</span>}
+                {t(labelKey(f.label), f.label)}{!f.required && <span className="text-slate-400 font-normal">{t('sp.wpo.optional', ', optional')}</span>}
               </label>
               <input
                 className={`input text-sm w-full mt-1.5 ${missingCodes.has(f.code) ? '!ring-2 !ring-red-200' : ''}`}
@@ -721,8 +735,8 @@ function VerifyStep({ lineCode, onDone }) {
                 onChange={(e) => { const v = cleanDetail(f.code, e.target.value); setFields((s) => ({ ...s, [f.code]: v })); if (missingCodes.has(f.code)) setMissing((m) => m.filter((x) => x.code !== f.code)); }}
               />
               {missingCodes.has(f.code)
-                ? <p className="text-[12px] font-semibold text-red-600 mt-1">{detailHelp(f)}</p>
-                : f.hint && <p className="text-[11px] text-slate-400 mt-1">{f.hint}</p>}
+                ? <p className="text-[12px] font-semibold text-red-600 mt-1">{helpT(f)}</p>
+                : f.hint && <p className="text-[11px] text-slate-400 mt-1">{t(labelKey(f.hint), f.hint)}</p>}
             </div>
           ))}
         </>
@@ -730,12 +744,12 @@ function VerifyStep({ lineCode, onDone }) {
 
       {reqs.declarations.length > 0 && (
         <div className="card">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">What you're agreeing to</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t('sp.wpo.agreeing', "What you're agreeing to")}</p>
           <ul className="mt-2 space-y-2">
             {reqs.declarations.map((text) => (
               <li key={text} className="flex items-start gap-2">
                 <ShieldCheck size={14} className="text-zappy-500 shrink-0 mt-0.5" />
-                <span className="text-xs text-slate-600 leading-relaxed">{text}</span>
+                <span className="text-xs text-slate-600 leading-relaxed">{t(labelKey(text), text)}</span>
               </li>
             ))}
           </ul>
@@ -744,7 +758,7 @@ function VerifyStep({ lineCode, onDone }) {
               <input type="checkbox"
                 checked={accepted || !!enrolment?.acceptedDeclarations}
                 onChange={(e) => setAccepted(e.target.checked)} />
-              <span className="text-xs font-semibold text-slate-700">I accept these conditions</span>
+              <span className="text-xs font-semibold text-slate-700">{t('sp.wpo.accept', 'I accept these conditions')}</span>
             </label>
           )}
         </div>
@@ -753,8 +767,8 @@ function VerifyStep({ lineCode, onDone }) {
       {!decided && (
         <button onClick={send} disabled={submitting || enrolment?.status === 'pending_review'} className="btn-primary w-full">
           {submitting
-            ? <><Loader2 size={15} className="animate-spin" /> Sending…</>
-            : enrolment?.status === 'pending_review' ? 'Awaiting review' : redo ? 'Send for review again' : 'Send to ZappyOne to check'}
+            ? <><Loader2 size={15} className="animate-spin" /> {t('sp.wpo.sending', 'Sending…')}</>
+            : enrolment?.status === 'pending_review' ? t('sp.wpo.awaiting', 'Awaiting review') : redo ? t('sp.wpo.sendAgain', 'Send for review again') : t('sp.wpo.sendCheck', 'Send to ZappyOne to check')}
         </button>
       )}
     </Shell>
@@ -764,6 +778,7 @@ function VerifyStep({ lineCode, onDone }) {
 /* Flow controller */
 
 export default function ProviderOnboardingPage() {
+  const t = useServiceProT();
   const nav = useNavigate();
   const { data: status, isLoading } = useProviderOnboardingStatusQuery();
 
@@ -777,10 +792,10 @@ export default function ProviderOnboardingPage() {
   if (isLoading) return <div className="min-h-screen bg-[#F9FAFB]"><Spinner /></div>;
 
   const titles = {
-    summary: 'Your services',
-    domain: 'What kind of work do you do?',
-    line: domain?.name || 'Choose a service',
-    verify: 'Send your documents',
+    summary: t('sp.wpo.t.summary', 'Your services'),
+    domain: t('sp.wpo.t.domain', 'What kind of work do you do?'),
+    line: domain?.name || t('sp.wpo.t.line', 'Choose a service'),
+    verify: t('sp.wpo.t.verify', 'Send your documents'),
   };
 
   function back() {

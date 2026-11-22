@@ -8,6 +8,8 @@ import JobOfferAlert from './JobOfferAlert';
 import { keyOf, fromRepair, fromPetOffer, fromOpen, recoveredOffers, openOffers, withOffer, takeError, duesBlock } from './jobOffers';
 import { selectRole, selectAuth } from '../../modules/auth/authSlice';
 import { getSocket } from '../../services/socket';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 import {
   useRepairProviderJobsQuery, useTransitionRepairBookingMutation, useDeclineRepairBookingMutation, useClaimRepairBookingMutation, useOfferJobLaterMutation,
   useAssignedPetBookingsQuery, useAcceptPetBookingMutation, useDeclinePetBookingMutation,
@@ -29,6 +31,7 @@ import {
  */
 
 export default function JobOfferHost({ kinds = ['repair', 'pet', 'helping'], myLocation: given = null }) {
+  const t = useServiceProT();
   const nav = useNavigate();
   const role = useSelector(selectRole);
   const { accessToken: token } = useSelector(selectAuth);
@@ -113,11 +116,11 @@ export default function JobOfferHost({ kinds = ['repair', 'pet', 'helping'], myL
         nav(`/worker/helping/${offer.id}`);
       }
       });
-      toast.success('It’s yours');
+      toast.success(t('sp.it_s_yours', 'It’s yours'));
     } catch (err) {
       const owed = duesBlock(err);
       if (owed != null) { setPayFor({ offer, duesPaise: owed }); return; }
-      toast.error(takeError(err));
+      toast.error(t(labelKey(takeError(err)), takeError(err)));
     }
     setPayFor(null);
     done(offer);
@@ -127,24 +130,24 @@ export default function JobOfferHost({ kinds = ['repair', 'pet', 'helping'], myL
   async function offerLater(minutes) {
     try {
       await sendLater({ id: offer.id, minutes }).unwrap();
-      toast.success(`Sent: you can be there in ${minutes} min. The customer will say OK or pick someone else.`);
+      toast.success(t('sp.sent_you_can_be_there_in_n_min_the_customer_will_say_ok_or_pick_someone_else', 'Sent: you can be there in {n} min. The customer will say OK or pick someone else.').replace('{n}', minutes));
       done(offer);
-    } catch (err) { toast.error(err?.data?.error || 'Could not send your time'); }
+    } catch (err) { toast.error(err?.data?.error || t('sp.could_not_send_your_time', 'Could not send your time')); }
   }
 
   async function decline(reason) {
     try {
       if (offer.kind === 'repair' && !offer.broadcast) {
         await declineRepair({ id: offer.id, reason }).unwrap();
-        toast(isShopTechnician ? 'Sent back to your shop owner' : 'Passed. We’ll find someone else.');
+        toast(isShopTechnician ? t('sp.sent_back_to_your_shop_owner', 'Sent back to your shop owner') : t('sp.passed_we_ll_find_someone_else', 'Passed. We’ll find someone else.'));
       } else if (offer.kind === 'pet' && offer.mode === 'offered') {
         await declinePet({ id: offer.id, reason: reason || 'Declined by provider' }).unwrap();
-        toast('Passed. We’ll find someone else.');
+        toast(t('sp.passed_we_ll_find_someone_else', 'Passed. We’ll find someone else.'));
       }
       // An open or broadcast job needs no answer: passing just hides it for you.
     } catch (err) {
       // A shop technician's pass must reach the owner; anyone else's is courtesy.
-      if (isShopTechnician && offer.kind === 'repair') { toast.error(err?.data?.error || 'Could not pass the job back'); return; }
+      if (isShopTechnician && offer.kind === 'repair') { toast.error(err?.data?.error || t('sp.could_not_pass_the_job_back', 'Could not pass the job back')); return; }
     }
     done(offer);
   }
@@ -160,7 +163,7 @@ export default function JobOfferHost({ kinds = ['repair', 'pet', 'helping'], myL
       myLocation={myLocation}
       onAccept={accept}
       onDecline={decline}
-      declineTitle={isShopTechnician ? 'Why are you passing this back to your shop?' : undefined}
+      declineTitle={isShopTechnician ? t('sp.why_are_you_passing_this_back_to_your_shop', 'Why are you passing this back to your shop?') : undefined}
       onClose={(why) => { setPayFor(null); done(offer, why); }}
     />
     </>

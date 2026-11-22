@@ -11,6 +11,8 @@ import { ShieldAlert, Phone, Heart } from 'lucide-react';
 import { useTriggerSOSMutation } from '../../services/api';
 import toast from 'react-hot-toast';
 import { PET_EMERGENCY_CONTACTS, isPetJob as petJob } from '../../provider/jobFlows';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 /** A quick position for the alert; null when none comes in time (the server then uses the last known one). */
 function quickFix() {
@@ -26,6 +28,7 @@ function quickFix() {
 
 // India pet emergency contacts shown after SOS triggers on a pet service job
 export default function SOSButton({ orderId, jobId, kind, lat, lng, service }) {
+  const t = useServiceProT();
   const [holding,   setHolding]   = useState(false);
   const [progress,  setProgress]  = useState(0);
   const [triggered, setTriggered] = useState(false);
@@ -66,11 +69,11 @@ export default function SOSButton({ orderId, jobId, kind, lat, lng, service }) {
       await triggerSOS({ orderId, jobId, lat: here?.lat, lng: here?.lng, type: isPetJob ? 'pet_emergency' : 'worker_sos' }).unwrap();
       setTriggered(true);
       const msg = isPetJob
-        ? 'SOS sent. Your emergency contact and support have been told. Vet contacts are below.'
-        : 'SOS sent. Your emergency contact and support have been told.';
+        ? t('sp.sos_sent_your_emergency_contact_and_support_have_been_told_vet_contacts_are_below', 'SOS sent. Your emergency contact and support have been told. Vet contacts are below.')
+        : t('sp.sos_sent_your_emergency_contact_and_support_have_been_told', 'SOS sent. Your emergency contact and support have been told.');
       toast.error(msg, { duration: 8000 });
     } catch {
-      toast.error('SOS failed to send. Call 112 immediately.');
+      toast.error(t('sp.sos_failed_to_send_call_112_immediately', 'SOS failed to send. Call 112 immediately.'));
     }
   }
 
@@ -83,7 +86,7 @@ export default function SOSButton({ orderId, jobId, kind, lat, lng, service }) {
           className="flex-1 py-3 rounded-2xl flex items-center justify-center gap-1.5 font-bold text-[13px] bg-slate-800 text-white shadow-sm hover:bg-slate-700 active:bg-slate-900 transition-colors"
         >
           <Phone size={14} strokeWidth={2.5} />
-          Call 112
+          {t('sp.call_112', 'Call 112')}
         </a>
 
         <div className="relative flex-[1.5]">
@@ -100,7 +103,7 @@ export default function SOSButton({ orderId, jobId, kind, lat, lng, service }) {
             style={{ WebkitUserSelect: 'none' }}
           >
             {triggered ? <Phone size={14} /> : isPetJob ? <Heart size={14} /> : <ShieldAlert size={14} />}
-            {triggered ? 'SOS Active' : 'Hold 3s for SOS'}
+            {triggered ? t('sp.sos_active', 'SOS Active') : t('sp.hold_3s_for_sos', 'Hold 3s for SOS')}
 
             {/* Progress ring */}
             {holding && (
@@ -124,7 +127,7 @@ export default function SOSButton({ orderId, jobId, kind, lat, lng, service }) {
                 animate={{ opacity: 1, y: 0 }}
                 className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/90 text-white text-[11px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap shadow-xl"
               >
-                Keep holding… {Math.round((HOLD_MS - (progress / 100 * HOLD_MS)) / 1000) + 1}s
+                {t('sp.keep_holding_n_s', 'Keep holding… {n}s').replace('{n}', Math.round((HOLD_MS - (progress / 100 * HOLD_MS)) / 1000) + 1)}
               </motion.div>
             </AnimatePresence>
           )}
@@ -143,13 +146,13 @@ export default function SOSButton({ orderId, jobId, kind, lat, lng, service }) {
             <div className="rounded-2xl bg-rose-50 ring-1 ring-rose-200 p-4 space-y-3 mt-1">
               <div className="flex items-center gap-2">
                 <Heart size={13} strokeWidth={2.5} className="text-rose-600 fill-rose-600" />
-                <p className="text-xs font-extrabold text-rose-800 uppercase tracking-widest">Pet Emergency Contacts</p>
+                <p className="text-xs font-extrabold text-rose-800 uppercase tracking-widest">{t('sp.pet_emergency_contacts', 'Pet Emergency Contacts')}</p>
               </div>
               {PET_EMERGENCY_CONTACTS.map((c) => (
                 <div key={c.number} className="flex items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-rose-100">
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-800 truncate">{c.label}</p>
-                    <p className="text-[10px] text-slate-500">{c.hint}</p>
+                    <p className="text-xs font-bold text-slate-800 truncate">{t(labelKey(c.label), c.label)}</p>
+                    <p className="text-[10px] text-slate-500">{t(labelKey(c.hint), c.hint)}</p>
                   </div>
                   <a
                     href={`tel:${c.number.replace(/[^0-9+]/g, '')}`}

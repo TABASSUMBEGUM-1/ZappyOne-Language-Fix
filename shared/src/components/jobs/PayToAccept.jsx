@@ -3,11 +3,13 @@ import { useWorkerDuesQuery, useShopDuesQuery } from '../../services/api';
 import { useSelector } from 'react-redux';
 import { selectAuth } from '../../modules/auth/authSlice';
 import PayDuesButton from '../../provider/components/PayDuesButton';
+import { useServiceProT } from '../../i18n/I18nProvider';
 
 const rupees = (p) => `₹${Math.round((p || 0) / 100).toLocaleString('en-IN')}`;
 
 // Over the dues limit when a job rings: pay what is owed, and the job is taken in the same step.
 export default function PayToAccept({ duesPaise, onPaid, onClose }) {
+  const t = useServiceProT();
   const { role } = useSelector(selectAuth);
   const { data: w } = useWorkerDuesQuery(undefined, { skip: role !== 'worker' });
   const { data: s } = useShopDuesQuery(undefined, { skip: role !== 'shop' });
@@ -18,14 +20,14 @@ export default function PayToAccept({ duesPaise, onPaid, onClose }) {
         <div className="flex items-start gap-3">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-btn bg-zappy-50 text-zappy-700"><Wallet size={20} /></span>
           <div className="min-w-0 flex-1">
-            <p id="pta-title" className="text-[18px] font-extrabold text-ink-900">Pay {rupees(owed)} to take this job</p>
-            <p className="mt-1 text-[13.5px] text-ink-500">Your ZappyOne dues are over the limit. Pay now and the job is yours, if it is still open.</p>
+            <p id="pta-title" className="text-[18px] font-extrabold text-ink-900">{t('sp.pay_amt_to_take_this_job', 'Pay {amt} to take this job').replace('{amt}', rupees(owed))}</p>
+            <p className="mt-1 text-[13.5px] text-ink-500">{t('sp.your_zappyone_dues_are_over_the_limit_pay_now_and_the_job_is_yours_if_it_is_still_open', 'Your ZappyOne dues are over the limit. Pay now and the job is yours, if it is still open.')}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-full text-ink-500 hover:bg-sunken"><X size={18} /></button>
+          <button type="button" onClick={onClose} aria-label={t('sp.close', 'Close')} className="grid h-9 w-9 place-items-center rounded-full text-ink-500 hover:bg-sunken"><X size={18} /></button>
         </div>
         <div className="mt-4">
           <PayDuesButton duesPaise={owed} onPaid={onPaid} />
-          {!owed && <p className="text-[13px] text-ink-500">Checking what you owe.</p>}
+          {!owed && <p className="text-[13px] text-ink-500">{t('sp.checking_what_you_owe', 'Checking what you owe.')}</p>}
         </div>
       </div>
     </div>

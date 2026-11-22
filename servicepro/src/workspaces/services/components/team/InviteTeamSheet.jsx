@@ -3,9 +3,11 @@ import toast from 'react-hot-toast';
 import { Loader2, X } from 'lucide-react';
 import { useInviteShopTeamMutation } from '@shared/services/api';
 import { parseTeamList } from '@shared/provider/partnerBoard';
+import { useT } from '@shared/i18n/I18nProvider';
 
 // Adds many people at once; each still verifies their own ID before taking jobs.
 export default function InviteTeamSheet({ onClose }) {
+  const t = useT();
   const [text, setText] = useState('');
   const [result, setResult] = useState(null);
   const [invite, { isLoading }] = useInviteShopTeamMutation();
@@ -15,25 +17,27 @@ export default function InviteTeamSheet({ onClose }) {
     try {
       const r = await invite(rows).unwrap();
       setResult(r);
-      toast.success(`${r.added} added${r.failed ? `, ${r.failed} need a look` : ''}`);
-    } catch (e) { toast.error(e?.data?.error || 'Could not add them'); }
+      toast.success(r.failed
+        ? t('sp.inv.addedFail', '{n} added, {m} need a look').replace('{n}', r.added).replace('{m}', r.failed)
+        : t('sp.inv.added', '{n} added').replace('{n}', r.added));
+    } catch (e) { toast.error(e?.data?.error || t('sp.inv.addFail', 'Could not add them')); }
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" onClick={onClose} role="presentation">
-      <div className="safe-pb w-full space-y-4 rounded-t-sheet bg-white p-6 sm:max-w-lg sm:rounded-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Add your team">
+      <div className="safe-pb w-full space-y-4 rounded-t-sheet bg-white p-6 sm:max-w-lg sm:rounded-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={t('sp.inv.title', 'Add your team')}>
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900">Add your team</h3>
-          <button type="button" onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+          <h3 className="text-lg font-bold text-slate-900">{t('sp.inv.title', 'Add your team')}</h3>
+          <button type="button" onClick={onClose} aria-label={t('sp.c.close', 'Close')} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
         </div>
         {!result ? (
           <>
-            <p className="-mt-2 text-xs text-slate-500">One person a line: name and mobile number. Paste from your phone or a sheet.</p>
+            <p className="-mt-2 text-xs text-slate-500">{t('sp.inv.hint', 'One person a line: name and mobile number. Paste from your phone or a sheet.')}</p>
             <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} placeholder={'Ravi Kumar, 98480 12345\nSuresh 9701234567'}
               className="input w-full font-mono text-[13px]" />
-            <p className="text-[12px] text-slate-500">{rows.length} {rows.length === 1 ? 'person' : 'people'} found</p>
+            <p className="text-[12px] text-slate-500">{rows.length === 1 ? t('sp.inv.found1', '1 person found') : t('sp.inv.foundN', '{n} people found').replace('{n}', rows.length)}</p>
             <button type="button" onClick={send} disabled={!rows.length || isLoading} className="btn-primary w-full">
-              {isLoading ? <><Loader2 size={15} className="animate-spin" /> Adding…</> : `Add ${rows.length}`}
+              {isLoading ? <><Loader2 size={15} className="animate-spin" /> {t('sp.wk.adding', 'Adding…')}</> : t('sp.inv.addN', 'Add {n}').replace('{n}', rows.length)}
             </button>
           </>
         ) : (
@@ -42,12 +46,12 @@ export default function InviteTeamSheet({ onClose }) {
               {result.rows.map((r, i) => (
                 <li key={i} className="flex items-center justify-between gap-3 py-2 text-[13px]">
                   <span className="min-w-0 truncate text-slate-700">{r.name || '-'} <span className="text-slate-400">{r.phone}</span></span>
-                  <span className={`shrink-0 font-semibold ${r.ok ? 'text-emerald-600' : 'text-red-600'}`}>{r.ok ? (r.isNew ? 'Added' : 'Linked') : r.error}</span>
+                  <span className={`shrink-0 font-semibold ${r.ok ? 'text-emerald-600' : 'text-red-600'}`}>{r.ok ? (r.isNew ? t('sp.inv.rowAdded', 'Added') : t('sp.inv.rowLinked', 'Linked')) : r.error}</span>
                 </li>
               ))}
             </ul>
-            <p className="rounded-xl bg-slate-50 p-3 text-[11.5px] text-slate-500">Each person opens servicepro.zappyone.com, signs in with their own phone number and the code we text, and checks their ID once before taking jobs.</p>
-            <button type="button" onClick={onClose} className="btn-primary w-full">Done</button>
+            <p className="rounded-xl bg-slate-50 p-3 text-[11.5px] text-slate-500">{t('sp.inv.how', 'Each person opens servicepro.zappyone.com, signs in with their own phone number and the code we text, and checks their ID once before taking jobs.')}</p>
+            <button type="button" onClick={onClose} className="btn-primary w-full">{t('sp.c.done', 'Done')}</button>
           </>
         )}
       </div>

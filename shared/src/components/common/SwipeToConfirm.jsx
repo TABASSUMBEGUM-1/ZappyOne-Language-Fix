@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { ChevronsRight, Loader2 } from 'lucide-react';
+import { useServiceProT } from '../../i18n/I18nProvider';
 
 const KNOB = 52;
 const PAD = 4;
@@ -7,6 +8,7 @@ const DONE_AT = 0.85;
 
 // Slide to confirm a step that must not happen by an accidental tap (the app's SwipeToConfirm); Enter or Space confirms from the keyboard.
 export default function SwipeToConfirm({ label, onConfirm, disabled = false, loading = false }) {
+  const t = useServiceProT();
   const track = useRef(null);
   const start = useRef(null);
   const [x, setX] = useState(0);
@@ -34,7 +36,7 @@ export default function SwipeToConfirm({ label, onConfirm, disabled = false, loa
   const m = max() || 1;
 
   return (
-    <div ref={track} role="button" tabIndex={off ? -1 : 0} aria-disabled={off} aria-label={`${label}. Slide right, or press Enter, to confirm`}
+    <div ref={track} role="button" tabIndex={off ? -1 : 0} aria-disabled={off} aria-label={t('sp.label_slide_right_or_press_enter_to_confirm', '{label}. Slide right, or press Enter, to confirm').replace('{label}', label)}
       onKeyDown={(e) => { if (!off && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); finish(); } }}
       className={`relative select-none overflow-hidden rounded-full border outline-none focus-visible:ring-2 focus-visible:ring-zappy-400 ${off ? 'border-slate-200 bg-slate-100' : 'border-zappy-100 bg-zappy-50'}`}
       style={{ height: KNOB + PAD * 2, touchAction: 'pan-y' }}>

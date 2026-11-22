@@ -5,6 +5,8 @@ import InspectionFeeCard from '../components/InspectionFeeCard';
 import PetRateCard from '../components/PetRateCard';
 import { partsQuotedSeparately, PARTS_NOTE } from '../../utils/partsRule';
 import { useState, useMemo, useEffect } from 'react';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -110,6 +112,7 @@ function Spinner({ pad = 'py-16' }) {
 
 /** Progress rail. Compact on a phone, labelled on a laptop. */
 function StepRail({ steps, current, onJump, done }) {
+  const t = useServiceProT();
   return (
     <div className="flex items-center gap-1 overflow-x-auto pb-1">
       {steps.map((s, i) => {
@@ -130,7 +133,7 @@ function StepRail({ steps, current, onJump, done }) {
             }`}>
               {isDone ? <Check size={10} strokeWidth={3.5} /> : i + 1}
             </span>
-            <span className="hidden sm:inline">{s.label}</span>
+            <span className="hidden sm:inline">{t(labelKey(s.label), s.label)}</span>
           </button>
         );
       })}
@@ -138,7 +141,8 @@ function StepRail({ steps, current, onJump, done }) {
   );
 }
 
-function StepShell({ title, hint, children, onBack, onNext, nextLabel = 'Continue', busy, canNext = true }) {
+function StepShell({ title, hint, children, onBack, onNext, nextLabel, busy, canNext = true }) {
+  const t = useServiceProT();
   return (
     <div className="space-y-3">
       <div className="px-1">
@@ -153,7 +157,7 @@ function StepShell({ title, hint, children, onBack, onNext, nextLabel = 'Continu
         <div className="flex items-center gap-2">
           {onBack && (
             <button onClick={onBack} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-500">
-              Back
+              {t('sp.back', 'Back')}
             </button>
           )}
           <button
@@ -161,7 +165,7 @@ function StepShell({ title, hint, children, onBack, onNext, nextLabel = 'Continu
             disabled={busy || !canNext}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-zappy-600 py-2.5 text-sm font-bold text-white transition hover:bg-zappy-700 disabled:opacity-40"
           >
-            {busy ? <Loader2 size={15} className="animate-spin" /> : <>{nextLabel} <ArrowRight size={15} /></>}
+            {busy ? <Loader2 size={15} className="animate-spin" /> : <>{nextLabel || t('sp.continue', 'Continue')} <ArrowRight size={15} /></>}
           </button>
         </div>
       </div>
@@ -179,6 +183,7 @@ function StepShell({ title, hint, children, onBack, onNext, nextLabel = 'Continu
  * catalog meeting at the same point.
  */
 function BrandsStep({ vertical, selected, onChange, onNext }) {
+  const t = useServiceProT();
   const { data, isLoading } = useRepairBrandsQuery(vertical);
   const brands = data?.brands || [];
   const all = brands.length > 0 && selected.length === brands.length;
@@ -189,18 +194,18 @@ function BrandsStep({ vertical, selected, onChange, onNext }) {
 
   return (
     <StepShell
-      title="Which brands do you work on?"
-      hint="Customers see these on your profile. You can change them any time."
+      title={t('sp.which_brands_do_you_work_on', 'Which brands do you work on?')}
+      hint={t('sp.customers_see_these_on_your_profile_you_can_change_them_any_time', 'Customers see these on your profile. You can change them any time.')}
       onNext={onNext}
       canNext={none || selected.length > 0}
-      nextLabel={none ? 'Continue' : selected.length ? `Continue with ${selected.length}` : 'Pick at least one'}
+      nextLabel={none ? t('sp.continue', 'Continue') : selected.length ? t('sp.continue_with_n', 'Continue with {n}').replace('{n}', selected.length) : t('sp.pick_at_least_one', 'Pick at least one')}
     >
-      {none && <p className="text-[14px] text-slate-500">No brand list for this service yet. Continue and set up the work you do and your prices.</p>}
+      {none && <p className="text-[14px] text-slate-500">{t('sp.no_brand_list_for_this_service_yet_continue_and_set_up_the_work_you_do_and_your_prices', 'No brand list for this service yet. Continue and set up the work you do and your prices.')}</p>}
       <button
         onClick={() => onChange(all ? [] : brands.map((b) => b.code))}
         className="text-xs font-bold text-zappy-600"
       >
-        {all ? 'Clear all' : 'Select all brands'}
+        {all ? t('sp.clear_all', 'Clear all') : t('sp.select_all_brands', 'Select all brands')}
       </button>
 
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
@@ -232,6 +237,7 @@ function BrandsStep({ vertical, selected, onChange, onNext }) {
 
 /** Propose a repair the catalog is missing. Admin reviews it. */
 function MissingWorkSheet({ vertical, group, cityCode, onClose }) {
+  const t = useServiceProT();
   const [form, setForm] = useState({ proposedName: '', description: '' });
   const [submit, { isLoading }] = useRequestRepairCatalogAdditionMutation();
 
@@ -243,10 +249,10 @@ function MissingWorkSheet({ vertical, group, cityCode, onClose }) {
         cityCode,
         ...form,
       }).unwrap();
-      toast.success("Sent - we'll review it and add it if it checks out.");
+      toast.success(t('sp.sent_we_ll_review_it_and_add_it_if_it_checks_out', 'Sent - we\'ll review it and add it if it checks out.'));
       onClose();
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not send that');
+      toast.error(err?.data?.error || t('sp.could_not_send_that', 'Could not send that'));
     }
   }
 
@@ -254,29 +260,27 @@ function MissingWorkSheet({ vertical, group, cityCode, onClose }) {
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose}>
       <div className="w-full space-y-3 rounded-t-3xl bg-white p-6 sm:max-w-md sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900">Add a job we don't list</h3>
+          <h3 className="text-lg font-bold text-slate-900">{t('sp.add_a_job_we_don_t_list', 'Add a job we don\'t list')}</h3>
           <button onClick={onClose} className="text-slate-400"><X size={20} /></button>
         </div>
         <p className="-mt-1 text-xs leading-relaxed text-slate-500">
-          Under <span className="font-semibold">{group?.name || 'this heading'}</span>. We check it before customers
-          can book it - it needs a price, a skill level and a quality check behind it. Approved jobs start in your
-          city only.
+          {(() => { const parts = t('sp.under_name_we_check_it_before_customers_can_book_it_it_needs_a_price_a_skill_level_and_a_quality_check_behind_it_approved_jobs_start_in_your_city_only', 'Under {name}. We check it before customers can book it - it needs a price, a skill level and a quality check behind it. Approved jobs start in your city only.').split('{name}'); return <>{parts[0]}<span className="font-semibold">{group?.name || t('sp.this_heading', 'this heading')}</span>{parts[1]}</>; })()}
         </p>
         <input
           className="input w-full text-sm"
-          placeholder="What is the job called?"
+          placeholder={t('sp.what_is_the_job_called', 'What is the job called?')}
           value={form.proposedName}
           onChange={(e) => setForm((f) => ({ ...f, proposedName: e.target.value }))}
         />
         <textarea
           rows={3}
           className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-zappy-100"
-          placeholder="What does it involve, and roughly how long does it take?"
+          placeholder={t('sp.what_does_it_involve_and_roughly_how_long_does_it_take', 'What does it involve, and roughly how long does it take?')}
           value={form.description}
           onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
         />
         <button onClick={send} disabled={isLoading || !form.proposedName.trim()} className="btn-primary w-full">
-          {isLoading ? <><Loader2 size={15} className="animate-spin" /> Sending…</> : 'Send for review'}
+          {isLoading ? <><Loader2 size={15} className="animate-spin" /> {t('sp.sending', 'Sending…')}</> : t('sp.send_for_review', 'Send for review')}
         </button>
       </div>
     </div>
@@ -293,6 +297,7 @@ function MissingWorkSheet({ vertical, group, cityCode, onClose }) {
  * a rejection three days later.
  */
 function WorkStep({ vertical, cityCode, brandCodes, onBack, onNext }) {
+  const t = useServiceProT();
   const { data, isLoading, refetch } = useRepairWorkCatalogQuery({ vertical, cityCode });
   const [save, { isLoading: saving }] = useSaveRepairCapabilitiesMutation();
 
@@ -385,14 +390,14 @@ function WorkStep({ vertical, cityCode, brandCodes, onBack, onNext }) {
       }).unwrap();
 
       if (res.skipped?.length) {
-        toast.error(`${res.skipped.length} need a higher skill level - raise it or untick them`);
+        toast.error(t('sp.n_need_a_higher_skill_level_raise_it_or_untick_them', '{n} need a higher skill level - raise it or untick them').replace('{n}', res.skipped.length));
         await refetch();
         return false;
       }
       await refetch();
       return true;
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not save');
+      toast.error(err?.data?.error || t('sp.could_not_save', 'Could not save'));
       return false;
     }
   }
@@ -407,18 +412,18 @@ function WorkStep({ vertical, cityCode, brandCodes, onBack, onNext }) {
         )}
         <StepShell
           title={group.name}
-          hint="Tick everything you can do. One job here answers several of the issues customers search for."
+          hint={t('sp.tick_everything_you_can_do_one_job_here_answers_several_of_the_issues_customers_search_for', 'Tick everything you can do. One job here answers several of the issues customers search for.')}
           onBack={() => setOpenGroup(null)}
           onNext={async () => { if (await persist()) setOpenGroup(null); }}
           busy={saving}
-          nextLabel="Save"
+          nextLabel={t('sp.save', 'Save')}
         >
           {(() => {
             const all = group.repairs.every((r) => selected.has(r.code));
             return (
               <button type="button" onClick={() => setGroup(group, !all)}
                 className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white py-2.5 text-[13px] font-semibold text-slate-700 hover:border-slate-300">
-                {all ? 'Untick all in this heading' : 'Tick all in this heading'}
+                {all ? t('sp.untick_all_in_this_heading', 'Untick all in this heading') : t('sp.tick_all_in_this_heading', 'Tick all in this heading')}
               </button>
             );
           })()}
@@ -443,13 +448,13 @@ function WorkStep({ vertical, cityCode, brandCodes, onBack, onNext }) {
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold text-[#0F172A]">{r.name}</span>
                     <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
-                      <span className="text-[11px] text-slate-400">Level {r.minSkillLevel}</span>
-                      {r.estimatedDurationMin && <span className="text-[11px] text-slate-400">~{r.estimatedDurationMin} min</span>}
-                      {r.warrantyDays > 0 && <span className="text-[11px] text-emerald-600">{r.warrantyDays}-day warranty</span>}
-                      {r.isLocal && <span className="text-[11px] font-semibold text-violet-600">Added locally</span>}
+                      <span className="text-[11px] text-slate-400">{t('sp.level_n', 'Level {n}').replace('{n}', r.minSkillLevel)}</span>
+                      {r.estimatedDurationMin && <span className="text-[11px] text-slate-400">{t('sp.n_min', '~{n} min').replace('{n}', r.estimatedDurationMin)}</span>}
+                      {r.warrantyDays > 0 && <span className="text-[11px] text-emerald-600">{t('sp.n_day_warranty', '{n}-day warranty').replace('{n}', r.warrantyDays)}</span>}
+                      {r.isLocal && <span className="text-[11px] font-semibold text-violet-600">{t('sp.added_locally', 'Added locally')}</span>}
                       {raises && (
                         <span className="text-[11px] font-semibold text-amber-600">
-                          Raises you to level {r.minSkillLevel}
+                          {t('sp.raises_you_to_level_n', 'Raises you to level {n}').replace('{n}', r.minSkillLevel)}
                         </span>
                       )}
                     </span>
@@ -457,8 +462,8 @@ function WorkStep({ vertical, cityCode, brandCodes, onBack, onNext }) {
                     {/* The customer's words for this job — what ticking it wins you. */}
                     {r.answers?.length > 0 && (
                       <span className="mt-1 block text-[11px] leading-relaxed text-slate-400">
-                        Customers ask for this as: {r.answers.slice(0, 3).join(', ')}
-                        {r.answers.length > 3 && ` +${r.answers.length - 3} more`}
+                        {t('sp.customers_ask_for_this_as_list', 'Customers ask for this as: {list}').replace('{list}', r.answers.slice(0, 3).join(', '))}
+                        {r.answers.length > 3 && ` ${t('sp.n_more', '+{n} more').replace('{n}', r.answers.length - 3)}`}
                       </span>
                     )}
                   </span>
@@ -471,7 +476,7 @@ function WorkStep({ vertical, cityCode, brandCodes, onBack, onNext }) {
             onClick={() => setMissingFor(group.code)}
             className="flex w-full items-center justify-center gap-1.5 py-3 text-sm font-semibold text-zappy-600"
           >
-            <Plus size={15} /> I do something not listed here
+            <Plus size={15} /> {t('sp.i_do_something_not_listed_here', 'I do something not listed here')}
           </button>
         </StepShell>
       </>
@@ -481,17 +486,17 @@ function WorkStep({ vertical, cityCode, brandCodes, onBack, onNext }) {
   /* The headings */
   return (
     <StepShell
-      title="What do you fix?"
-      hint="Pick your level and tick everything at once, or open a heading to choose job by job."
+      title={t('sp.what_do_you_fix', 'What do you fix?')}
+      hint={t('sp.pick_your_level_and_tick_everything_at_once_or_open_a_heading_to_choose_job_by_job', 'Pick your level and tick everything at once, or open a heading to choose job by job.')}
       onBack={onBack}
       onNext={async () => { if (await persist()) onNext(); }}
       busy={saving}
       canNext={selected.size > 0}
-      nextLabel={selected.size ? `Continue with ${selected.size} jobs` : 'Pick at least one job'}
+      nextLabel={selected.size ? t('sp.continue_with_n_jobs', 'Continue with {n} jobs').replace('{n}', selected.size) : t('sp.pick_at_least_one_job', 'Pick at least one job')}
     >
       {/* Skill level drives what can be claimed, so it sits above the choice. */}
       <div className="rounded-2xl border border-slate-200 bg-white p-3.5">
-        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Your level</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{t('sp.your_level', 'Your level')}</p>
         <div className="mt-2 grid grid-cols-4 gap-1.5">
           {levels.map((l) => {
             const below = l.level < requiredLevel;
@@ -499,7 +504,7 @@ function WorkStep({ vertical, cityCode, brandCodes, onBack, onNext }) {
               <button
                 key={l.level}
                 onClick={() => (below
-                  ? toast.error(`Level ${requiredLevel} - you have ticked work that needs it. Untick it to come down.`)
+                  ? toast.error(t('sp.level_n_you_have_ticked_work_that_needs_it_untick_it_to_come_down', 'Level {n} - you have ticked work that needs it. Untick it to come down.').replace('{n}', requiredLevel))
                   : setSkillLevel(l.level))}
                 className={`rounded-xl py-2 text-xs font-bold transition ${
                   skillLevel === l.level ? 'bg-zappy-600 text-white'
@@ -512,13 +517,12 @@ function WorkStep({ vertical, cityCode, brandCodes, onBack, onNext }) {
           })}
         </div>
         <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
-          {levels.find((l) => l.level === skillLevel)?.description
-            || 'Higher levels unlock harder work.'}
+          {(() => { const d = levels.find((l) => l.level === skillLevel)?.description; return d ? t(labelKey(d), d) : t('sp.higher_levels_unlock_harder_work', 'Higher levels unlock harder work.'); })()}
         </p>
         {needsCheck && (
           <p className="mt-1.5 flex items-start gap-1.5 text-[11px] font-semibold leading-relaxed text-amber-600">
             <AlertTriangle size={12} className="mt-px shrink-0" />
-            This level is verified before those jobs start reaching you.
+            {t('sp.this_level_is_verified_before_those_jobs_start_reaching_you', 'This level is verified before those jobs start reaching you.')}
           </p>
         )}
         <button
@@ -528,16 +532,16 @@ function WorkStep({ vertical, cityCode, brandCodes, onBack, onNext }) {
           className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-zappy-600 py-2.5 text-[13px] font-semibold text-white disabled:bg-emerald-50 disabled:text-emerald-700"
         >
           {allUpToLevelTicked
-            ? <><Check size={14} /> All {upToLevel.length} jobs up to level {skillLevel} ticked</>
-            : <>Tick all {upToLevel.length} jobs up to level {skillLevel}</>}
+            ? <><Check size={14} /> {t('sp.all_n_jobs_up_to_level_l_ticked', 'All {n} jobs up to level {l} ticked').replace('{n}', upToLevel.length).replace('{l}', skillLevel)}</>
+            : <>{t('sp.tick_all_n_jobs_up_to_level_l', 'Tick all {n} jobs up to level {l}').replace('{n}', upToLevel.length).replace('{l}', skillLevel)}</>}
         </button>
         {selected.size > 0 && (
           <button type="button" onClick={untickAll}
             className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white py-2.5 text-[13px] font-semibold text-slate-700 hover:border-slate-300">
-            Untick all {selected.size} jobs
+            {t('sp.untick_all_n_jobs', 'Untick all {n} jobs').replace('{n}', selected.size)}
           </button>
         )}
-        <p className="mt-1.5 text-center text-[11px] text-slate-500">Tap the box on a heading to tick or untick all of it, or open it to choose job by job.</p>
+        <p className="mt-1.5 text-center text-[11px] text-slate-500">{t('sp.tap_the_box_on_a_heading_to_tick_or_untick_all_of_it_or_open_it_to_choose_job_by_job', 'Tap the box on a heading to tick or untick all of it, or open it to choose job by job.')}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
@@ -550,7 +554,7 @@ function WorkStep({ vertical, cityCode, brandCodes, onBack, onNext }) {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setGroup(g, !all); }}
-              aria-label={all ? `Untick all of ${g.name}` : `Tick all of ${g.name}`}
+              aria-label={(all ? t('sp.untick_all_of_name', 'Untick all of {name}') : t('sp.tick_all_of_name', 'Tick all of {name}')).replace('{name}', g.name)}
               className={`absolute right-2.5 top-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-md border transition ${
                 all ? 'border-zappy-600 bg-zappy-600 text-white' : count ? 'border-zappy-600 bg-white text-zappy-600' : 'border-slate-300 bg-white'
               }`}
@@ -570,7 +574,7 @@ function WorkStep({ vertical, cityCode, brandCodes, onBack, onNext }) {
               </span>
               <span className="block text-[12.5px] font-bold leading-tight text-[#0F172A]">{g.name}</span>
               <span className={`text-[11px] font-semibold ${count ? 'text-zappy-600' : 'text-slate-400'}`}>
-                {count ? `${count} of ${g.repairs.length} selected` : `${g.repairs.length} jobs`}
+                {count ? t('sp.a_of_b_selected', '{a} of {b} selected').replace('{a}', count).replace('{b}', g.repairs.length) : t('sp.n_jobs', '{n} jobs').replace('{n}', g.repairs.length)}
               </span>
               {/*
                 * Reconciles this screen against the customer's.
@@ -582,7 +586,7 @@ function WorkStep({ vertical, cityCode, brandCodes, onBack, onNext }) {
                 */}
               {g.problemCount > 0 && (
                 <span className="text-[10.5px] text-slate-400">
-                  covers {g.problemCount} customer issue{g.problemCount === 1 ? '' : 's'}
+                  {(g.problemCount === 1 ? t('sp.covers_n_customer_issue', 'covers {n} customer issue') : t('sp.covers_n_customer_issues', 'covers {n} customer issues')).replace('{n}', g.problemCount)}
                 </span>
               )}
             </button>
@@ -597,6 +601,7 @@ function WorkStep({ vertical, cityCode, brandCodes, onBack, onNext }) {
 /* 3. Where you work */
 
 function AreaStep({ vertical, profile, onBack, onNext, onCity }) {
+  const t = useServiceProT();
   const { data, isLoading } = useRepairServiceAreasQuery(vertical);
   const [save, { isLoading: saving }] = useUpsertRepairServiceAreaMutation();
   const existing = data?.areas?.[0];
@@ -631,7 +636,7 @@ function AreaStep({ vertical, profile, onBack, onNext, onCity }) {
     return (
       <div className="fixed inset-0 z-50 bg-white">
         <LocationPicker
-          serviceLabel="Your shop location"
+          serviceLabel={t('sp.your_shop_location', 'Your shop location')}
           service={vertical}
           initial={form.center ? { lng: form.center[0], lat: form.center[1] } : shopPin ? { lng: shopPin[0], lat: shopPin[1] } : null}
           onCancel={() => setPicking(false)}
@@ -673,12 +678,12 @@ function AreaStep({ vertical, profile, onBack, onNext, onCity }) {
   }
 
   async function persist({ quiet = false } = {}) {
-    if (!form.cityCode.trim()) { toast.error('Which city do you work in?'); return; }
-    if (!form.serviceModes.length) { toast.error('Pick at least one way of working'); return; }
+    if (!form.cityCode.trim()) { toast.error(t('sp.which_city_do_you_work_in', 'Which city do you work in?')); return; }
+    if (!form.serviceModes.length) { toast.error(t('sp.pick_at_least_one_way_of_working', 'Pick at least one way of working')); return; }
     // Without a pin the radius means nothing and no customer can reach them.
-    if (!form.center) { toast.error('Set your shop location on the map first'); return; }
+    if (!form.center) { toast.error(t('sp.set_your_shop_location_on_the_map_first', 'Set your shop location on the map first')); return; }
     if (needsWorkshop && !form.workshopAddress.trim()) {
-      toast.error('A workshop address is required for workshop or pickup work');
+      toast.error(t('sp.a_workshop_address_is_required_for_workshop_or_pickup_work', 'A workshop address is required for workshop or pickup work'));
       return;
     }
     try {
@@ -694,14 +699,14 @@ function AreaStep({ vertical, profile, onBack, onNext, onCity }) {
       onCity(form.cityCode.trim().toLowerCase());
       if (!quiet) onNext();
     } catch (err) {
-      if (!quiet) toast.error(err?.data?.error || 'Could not save your area');
+      if (!quiet) toast.error(err?.data?.error || t('sp.could_not_save_your_area', 'Could not save your area'));
     }
   }
 
   return (
     <StepShell
-      title="Where do you work?"
-      hint="Pin your shop, then say how far around it you will go. Jobs outside that circle never reach you."
+      title={t('sp.where_do_you_work', 'Where do you work?')}
+      hint={t('sp.pin_your_shop_then_say_how_far_around_it_you_will_go_jobs_outside_that_circle_never_reach_you', 'Pin your shop, then say how far around it you will go. Jobs outside that circle never reach you.')}
       onBack={back}
       onNext={() => persist()}
       busy={saving}
@@ -723,35 +728,34 @@ function AreaStep({ vertical, profile, onBack, onNext, onCity }) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-bold text-[#0F172A]">
-            {form.center ? 'Your shop location' : 'Set your shop location'}
+            {form.center ? t('sp.your_shop_location', 'Your shop location') : t('sp.set_your_shop_location', 'Set your shop location')}
           </span>
           <span className="mt-0.5 block text-[11.5px] leading-relaxed text-slate-500">
             {form.center
-              ? (form.centerAddress || 'Pin dropped on the map')
-              : 'Drop a pin where your shop actually is. Everything below is measured from it.'}
+              ? (form.centerAddress || t('sp.pin_dropped_on_the_map', 'Pin dropped on the map'))
+              : t('sp.drop_a_pin_where_your_shop_actually_is_everything_below_is_measured_from_it', 'Drop a pin where your shop actually is. Everything below is measured from it.')}
           </span>
         </span>
         <span className="shrink-0 text-[11px] font-bold text-zappy-600">
-          {form.center ? 'Change' : 'Set'}
+          {form.center ? t('sp.change', 'Change') : t('sp.set', 'Set')}
         </span>
       </button>
       {farKm != null && (
         <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[12.5px] font-semibold text-amber-900">
-          This pin is {Math.round(farKm)} km from your shop address{shopAddress ? ` (${shopAddress})` : ''}. Customers near your shop will not see you. Tap Change and move the pin to your shop.
+          {t('sp.this_pin_is_km_km_from_your_shop_address_addr_customers_near_your_shop_will_not_see_you_tap_change_and_move_the_pin_to_your_shop', 'This pin is {km} km from your shop address{addr}. Customers near your shop will not see you. Tap Change and move the pin to your shop.').replace('{km}', Math.round(farKm)).replace('{addr}', shopAddress ? ` (${shopAddress})` : '')}
         </p>
       )}
 
       <p className="-mt-1 px-1 text-[11px] leading-relaxed text-slate-400">
-        This is a fixed address, not where you happen to be. Jobs are matched to your
-        shop even when you are out - you can hand them to a technician from anywhere.
+        {t('sp.this_is_a_fixed_address_not_where_you_happen_to_be_jobs_are_matched_to_your_shop_even_when_you_are_out_you_can_hand_them_to_a_technician_from_anywhere', 'This is a fixed address, not where you happen to be. Jobs are matched to your shop even when you are out - you can hand them to a technician from anywhere.')}
       </p>
 
       <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
         <div>
-          <label className="text-xs font-bold uppercase tracking-wide text-slate-500">City</label>
+          <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t('sp.city', 'City')}</label>
           <input
             className="input mt-1.5 w-full text-sm"
-            placeholder="e.g. hyderabad"
+            placeholder={t('sp.e_g_hyderabad', 'e.g. hyderabad')}
             value={form.cityCode}
             onChange={(e) => setForm((f) => ({ ...f, cityCode: e.target.value }))}
           />
@@ -759,8 +763,8 @@ function AreaStep({ vertical, profile, onBack, onNext, onCity }) {
 
         <div>
           <div className="flex items-baseline justify-between">
-            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">How far from the shop</label>
-            <span className="text-sm font-black text-zappy-600">{form.radiusKm} km</span>
+            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t('sp.how_far_from_the_shop', 'How far from the shop')}</label>
+            <span className="text-sm font-black text-zappy-600">{form.radiusKm} {t('sp.km', 'km')}</span>
           </div>
           <input
             type="range"
@@ -773,15 +777,15 @@ function AreaStep({ vertical, profile, onBack, onNext, onCity }) {
           />
           {/* 20km is the cap: past that the travel eats the job. */}
           <p className="mt-1 text-[11px] text-slate-400">
-            Measured from your shop pin. Up to 20 km - beyond that the travel costs more than the repair.
+            {t('sp.measured_from_your_shop_pin_up_to_20_km_beyond_that_the_travel_costs_more_than_the_repair', 'Measured from your shop pin. Up to 20 km - beyond that the travel costs more than the repair.')}
           </p>
         </div>
 
         <div>
-          <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Pincodes you cover</label>
+          <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t('sp.pincodes_you_cover', 'Pincodes you cover')}</label>
           <input
             className="input mt-1.5 w-full text-sm"
-            placeholder="500081, 500084 - optional"
+            placeholder={t('sp.500081_500084_optional', '500081, 500084 - optional')}
             value={form.pincodes}
             onChange={(e) => setForm((f) => ({ ...f, pincodes: e.target.value }))}
           />
@@ -789,7 +793,7 @@ function AreaStep({ vertical, profile, onBack, onNext, onCity }) {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">How you work</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{t('sp.how_you_work', 'How you work')}</p>
         <div className="mt-2 space-y-2">
           {modesFor(vertical).map((m) => {
             const on = form.serviceModes.includes(m.key);
@@ -807,8 +811,8 @@ function AreaStep({ vertical, profile, onBack, onNext, onCity }) {
                   {on && <Check size={12} className="text-white" strokeWidth={3.5} />}
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-[#0F172A]">{m.label}</span>
-                  <span className="block text-[11px] text-slate-500">{m.hint}</span>
+                  <span className="block text-sm font-semibold text-[#0F172A]">{t(labelKey(m.label), m.label)}</span>
+                  <span className="block text-[11px] text-slate-500">{t(labelKey(m.hint), m.hint)}</span>
                 </span>
               </button>
             );
@@ -817,10 +821,10 @@ function AreaStep({ vertical, profile, onBack, onNext, onCity }) {
 
         {needsWorkshop && (
           <div className="mt-3">
-            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Workshop address</label>
+            <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{t('sp.workshop_address', 'Workshop address')}</label>
             <input
               className="input mt-1.5 w-full text-sm"
-              placeholder="Where customers drop devices off"
+              placeholder={t('sp.where_customers_drop_devices_off', 'Where customers drop devices off')}
               value={form.workshopAddress}
               onChange={(e) => setForm((f) => ({ ...f, workshopAddress: e.target.value }))}
             />
@@ -845,6 +849,7 @@ function AreaStep({ vertical, profile, onBack, onNext, onCity }) {
  * online toggle, not a shutter.
  */
 function HoursStep({ profile, onBack, onNext }) {
+  const t = useServiceProT();
   const [update, { isLoading }] = useUpdateShopMeMutation();
   // Most shops keep Mon–Sat 10 to 9 and close Sunday: start there, edit if not.
   const [hours, setHours] = useState(() => (profile?.hours?.length ? profile.hours : [
@@ -865,28 +870,28 @@ function HoursStep({ profile, onBack, onNext }) {
       return true;
     } catch (err) {
       setStatus('');
-      toast.error(err?.data?.error || 'Could not save your timings');
+      toast.error(err?.data?.error || t('sp.could_not_save_your_timings', 'Could not save your timings'));
       return false;
     }
   };
   useEffect(() => {
     if (current === saved) return undefined;
-    const t = setTimeout(persist, 900);
-    return () => clearTimeout(t);
+    const tm = setTimeout(persist, 900);
+    return () => clearTimeout(tm);
   }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function next() {
     // An open day with no times is a promise nobody can keep.
     const bad = incompleteDay(hours);
-    if (bad) return toast.error(`Set opening and closing times for ${bad}`);
+    if (bad) return toast.error(t('sp.set_opening_and_closing_times_for_day', 'Set opening and closing times for {day}').replace('{day}', t(labelKey(String(bad)), String(bad))));
     if (await persist()) onNext();
     return undefined;
   }
 
   return (
     <StepShell
-      title="When are you open?"
-      hint="Customers see this before booking. A day left closed takes no bookings."
+      title={t('sp.when_are_you_open', 'When are you open?')}
+      hint={t('sp.customers_see_this_before_booking_a_day_left_closed_takes_no_bookings', 'Customers see this before booking. A day left closed takes no bookings.')}
       onBack={async () => { await persist(); onBack(); }}
       onNext={next}
       busy={isLoading}
@@ -894,7 +899,7 @@ function HoursStep({ profile, onBack, onNext }) {
       <WeeklyHours hours={hours} onChange={setHours} />
       {status && (
         <p className="px-1 text-xs font-semibold text-slate-500">
-          {status === 'saving' ? 'Saving…' : 'Saved'}
+          {status === 'saving' ? t('sp.saving', 'Saving…') : t('sp.saved', 'Saved')}
         </p>
       )}
     </StepShell>
@@ -907,6 +912,7 @@ function HoursStep({ profile, onBack, onNext }) {
  */
 const WARRANTY_CHOICES = [0, 30, 60, 90, 180, 365];
 function WarrantySettings({ vertical, claimed, rows, onSaved }) {
+  const t = useServiceProT();
   const [setWarranty] = useSetShopWarrantyMutation();
   const current = (code, fallback) => {
     const mine = rows.filter((r) => r.repairCode === code).map((r) => r.warrantyDays || 0);
@@ -915,16 +921,16 @@ function WarrantySettings({ vertical, claimed, rows, onSaved }) {
   async function change(code, days) {
     try {
       const res = await setWarranty({ vertical, repairCode: code, warrantyDays: days }).unwrap();
-      toast.success(res.updated ? `Warranty set to ${days ? `${days} days` : 'none'}` : 'Saved - it applies once you set a price for this job');
+      toast.success(res.updated ? (days ? t('sp.warranty_set_to_n_days', 'Warranty set to {n} days').replace('{n}', days) : t('sp.warranty_set_to_none', 'Warranty set to none')) : t('sp.saved_it_applies_once_you_set_a_price_for_this_job', 'Saved - it applies once you set a price for this job'));
       onSaved?.();
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not save the warranty');
+      toast.error(err?.data?.error || t('sp.could_not_save_the_warranty', 'Could not save the warranty'));
     }
   }
   return (
     <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Warranty you give</p>
-      <p className="mt-0.5 text-[11px] text-slate-500">Customers see this before they book and can claim within it.</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{t('sp.warranty_you_give', 'Warranty you give')}</p>
+      <p className="mt-0.5 text-[11px] text-slate-500">{t('sp.customers_see_this_before_they_book_and_can_claim_within_it', 'Customers see this before they book and can claim within it.')}</p>
       <div className="mt-2 divide-y divide-slate-100">
         {claimed.map((r) => (
           <label key={r.code} className="flex items-center justify-between gap-3 py-2">
@@ -935,7 +941,7 @@ function WarrantySettings({ vertical, claimed, rows, onSaved }) {
               onChange={(e) => change(r.code, Number(e.target.value))}
             >
               {[...new Set([...WARRANTY_CHOICES, current(r.code, r.warrantyDays)])].sort((a, b) => a - b).map((d) => (
-                <option key={d} value={d}>{d ? `${d} days` : 'No warranty'}</option>
+                <option key={d} value={d}>{d ? t('sp.n_days', '{n} days').replace('{n}', d) : t('sp.no_warranty', 'No warranty')}</option>
               ))}
             </select>
           </label>
@@ -976,6 +982,7 @@ function cellKey(repairCode, qualityCode) {
 function PriceRow({
   repair, values, onChange, existing, onRemove,
 }) {
+  const t = useServiceProT();
   const [open, setOpen] = useState(false);
 
   const tiers = repair.usesPart ? QUALITY_TIERS : [{ code: '', label: 'Your price', hint: '' }];
@@ -986,15 +993,15 @@ function PriceRow({
 
   // What is already live or awaiting review, so an edit starts from the truth.
   const live = tiers
-    .map((t) => existing.get(cellKey(repair.code, t.code)))
+    .map((tier) => existing.get(cellKey(repair.code, tier.code)))
     .filter(Boolean);
-  const typed = tiers.filter((t) => values[cellKey(repair.code, t.code)]);
+  const typed = tiers.filter((tier) => values[cellKey(repair.code, tier.code)]);
 
   return (
     <div className="relative rounded-2xl border border-slate-200 bg-white">
       {/* One tap: stop offering this job (undo in the message). */}
       {onRemove && (
-        <button type="button" onClick={() => onRemove(repair)} aria-label={`Stop offering ${repair.name}`} title="Stop offering this job"
+        <button type="button" onClick={() => onRemove(repair)} aria-label={t('sp.stop_offering_name', 'Stop offering {name}').replace('{name}', repair.name)} title={t('sp.stop_offering_this_job', 'Stop offering this job')}
           className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-600">
           <X size={16} />
         </button>
@@ -1012,7 +1019,7 @@ function PriceRow({
                   )}
                   {!['approved', 'auto_approved'].includes(row.approvalStatus) && (
                     <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[9.5px] font-bold text-amber-700">
-                      {row.approvalStatus === 'rejected' ? 'rejected' : 'in review'}
+                      {row.approvalStatus === 'rejected' ? t('sp.rejected', 'rejected') : t('sp.in_review', 'in review')}
                     </span>
                   )}
                 </span>
@@ -1020,10 +1027,10 @@ function PriceRow({
             </span>
           ) : typed.length ? (
             <span className="mt-0.5 block text-[11px] font-semibold text-zappy-600">
-              {typed.length} price{typed.length === 1 ? '' : 's'} typed - not saved yet
+              {(typed.length === 1 ? t('sp.n_price_typed_not_saved_yet', '{n} price typed - not saved yet') : t('sp.n_prices_typed_not_saved_yet', '{n} prices typed - not saved yet')).replace('{n}', typed.length)}
             </span>
           ) : (
-            <span className="mt-0.5 block text-[11px] font-semibold text-amber-600">No price yet</span>
+            <span className="mt-0.5 block text-[11px] font-semibold text-amber-600">{t('sp.no_price_yet', 'No price yet')}</span>
           )}
         </span>
         <ChevronRight size={16} className={`shrink-0 text-slate-300 transition ${open ? 'rotate-90' : ''}`} />
@@ -1042,20 +1049,19 @@ function PriceRow({
             */}
           {repair.usesPart && (
             <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
-              Quote the <strong className="font-bold text-slate-700">final price</strong> the customer pays,
-              part included. Fill only the grades you actually fit.
+              {(() => { const m = t('sp.quote_the_b_final_price_b_the_customer_pays_part_included_fill_only_the_grades_you_actually_fit', 'Quote the <b>final price</b> the customer pays, part included. Fill only the grades you actually fit.').split(/<b>|<\/b>/); return <>{m[0]}<strong className="font-bold text-slate-700">{m[1]}</strong>{m[2]}</>; })()}
             </p>
           )}
 
           <div className="mt-2 space-y-2">
-            {tiers.map((t) => {
-              const k = cellKey(repair.code, t.code);
+            {tiers.map((tier) => {
+              const k = cellKey(repair.code, tier.code);
               const row = existing.get(k);
               return (
-                <div key={t.code || 'flat'} className="flex items-center gap-2">
+                <div key={tier.code || 'flat'} className="flex items-center gap-2">
                   <div className="w-28 shrink-0">
-                    <p className="text-[12px] font-bold text-slate-700">{t.label}</p>
-                    {t.hint && <p className="text-[10px] text-slate-400">{t.hint}</p>}
+                    <p className="text-[12px] font-bold text-slate-700">{t(labelKey(tier.label), tier.label)}</p>
+                    {tier.hint && <p className="text-[10px] text-slate-400">{t(labelKey(tier.hint), tier.hint)}</p>}
                   </div>
                   <div className="relative flex-1">
                     <IndianRupee size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -1063,7 +1069,7 @@ function PriceRow({
                       type="number"
                       inputMode="numeric"
                       className="input w-full !pl-8 text-sm"
-                      placeholder={row ? String(Math.round(row.totalPaise / 100)) : 'Not offered'}
+                      placeholder={row ? String(Math.round(row.totalPaise / 100)) : t('sp.not_offered', 'Not offered')}
                       value={values[k] ?? ''}
                       onChange={(e) => onChange(k, e.target.value)}
                     />
@@ -1095,33 +1101,34 @@ function PriceRow({
  */
 // Every live price up or down by a whole %, always from the normal price so changes never stack; 0 puts them back.
 function AdjustAllPrices({ vertical, rows }) {
+  const t = useServiceProT();
   const [adjustAll, { isLoading: adjusting }] = useAdjustRepairProviderPricingMutation();
   const [percent, setPercent] = useState('');
   if (!rows.length) return null;
   async function apply(pct) {
-    if (!Number.isInteger(pct) || pct < -50 || pct > 100) return toast.error('Enter a whole number from -50 to 100');
+    if (!Number.isInteger(pct) || pct < -50 || pct > 100) return toast.error(t('sp.enter_a_whole_number_from_50_to_100', 'Enter a whole number from -50 to 100'));
     try {
       const res = await adjustAll({ vertical, percent: pct }).unwrap();
       toast.success(res.note);
       setPercent('');
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not change prices. Try again.');
+      toast.error(err?.data?.error || t('sp.could_not_change_prices_try_again', 'Could not change prices. Try again.'));
     }
   }
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-3">
-      <p className="text-sm font-bold text-slate-800">Change all prices</p>
-      <p className="mt-0.5 text-xs text-slate-500">Raise or lower every price at once. It always counts from your normal prices.</p>
+      <p className="text-sm font-bold text-slate-800">{t('sp.change_all_prices', 'Change all prices')}</p>
+      <p className="mt-0.5 text-xs text-slate-500">{t('sp.raise_or_lower_every_price_at_once_it_always_counts_from_your_normal_prices', 'Raise or lower every price at once. It always counts from your normal prices.')}</p>
       <div className="mt-2 flex items-center gap-2">
         <input type="number" inputMode="numeric" min={-50} max={100} placeholder="10" value={percent} onChange={(e) => setPercent(e.target.value)}
-          className="input w-24 text-sm" aria-label="Percent change" />
+          className="input w-24 text-sm" aria-label={t('sp.percent_change', 'Percent change')} />
         <span className="text-sm font-bold text-slate-500">%</span>
         <button type="button" disabled={adjusting || !percent} onClick={() => apply(Number(percent))}
-          className="rounded-xl bg-zappy-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Apply</button>
+          className="rounded-xl bg-zappy-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{t('sp.apply', 'Apply')}</button>
       </div>
       {rows.some((r) => r.normalPaise != null) && (
         <button type="button" disabled={adjusting} onClick={() => apply(0)}
-          className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-50">Back to normal prices</button>
+          className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-50">{t('sp.back_to_normal_prices', 'Back to normal prices')}</button>
       )}
     </div>
   );
@@ -1139,6 +1146,7 @@ function PricingTop({ vertical, rows }) {
 }
 
 function PricingStep({ vertical, isShop, onBack, onNext }) {
+  const t = useServiceProT();
   const { data: verticalList } = useRepairVerticalsQuery();
   const { data: catalog } = useRepairWorkCatalogQuery({ vertical });
   const { data: pricing, isLoading, refetch } = useRepairProviderPricingQuery(vertical);
@@ -1163,17 +1171,17 @@ function PricingStep({ vertical, isShop, onBack, onNext }) {
     const before = claimed.map((r) => r.code);
     try {
       await setWork(before.filter((c) => c !== repair.code));
-      toast((t) => (
+      toast((tt) => (
         <span className="flex items-center gap-3 text-sm">
-          {repair.name} removed
+          {t('sp.name_removed', '{name} removed').replace('{name}', repair.name)}
           <button type="button" className="font-bold text-zappy-600"
-            onClick={() => { toast.dismiss(t.id); setWork(before).catch(() => toast.error('Could not put it back. Tick it again in the work step.')); }}>
-            Undo
+            onClick={() => { toast.dismiss(tt.id); setWork(before).catch(() => toast.error(t('sp.could_not_put_it_back_tick_it_again_in_the_work_step', 'Could not put it back. Tick it again in the work step.'))); }}>
+            {t('sp.undo', 'Undo')}
           </button>
         </span>
       ), { duration: 6000 });
     } catch (err) {
-      toast.error(err?.data?.error || 'That did not go through. Please try again.');
+      toast.error(err?.data?.error || t('sp.that_did_not_go_through_please_try_again', 'That did not go through. Please try again.'));
     }
   }
   const [brand, setBrand] = useState(null);
@@ -1261,7 +1269,7 @@ function PricingStep({ vertical, isShop, onBack, onNext }) {
       });
     }
 
-    if (!rows.length) return toast.error('Enter at least one price');
+    if (!rows.length) return toast.error(t('sp.enter_at_least_one_price', 'Enter at least one price'));
 
     try {
       const res = await bulkSave({ vertical, rows }).unwrap();
@@ -1274,34 +1282,34 @@ function PricingStep({ vertical, isShop, onBack, onNext }) {
       setModel(undefined);
       refetch();
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not save those prices');
+      toast.error(err?.data?.error || t('sp.could_not_save_those_prices', 'Could not save those prices'));
     }
   }
 
   /* The price sheet for one model (or the brand baseline) */
   if (model !== undefined) {
     const label = model === null
-      ? `Every ${brandName(activeBrand)} model`
+      ? t('sp.every_name_model', 'Every {name} model').replace('{name}', brandName(activeBrand))
       : modelLabel || model;
 
     return (
       <StepShell
         title={label}
         hint={model === null
-          ? 'A starting price for the whole brand. Any model you price separately overrides this.'
-          : 'Your final price for this model - part and labour together.'}
+          ? t('sp.a_starting_price_for_the_whole_brand_any_model_you_price_separately_overrides_this', 'A starting price for the whole brand. Any model you price separately overrides this.')
+          : t('sp.your_final_price_for_this_model_part_and_labour_together', 'Your final price for this model - part and labour together.')}
         onBack={() => { setModel(undefined); setValues({}); }}
         onNext={saveSheet}
-        nextLabel={saving ? 'Saving…' : 'Save prices'}
+        nextLabel={saving ? t('sp.saving', 'Saving…') : t('sp.save_prices', 'Save prices')}
         busy={saving}
       >
         {partsQuotedSeparately(vertical, verticalList?.items) && (
-          <p className="mb-3 rounded-xl border border-zappy-100 bg-zappy-50 px-3 py-2.5 text-[12.5px] font-semibold leading-relaxed text-zappy-800">{PARTS_NOTE.partner}</p>
+          <p className="mb-3 rounded-xl border border-zappy-100 bg-zappy-50 px-3 py-2.5 text-[12.5px] font-semibold leading-relaxed text-zappy-800">{t(labelKey(PARTS_NOTE.partner), PARTS_NOTE.partner)}</p>
         )}
         {!claimed.length ? (
           <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-center">
-            <p className="text-sm font-bold text-slate-700">No jobs selected yet</p>
-            <p className="mt-0.5 text-xs text-slate-500">Go back and tick the work you do first.</p>
+            <p className="text-sm font-bold text-slate-700">{t('sp.no_jobs_selected_yet', 'No jobs selected yet')}</p>
+            <p className="mt-0.5 text-xs text-slate-500">{t('sp.go_back_and_tick_the_work_you_do_first', 'Go back and tick the work you do first.')}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -1324,17 +1332,17 @@ function PricingStep({ vertical, isShop, onBack, onNext }) {
   /* Brand, then the model list */
   return (
     <StepShell
-      title="What do you charge?"
-      hint="Set your own price for each job, per brand. Change a single model only where you charge differently."
+      title={t('sp.what_do_you_charge', 'What do you charge?')}
+      hint={t('sp.set_your_own_price_for_each_job_per_brand_change_a_single_model_only_where_you_charge_differently', 'Set your own price for each job, per brand. Change a single model only where you charge differently.')}
       onBack={onBack}
       onNext={onNext}
-      nextLabel={pricing?.pricing?.length ? 'Continue' : 'Skip for now'}
+      nextLabel={pricing?.pricing?.length ? t('sp.continue', 'Continue') : t('sp.skip_for_now', 'Skip for now')}
     >
       <PricingTop vertical={vertical} rows={pricing?.pricing || []} />
       {!brandCodes.length && (
         <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-center">
-          <p className="text-sm font-bold text-slate-700">No brands chosen yet</p>
-          <p className="mt-0.5 text-xs text-slate-500">Go back to the first step and pick the brands you handle.</p>
+          <p className="text-sm font-bold text-slate-700">{t('sp.no_brands_chosen_yet', 'No brands chosen yet')}</p>
+          <p className="mt-0.5 text-xs text-slate-500">{t('sp.go_back_to_the_first_step_and_pick_the_brands_you_handle', 'Go back to the first step and pick the brands you handle.')}</p>
         </div>
       )}
 
@@ -1362,12 +1370,12 @@ function PricingStep({ vertical, isShop, onBack, onNext }) {
           >
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold text-zappy-900">
-                Every {brandName(activeBrand)} model
+                {t('sp.every_name_model', 'Every {name} model').replace('{name}', brandName(activeBrand))}
               </span>
               <span className="mt-0.5 block text-[11px] text-zappy-700">
                 {pricedCountFor.get('__brand__')
-                  ? `${pricedCountFor.get('__brand__')} price${pricedCountFor.get('__brand__') === 1 ? '' : 's'} set - used where a model has none of its own`
-                  : 'Set one price sheet that covers the whole brand'}
+                  ? (pricedCountFor.get('__brand__') === 1 ? t('sp.n_price_set_used_where_a_model_has_none_of_its_own', '{n} price set - used where a model has none of its own') : t('sp.n_prices_set_used_where_a_model_has_none_of_its_own', '{n} prices set - used where a model has none of its own')).replace('{n}', pricedCountFor.get('__brand__'))
+                  : t('sp.set_one_price_sheet_that_covers_the_whole_brand', 'Set one price sheet that covers the whole brand')}
               </span>
             </span>
             <ChevronRight size={16} className="shrink-0 text-zappy-400" />
@@ -1377,7 +1385,7 @@ function PricingStep({ vertical, isShop, onBack, onNext }) {
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               className="input w-full !pl-9 text-sm"
-              placeholder={`Search ${brandName(activeBrand)} models`}
+              placeholder={t('sp.search_name_models', 'Search {name} models').replace('{name}', brandName(activeBrand))}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -1398,7 +1406,7 @@ function PricingStep({ vertical, isShop, onBack, onNext }) {
                       <span className={`mt-0.5 block text-[11px] font-semibold ${
                         count ? 'text-emerald-600' : 'text-slate-400'
                       }`}>
-                        {count ? `${count} price${count === 1 ? '' : 's'} set` : 'Uses the brand price'}
+                        {count ? (count === 1 ? t('sp.n_price_set', '{n} price set') : t('sp.n_prices_set', '{n} prices set')).replace('{n}', count) : t('sp.uses_the_brand_price', 'Uses the brand price')}
                       </span>
                     </span>
                     <ChevronRight size={15} className="shrink-0 text-slate-300" />
@@ -1409,15 +1417,14 @@ function PricingStep({ vertical, isShop, onBack, onNext }) {
               {!filtered.length && !loadingModels && (
                 <p className="py-6 text-center text-xs text-slate-400">
                   {search
-                    ? `No ${brandName(activeBrand)} model matches "${search}".`
-                    : 'No models listed for this brand yet.'}
+                    ? t('sp.no_brand_model_matches_q', 'No {brand} model matches "{q}".').replace('{brand}', brandName(activeBrand)).replace('{q}', search)
+                    : t('sp.no_models_listed_for_this_brand_yet', 'No models listed for this brand yet.')}
                 </p>
               )}
 
               {/* §67 — the catalog is never presented as complete. */}
               <p className="pt-2 text-center text-[11px] text-slate-400">
-                Model not listed? Set the brand price above - it covers every model,
-                including ones we have not added yet.
+                {t('sp.model_not_listed_set_the_brand_price_above_it_covers_every_model_including_ones_we_have_not_added_yet', 'Model not listed? Set the brand price above - it covers every model, including ones we have not added yet.')}
               </p>
             </div>
           )}
@@ -1430,19 +1437,19 @@ function PricingStep({ vertical, isShop, onBack, onNext }) {
 
 /** An approved service with nothing to set up here (pet care, helping): say so, and what brings its jobs. */
 function ReadyService({ name, isShop, onHours }) {
+  const t = useServiceProT();
   return (
     <div className="space-y-3">
       <div className="card flex items-start gap-3">
         <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-emerald-600" />
         <div>
-          <p className="font-bold text-[#0F172A]">{name} is ready</p>
+          <p className="font-bold text-[#0F172A]">{t('sp.name_is_ready', '{name} is ready').replace('{name}', name)}</p>
           <p className="mt-0.5 text-[13px] leading-relaxed text-slate-600">
-            Nothing to set up here. Jobs near you
-            {isShop ? ' come to your shop while it is open.' : ' ring while you are online, and bookings for later come inside your hours.'}
+            {isShop ? t('sp.nothing_to_set_up_here_jobs_near_you_come_to_your_shop_while_it_is_open', 'Nothing to set up here. Jobs near you come to your shop while it is open.') : t('sp.nothing_to_set_up_here_jobs_near_you_ring_while_you_are_online_and_bookings_for_later_come_inside_your_hours', 'Nothing to set up here. Jobs near you ring while you are online, and bookings for later come inside your hours.')}
           </p>
         </div>
       </div>
-      <button type="button" onClick={onHours} className="btn-secondary w-full">{isShop ? 'Shop & hours' : 'Set my hours'}</button>
+      <button type="button" onClick={onHours} className="btn-secondary w-full">{isShop ? t('sp.shop_hours', 'Shop & hours') : t('sp.set_my_hours', 'Set my hours')}</button>
     </div>
   );
 }
@@ -1450,6 +1457,7 @@ function ReadyService({ name, isShop, onHours }) {
 /* Flow */
 
 export default function ProviderRepairSetupPage() {
+  const t = useServiceProT();
   const nav = useNavigate();
   const { data: onboarding } = useProviderOnboardingStatusQuery();
 
@@ -1497,7 +1505,7 @@ export default function ProviderRepairSetupPage() {
   }, [brandCodes, work, areaData, priceData, onboarding]);
 
   const go = (next) => { setStep(next); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-  const finish = () => { toast.success("Setup saved - you're ready for jobs"); nav(isShop ? '/shop' : '/worker'); };
+  const finish = () => { toast.success(t('sp.setup_saved_you_re_ready_for_jobs', 'Setup saved - you\'re ready for jobs')); nav(isShop ? '/shop' : '/worker'); };
 
   // Already set up: open on the prices (what people come back to change), not
   // at step one. Every earlier step is still a tap away in the bar above.
@@ -1512,9 +1520,9 @@ export default function ProviderRepairSetupPage() {
   if (onboarding && !tabs.length) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <p className="text-[17px] font-bold text-ink-900">Choose your services first</p>
-        <p className="mt-1 text-[14px] text-ink-500">Pick the work you do. Its jobs and prices are set up here after that.</p>
-        <button type="button" onClick={() => nav('/provider/onboarding')} className="btn-primary mt-4 px-5">Add a service</button>
+        <p className="text-[17px] font-bold text-ink-900">{t('sp.choose_your_services_first', 'Choose your services first')}</p>
+        <p className="mt-1 text-[14px] text-ink-500">{t('sp.pick_the_work_you_do_its_jobs_and_prices_are_set_up_here_after_that', 'Pick the work you do. Its jobs and prices are set up here after that.')}</p>
+        <button type="button" onClick={() => nav('/provider/onboarding')} className="btn-primary mt-4 px-5">{t('sp.add_a_service', 'Add a service')}</button>
       </div>
     );
   }
@@ -1531,8 +1539,8 @@ export default function ProviderRepairSetupPage() {
               <ArrowLeft size={17} strokeWidth={2.5} />
             </button>
             <div className="min-w-0">
-              <p className="truncate font-bold text-[#0F172A]">{other ? other.name : `Set up ${LABEL[active] || lineName(active)}`}</p>
-              <p className="text-xs text-slate-400">A few quick steps - you can come back any time</p>
+              <p className="truncate font-bold text-[#0F172A]">{other ? other.name : t('sp.set_up_name', 'Set up {name}').replace('{name}', LABEL[active] ? t(labelKey(LABEL[active]), LABEL[active]) : lineName(active))}</p>
+              <p className="text-xs text-slate-400">{t('sp.a_few_quick_steps_you_can_come_back_any_time', 'A few quick steps - you can come back any time')}</p>
             </div>
           </div>
 
@@ -1546,7 +1554,7 @@ export default function ProviderRepairSetupPage() {
                     active === v ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
                   }`}
                 >
-                  {LABEL[v] || others.find((o) => o.key === v)?.name || lineName(v)}
+                  {LABEL[v] ? t(labelKey(LABEL[v]), LABEL[v]) : others.find((o) => o.key === v)?.name || lineName(v)}
                 </button>
               ))}
             </div>
@@ -1561,7 +1569,7 @@ export default function ProviderRepairSetupPage() {
       </header>
 
       <div className="mx-auto max-w-2xl px-4 pt-4">
-        {other?.domain === 'pet_services' ? <PetRateCard category={other.code} /> : other ? <div className="space-y-4"><PriceNotice text={RUNNER_NOTICE} /><ReadyService name={other.name} isShop={isShop} onHours={() => nav(isShop ? '/shop/profile' : '/worker/hours')} /></div> : (
+        {other?.domain === 'pet_services' ? <PetRateCard category={other.code} /> : other ? <div className="space-y-4"><PriceNotice text={t(labelKey(RUNNER_NOTICE), RUNNER_NOTICE)} /><ReadyService name={other.name} isShop={isShop} onHours={() => nav(isShop ? '/shop/profile' : '/worker/hours')} /></div> : (
         <AnimatePresence mode="wait">
           <motion.div
             key={`${active}:${step}`}
@@ -1621,7 +1629,7 @@ export default function ProviderRepairSetupPage() {
           onClick={() => nav('/provider/onboarding')}
           className="mt-4 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-slate-400"
         >
-          <ShieldCheck size={13} /> Services &amp; verification
+          <ShieldCheck size={13} /> {t('sp.services_verification', 'Services & verification')}
         </button>
       </div>
     </div>

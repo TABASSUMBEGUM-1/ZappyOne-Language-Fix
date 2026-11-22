@@ -8,6 +8,8 @@ import { getSocket } from '../../services/socket';
 import { api, useJobChatQuery, useSendJobChatMutation } from '../../services/api';
 import { CHAT_QUICK as QUICK } from '../../provider/jobFlows';
 import StayOnZappyOne from './StayOnZappyOne';
+import { useI18n, useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 /**
  * Messages about one job, between the customer and whoever is doing it. A
@@ -17,11 +19,14 @@ import StayOnZappyOne from './StayOnZappyOne';
  *   jobId     the booking
  *   title     who you are talking to ("Ravi K.", "Your customer")
  */
-function time(at) {
-  return new Date(at).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+function time(at, lang = 'en') {
+  return new Date(at).toLocaleTimeString(`${lang}-IN`, { hour: 'numeric', minute: '2-digit' });
 }
 
-export default function JobChat({ jobId, title = 'Messages', onClose }) {
+export default function JobChat({ jobId, title, onClose }) {
+  const t = useServiceProT();
+  const { lang: current } = useI18n();
+  const lang = import.meta.env.VITE_CLIENT_SURFACE === 'servicepro' ? current : 'en';
   const dispatch = useDispatch();
   const { accessToken, role } = useSelector(selectAuth);
   // Fresh every time it opens (a cached thread hid what arrived while it was
@@ -46,12 +51,12 @@ export default function JobChat({ jobId, title = 'Messages', onClose }) {
   }, [data?.messages?.length]);
 
   async function submit(body) {
-    const t = String(body ?? text).trim();
-    if (!t) return;
+    const msg = String(body ?? text).trim();
+    if (!msg) return;
     try {
-      await send({ id: jobId, text: t }).unwrap();
+      await send({ id: jobId, text: msg }).unwrap();
       if (body == null) setText('');
-    } catch (err) { toast.error(err?.data?.error || 'Message not sent. Try again.'); }
+    } catch (err) { toast.error(err?.data?.error || t('sp.message_not_sent_try_again', 'Message not sent. Try again.')); }
   }
 
   const quick = QUICK[role === 'user' ? 'user' : 'provider'];
@@ -62,15 +67,15 @@ export default function JobChat({ jobId, title = 'Messages', onClose }) {
       className="fixed inset-0 z-[140] flex items-end justify-center bg-ink-900/40 sm:items-stretch sm:justify-end"
       onClick={(e) => e.target === e.currentTarget && onClose()}>
       <motion.section initial={{ y: 40 }} animate={{ y: 0 }} exit={{ y: 40 }} transition={{ duration: 0.18 }}
-        aria-label="Messages"
+        aria-label={t('sp.messages', 'Messages')}
         className="flex h-[85vh] w-full flex-col rounded-t-sheet bg-white sm:h-full sm:max-w-md sm:rounded-none">
         <header className="flex items-center gap-3 border-b border-line px-4 py-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-zappy-50 text-zappy-700"><MessageCircle size={17} /></span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[16px] font-bold text-ink-900">{title}</span>
-            <span className="block text-[12px] text-ink-500">Messages stay with this booking</span>
+            <span className="block truncate text-[16px] font-bold text-ink-900">{title || t('sp.messages', 'Messages')}</span>
+            <span className="block text-[12px] text-ink-500">{t('sp.messages_stay_with_this_booking', 'Messages stay with this booking')}</span>
           </span>
-          <button type="button" onClick={onClose} aria-label="Close" className="flex h-10 w-10 items-center justify-center rounded-btn hover:bg-sunken"><X size={18} /></button>
+          <button type="button" onClick={onClose} aria-label={t('sp.close', 'Close')} className="flex h-10 w-10 items-center justify-center rounded-btn hover:bg-sunken"><X size={18} /></button>
         </header>
         {/* Where an offer to go outside the app usually comes: the reminder sits above every chat. */}
         <StayOnZappyOne audience={role === 'user' ? 'customer' : 'pro'} compact />
@@ -79,14 +84,14 @@ export default function JobChat({ jobId, title = 'Messages', onClose }) {
           {isLoading ? (
             <div className="flex justify-center py-10"><Loader2 className="animate-spin text-zappy-600" /></div>
           ) : !messages.length ? (
-            <p className="py-10 text-center text-[14px] text-ink-500">{data?.open === false ? data.reason : 'No messages yet. Say hello or use a quick reply.'}</p>
+            <p className="py-10 text-center text-[14px] text-ink-500">{data?.open === false ? data.reason : t('sp.no_messages_yet_say_hello_or_use_a_quick_reply', 'No messages yet. Say hello or use a quick reply.')}</p>
           ) : messages.map((m) => (
             <div key={m.id} className={`flex ${m.mine ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[80%] rounded-card px-3.5 py-2 text-[15px] leading-snug ${m.mine ? 'rounded-br-chip bg-zappy-600 text-white' : 'rounded-bl-chip border border-line bg-white text-ink-900'}`}>
                 <p className="whitespace-pre-wrap break-words">{m.text}</p>
                 <p className={`mt-0.5 flex items-center justify-end gap-1 text-[11px] ${m.mine ? 'text-white/75' : 'text-ink-400'}`}>
-                  {time(m.at)}
-                  {m.mine && (m.readAt ? <CheckCheck size={13} aria-label="Read" /> : <Check size={13} aria-label="Sent" />)}
+                  {time(m.at, lang)}
+                  {m.mine && (m.readAt ? <CheckCheck size={13} aria-label={t('sp.read', 'Read')} /> : <Check size={13} aria-label={t('sp.sent', 'Sent')} />)}
                 </p>
               </div>
             </div>
@@ -100,14 +105,14 @@ export default function JobChat({ jobId, title = 'Messages', onClose }) {
             <div className="-mx-3 mb-2 flex gap-2 overflow-x-auto px-3 no-scrollbar">
               {quick.map((q) => (
                 <button key={q} type="button" onClick={() => submit(q)} disabled={sending}
-                  className="min-h-[34px] shrink-0 rounded-full border border-line bg-white px-3 text-[13px] font-medium text-ink-700 hover:border-line-strong">{q}</button>
+                  className="min-h-[34px] shrink-0 rounded-full border border-line bg-white px-3 text-[13px] font-medium text-ink-700 hover:border-line-strong">{t(labelKey(q), q)}</button>
               ))}
             </div>
             <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="flex items-end gap-2">
-              <textarea rows={1} value={text} onChange={(e) => setText(e.target.value)} maxLength={1000} placeholder="Type a message"
+              <textarea rows={1} value={text} onChange={(e) => setText(e.target.value)} maxLength={1000} placeholder={t('sp.type_a_message', 'Type a message')}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
-                className="input max-h-32 min-h-[44px] flex-1 resize-none py-2.5" aria-label="Message" />
-              <button type="submit" disabled={sending || !text.trim()} aria-label="Send" className="btn-primary h-11 w-11 shrink-0 px-0">
+                className="input max-h-32 min-h-[44px] flex-1 resize-none py-2.5" aria-label={t('sp.message', 'Message')} />
+              <button type="submit" disabled={sending || !text.trim()} aria-label={t('sp.send', 'Send')} className="btn-primary h-11 w-11 shrink-0 px-0">
                 {sending ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
               </button>
             </form>

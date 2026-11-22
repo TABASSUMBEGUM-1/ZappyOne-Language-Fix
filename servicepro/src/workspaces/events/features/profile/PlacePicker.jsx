@@ -1,8 +1,10 @@
 import { Check } from 'lucide-react';
+import { useT } from '@shared/i18n/I18nProvider';
 import { TELANGANA_PLACES, placeName } from '@shared/constants/telanganaPlaces';
 
 /** Choose the Telangana cities and towns served. Stores slugs; never free text. */
 export default function PlacePicker({ value = [], onChange }) {
+  const t = useT();
   const set = new Set(value.map((v) => String(v).toLowerCase()));
   const toggle = (slug) => onChange(set.has(slug) ? value.filter((v) => String(v).toLowerCase() !== slug) : [...value, slug]);
   const legacy = value.filter((v) => !TELANGANA_PLACES.some((p) => p.slug === String(v).toLowerCase()));
@@ -22,7 +24,7 @@ export default function PlacePicker({ value = [], onChange }) {
       </div>
       {legacy.length > 0 && (
         <p className="mt-2 text-[12px] text-amber-700">
-          Not in Telangana (remove these): {legacy.map((v) => (
+          {t('sp.ev.notTg', 'Not in Telangana (remove these):')} {legacy.map((v) => (
             <button key={v} type="button" onClick={() => toggle(String(v).toLowerCase())} className="ml-1 underline">{v}</button>
           ))}
         </p>

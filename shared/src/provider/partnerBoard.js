@@ -1,24 +1,24 @@
 // ServicePro partner OS words and rules shared by web and app (server shop/partner.service).
 
 export const PARTNER_TYPES = [
-  { key: 'shop', label: 'Shop', hint: 'A counter customers can walk into.' },
-  { key: 'agency', label: 'Agency', hint: 'A team that goes to customers; no counter.' },
-  { key: 'company', label: 'Service company', hint: 'A registered company with its own staff.' },
-  { key: 'individual', label: 'Independent professional', hint: 'You work on your own, with or without a helper.' },
+  { key: 'shop', tk: 'sp.pt.shop', label: 'Shop', hk: 'sp.pt.shop.hint', hint: 'A counter customers can walk into.' },
+  { key: 'agency', tk: 'sp.pt.agency', label: 'Agency', hk: 'sp.pt.agency.hint', hint: 'A team that goes to customers; no counter.' },
+  { key: 'company', tk: 'sp.pt.company', label: 'Service company', hk: 'sp.pt.company.hint', hint: 'A registered company with its own staff.' },
+  { key: 'individual', tk: 'sp.pt.individual', label: 'Independent professional', hk: 'sp.pt.individual.hint', hint: 'You work on your own, with or without a helper.' },
 ];
 
 export const DISPATCH_MODES = [
-  { key: 'manual', label: 'I assign each job', hint: 'You or your team leads pick who goes.' },
-  { key: 'nearest', label: 'Nearest free member', hint: 'Whoever is on duty, free and closest gets it at once.' },
-  { key: 'round_robin', label: 'Take turns', hint: 'The member given a job longest ago gets the next one.' },
+  { key: 'manual', tk: 'sp.dm.manual', label: 'I assign each job', hk: 'sp.dm.manual.hint', hint: 'You or your team leads pick who goes.' },
+  { key: 'nearest', tk: 'sp.dm.nearest', label: 'Nearest free member', hk: 'sp.dm.nearest.hint', hint: 'Whoever is on duty, free and closest gets it at once.' },
+  { key: 'round_robin', tk: 'sp.dm.round_robin', label: 'Take turns', hk: 'sp.dm.round_robin.hint', hint: 'The member given a job longest ago gets the next one.' },
 ];
 
 export const BOARD_COLUMNS = [
-  { key: 'new', label: 'New' },
-  { key: 'assigned', label: 'Assigned' },
-  { key: 'on_the_way', label: 'On the way' },
-  { key: 'in_progress', label: 'In progress' },
-  { key: 'done', label: 'Done' },
+  { key: 'new', tk: 'sp.col.new', label: 'New' },
+  { key: 'assigned', tk: 'sp.col.assigned', label: 'Assigned' },
+  { key: 'on_the_way', tk: 'sp.col.on_the_way', label: 'On the way' },
+  { key: 'in_progress', tk: 'sp.col.in_progress', label: 'In progress' },
+  { key: 'done', tk: 'sp.col.done', label: 'Done' },
 ];
 
 const MOVING = new Set(['ON_THE_WAY', 'PROVIDER_EN_ROUTE', 'EN_ROUTE', 'OUT_FOR_RETURN']);

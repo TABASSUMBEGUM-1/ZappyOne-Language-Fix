@@ -15,6 +15,7 @@ import ServiceProShell from './shell/ServiceProShell';
 import ServiceProLogin, { HOME } from './auth/ServiceProLogin';
 import AccountSetupGate from '@shared/components/account/AccountSetupGate';
 import OnlineLocation from '@shared/provider/OnlineLocation';
+import { useT } from '@shared/i18n/I18nProvider';
 import { VerifyEmailPage, ResetPasswordPage } from '@shared/components/account/AccountLinkPages';
 
 const ShopDashboard = lazy(() => import('./workspaces/services/pages/ShopDashboard'));
@@ -59,11 +60,14 @@ function EventVerifiedOnly() {
 const LOGIN = '/login';
 const OLD_LOGINS = ['/shop/login', '/shop/worker/login', '/worker/login', '/partner/login'];
 
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-slate-50">
-    <div className="w-8 h-8 rounded-full border-2 border-zappy-200 border-t-zappy-600 animate-spin" />
-  </div>
-);
+function PageLoader() {
+  const t = useT();
+  return (
+    <div role="status" aria-label={t('sp.c.loading', 'Loading…')} className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="w-8 h-8 rounded-full border-2 border-zappy-200 border-t-zappy-600 animate-spin" />
+    </div>
+  );
+}
 
 const homeFor = (role) => HOME[role] || LOGIN;
 const PRO_JOB = { repair: '/worker/repair/', pet: '/worker/pet/' };

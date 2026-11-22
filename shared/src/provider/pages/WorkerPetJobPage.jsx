@@ -26,6 +26,8 @@ import {
 } from '../../services/api';
 import { PET_NEXT as NEXT, PET_DONE, PET_PAY_STAGES, PET_LIVE, petDuePaise, petBrief } from '../jobFlows';
 import { useLivePoll } from '../../hooks/useSocket';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 /**
  * Worker execution (§10, §38, §39).
@@ -36,6 +38,7 @@ import { useLivePoll } from '../../hooks/useSocket';
  * `handlingBriefFor()` promises (§8).
  */
 export default function WorkerPetJobPage() {
+  const t = useServiceProT();
   const { id } = useParams();
   const nav = useNavigate();
   const { data, isLoading, refetch } = useGetPetBookingQuery(id, { pollingInterval: useLivePoll(10000) });
@@ -59,7 +62,7 @@ export default function WorkerPetJobPage() {
   const sharing = usePublishTripLocation(id, Boolean(trip) && (!isOwner || ownerGoing), { asOwner: ownerGoing });
 
   if (isLoading) return <div className="flex justify-center py-24"><Loader2 size={24} className="animate-spin text-zappy-400" /></div>;
-  if (!data?.booking) return <div className="text-center py-24 text-slate-400">Booking not found</div>;
+  if (!data?.booking) return <div className="text-center py-24 text-slate-400">{t('sp.wpj.notFound', 'Booking not found')}</div>;
 
   const { booking } = data;
   const { brief, risky: hasRisk, level: riskLevel } = petBrief(booking);
@@ -68,7 +71,7 @@ export default function WorkerPetJobPage() {
     try {
       await gate.run((code) => advance({ id: booking._id, status, code }).unwrap().then((r) => { refetch(); return r; }));
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not update');
+      toast.error(err?.data?.error || t('sp.wpj.cantUpdate', 'Could not update'));
     }
   }
 
@@ -80,15 +83,15 @@ export default function WorkerPetJobPage() {
       const res = await advance({ id: booking._id, status: 'SERVICE_COMPLETED' }).unwrap();
       if (res.booking?.status === 'PAYMENT_PENDING') {
         // Stay here: the payment card below is the last step.
-        toast.success('Service completed. Now take the payment.');
+        toast.success(t('sp.wpj.doneToPay', 'Service completed. Now take the payment.'));
         refetch();
       } else {
-        toast.success('Completed and settled');
+        toast.success(t('sp.wpj.settled', 'Completed and settled'));
         nav('/worker/work');
       }
     } catch (err) {
-      if (err?.data?.code === 'PROOF_REQUIRED') toast.error(`A ${err.data.kind?.replace('_', ' ')} photo is required first`);
-      else toast.error(err?.data?.error || 'Could not complete');
+      if (err?.data?.code === 'PROOF_REQUIRED') toast.error(t('sp.wpj.photoReq', 'A {k} photo is required first').replace('{k}', err.data.kind?.replace('_', ' ')));
+      else toast.error(err?.data?.error || t('sp.wpj.cantComplete', 'Could not complete'));
     } finally {
       setCompleting(false);
     }
@@ -102,10 +105,10 @@ export default function WorkerPetJobPage() {
 
   async function answerOffer(yes) {
     try {
-      if (yes) { await checkedIn(() => acceptOffer(booking._id).unwrap()); toast.success('Accepted. The customer has been told.'); refetch(); }
-      else { await declineOffer({ id: booking._id, reason: 'Declined by provider' }).unwrap(); toast('Declined. We will find someone else.'); nav('/worker/work'); }
+      if (yes) { await checkedIn(() => acceptOffer(booking._id).unwrap()); toast.success(t('sp.wpj.accepted', 'Accepted. The customer has been told.')); refetch(); }
+      else { await declineOffer({ id: booking._id, reason: 'Declined by provider' }).unwrap(); toast(t('sp.wpj.declined', 'Declined. We will find someone else.')); nav('/worker/work'); }
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not send your answer');
+      toast.error(err?.data?.error || t('sp.wpj.cantAnswer', 'Could not send your answer'));
       refetch();
     }
   }
@@ -113,10 +116,10 @@ export default function WorkerPetJobPage() {
   async function recordCash() {
     try {
       await collectCash(booking._id).unwrap();
-      toast.success('Payment recorded');
+      toast.success(t('sp.wpj.payRecorded', 'Payment recorded'));
       nav('/worker/work');
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not record the payment');
+      toast.error(err?.data?.error || t('sp.wpj.cantRecord', 'Could not record the payment'));
     }
   }
 
@@ -136,9 +139,9 @@ export default function WorkerPetJobPage() {
         <GiveBackCard jobId={booking._id} status={booking.status} />
         {isOwner && (
           <div className="rounded-2xl border-2 border-slate-200 bg-white p-4">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Who goes</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{t('sp.wpj.whoGoes', 'Who goes')}</p>
             {!booking.workerId && (
-              <p className="mt-1 text-[12px] text-slate-600">You can go yourself: use the steps below and the pet's owner follows you live. Or hand it to one of your team.</p>
+              <p className="mt-1 text-[12px] text-slate-600">{t('sp.wpj.goSelf', 'You can go yourself: use the steps below and the pet\'s owner follows you live. Or hand it to one of your team.')}</p>
             )}
             <AssignTechnician jobId={id} workerId={booking.workerId} onDone={refetch} startOpen={!booking.workerId} />
           </div>
@@ -151,7 +154,7 @@ export default function WorkerPetJobPage() {
         {hasRisk && (
           <div className="flex items-start gap-2 rounded-2xl border-2 border-red-200 bg-red-50 p-3.5 text-xs text-red-800">
             <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-            <span>This pet is flagged {riskLevel} risk for handling. {brief.specialHandling || 'Take extra care and go slowly.'}</span>
+            <span>{t('sp.wpj.risk', 'This pet is flagged {k} risk for handling.').replace('{k}', t('sp.wpj.risk.' + riskLevel, riskLevel))} {brief.specialHandling || t('sp.wpj.care', 'Take extra care and go slowly.')}</span>
           </div>
         )}
 
@@ -160,36 +163,36 @@ export default function WorkerPetJobPage() {
         )}
 
         {ownerWatching && (nextMoves.length > 0 || offered || booking.status === 'SERVICE_STARTED') && (
-          <p className="rounded-2xl bg-white p-4 text-center text-sm text-slate-500 ring-1 ring-slate-200">Your technician takes the next step from their app.</p>
+          <p className="rounded-2xl bg-white p-4 text-center text-sm text-slate-500 ring-1 ring-slate-200">{t('sp.wpj.techNext', 'Your technician takes the next step from their app.')}</p>
         )}
 
         {!ownerWatching && offered && (
           <div className="space-y-3 rounded-2xl bg-white p-4 ring-1 ring-amber-200">
-            <p className="text-[14px] font-semibold text-navy">A customer chose you for this booking</p>
+            <p className="text-[14px] font-semibold text-navy">{t('sp.wpj.chosen', 'A customer chose you for this booking')}</p>
             <p className="text-[13px] text-slate-600">
-              You earn {formatPaise(booking.pricing?.providerAmountPaise || 0)}. If you can’t do it, decline so we can find someone else in time.
+              {t('sp.wpj.chosenSub', 'You earn {n}. If you can’t do it, decline so we can find someone else in time.').replace('{n}', formatPaise(booking.pricing?.providerAmountPaise || 0))}
             </p>
             <div className="flex gap-2">
               <button type="button" onClick={() => answerOffer(false)} disabled={declining || accepting}
-                className="flex-1 rounded-xl py-3 font-semibold text-slate-700 ring-1 ring-slate-300 disabled:opacity-50">Decline</button>
+                className="flex-1 rounded-xl py-3 font-semibold text-slate-700 ring-1 ring-slate-300 disabled:opacity-50">{t('sp.wpj.decline', 'Decline')}</button>
               <button type="button" onClick={() => answerOffer(true)} disabled={declining || accepting}
-                className="flex-1 rounded-xl bg-zappy-600 py-3 font-semibold text-white disabled:opacity-50">Accept</button>
+                className="flex-1 rounded-xl bg-zappy-600 py-3 font-semibold text-white disabled:opacity-50">{t('sp.wpj.accept', 'Accept')}</button>
             </div>
           </div>
         )}
 
         {!ownerWatching && nextMoves.map(([status, label]) => (
           <button key={status} type="button" onClick={() => move(status)}
-            className="w-full rounded-2xl bg-[#0F172A] text-white font-bold py-3.5">{label}</button>
+            className="w-full rounded-2xl bg-[#0F172A] text-white font-bold py-3.5">{t(labelKey(label), label)}</button>
         ))}
 
         {!ownerWatching && booking.status === 'SERVICE_STARTED' && (
           <>
-            <ProofPhotos photos={beforePhotos} onChange={setBeforePhotos} folder="pet/before" max={2} title="Before photo" />
-            <ProofPhotos photos={afterPhotos} onChange={setAfterPhotos} folder="pet/after" max={2} title="After photo" />
+            <ProofPhotos photos={beforePhotos} onChange={setBeforePhotos} folder="pet/before" max={2} title={t('sp.wpj.before', 'Before photo')} />
+            <ProofPhotos photos={afterPhotos} onChange={setAfterPhotos} folder="pet/after" max={2} title={t('sp.wpj.after', 'After photo')} />
             <button type="button" onClick={complete} disabled={completing}
               className="w-full rounded-2xl bg-emerald-600 text-white font-bold py-3.5 disabled:opacity-50">
-              {completing ? 'Completing…' : 'Complete service'}
+              {completing ? t('sp.wpj.completing', 'Completing…') : t('sp.wpj.complete', 'Complete service')}
             </button>
           </>
         )}
@@ -214,7 +217,7 @@ export default function WorkerPetJobPage() {
         {/* Safety: on every live job, one hold away. */}
         {!ownerWatching && PET_LIVE.includes(booking.status) && (
           <div className="space-y-1.5 pt-2">
-            <p className="text-[12px] font-semibold text-slate-500">Feeling unsafe or need urgent help?</p>
+            <p className="text-[12px] font-semibold text-slate-500">{t('sp.wpj.unsafe', 'Feeling unsafe or need urgent help?')}</p>
             <SOSButton jobId={booking._id} kind="pet" service={booking.categoryCode} />
           </div>
         )}

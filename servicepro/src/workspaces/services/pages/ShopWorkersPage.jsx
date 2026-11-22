@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useT } from '@shared/i18n/I18nProvider';
+import { labelKey } from '@shared/i18n/translations';
 import {
   ArrowLeft, Plus, Trash2, Loader2, X, Star, Briefcase, ShieldCheck, Clock, XCircle, Circle, Users, Crown,
 } from 'lucide-react';
@@ -12,9 +13,9 @@ import { useTradeWords } from '../../../shell/useTradeWords';
 
 const KYC_PILL = {
   approved: { label: 'Verified', tk: 'sp.verified', cls: 'bg-emerald-50 text-emerald-700', Icon: ShieldCheck },
-  pending_review: { label: 'We are checking', cls: 'bg-amber-50 text-amber-700', Icon: Clock },
+  pending_review: { label: 'We are checking', tk: 'sp.wk.checking', cls: 'bg-amber-50 text-amber-700', Icon: Clock },
   rejected: { label: 'Rejected', tk: 'sp.wk.rejected', cls: 'bg-red-50 text-red-700', Icon: XCircle },
-  not_submitted: { label: 'Not checked yet', cls: 'bg-slate-100 text-slate-500', Icon: Circle },
+  not_submitted: { label: 'Not checked yet', tk: 'sp.wk.notChecked', cls: 'bg-slate-100 text-slate-500', Icon: Circle },
 };
 
 export default function ShopWorkersPage() {
@@ -26,7 +27,7 @@ export default function ShopWorkersPage() {
   const [removeWorker] = useRemoveShopWorkerMutation();
   const [setTeam] = useSetShopWorkerTeamMutation();
   const [inviting, setInviting] = useState(false);
-  const teamAct = (body, ok) => setTeam(body).unwrap().then(() => toast.success(ok)).catch((e) => toast.error(e?.data?.error || 'Could not save'));
+  const teamAct = (body, ok) => setTeam(body).unwrap().then(() => toast.success(ok)).catch((e) => toast.error(e?.data?.error || t('sp.c.saveFail', 'Could not save')));
 
   const [showAdd, setShowAdd] = useState(false);
   const [phone, setPhone] = useState('');
@@ -42,8 +43,8 @@ export default function ShopWorkersPage() {
     try {
       const res = await addWorker({ phone, name: name || undefined }).unwrap();
       toast.success(res.isNew
-        ? 'Added. They open servicepro.zappyone.com, sign in with this number and the code we text, and check their ID (Aadhaar and a selfie) once to start.'
-        : 'Linked to your shop', { duration: 6000 });
+        ? t('sp.wk.added', 'Added. They open servicepro.zappyone.com, sign in with this number and the code we text, and check their ID (Aadhaar and a selfie) once to start.')
+        : t('sp.wk.linked', 'Linked to your shop'), { duration: 6000 });
       setShowAdd(false);
       setPhone(''); setName('');
     } catch (err) {
@@ -67,12 +68,12 @@ export default function ShopWorkersPage() {
     <div className="min-h-screen bg-[#F9FAFB] pb-10">
       <header className="page-header"><div className="page-header-inner">
         <button onClick={() => nav('/shop')} className="back-btn"><ArrowLeft size={18} strokeWidth={2.5} /></button>
-        <h1 className="h-card">{words('team', 'Team')}</h1>
+        <h1 className="h-card">{(() => { const label = words('team', 'Team'); return t(labelKey(label), label); })()}</h1>
         <button onClick={() => setInviting(true)} className="ml-auto flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-bold text-zappy-700 ring-1 ring-zappy-200">
-          <Users size={14} strokeWidth={2.5} /> Add many
+          <Users size={14} strokeWidth={2.5} /> {t('sp.wk.addMany', 'Add many')}
         </button>
         <button onClick={() => setShowAdd(true)} className="btn-primary text-xs py-2 px-3 flex items-center gap-1">
-          <Plus size={14} strokeWidth={2.5} /> Add
+          <Plus size={14} strokeWidth={2.5} /> {t('sp.add', 'Add')}
         </button>
       </div></header>
 
@@ -111,18 +112,18 @@ export default function ShopWorkersPage() {
                       </span>
                     )}
                     <span className={`w-1.5 h-1.5 rounded-full ${w.isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                    <span className="text-[10px] font-semibold text-slate-400">{w.isOnline ? 'On duty' : 'Off duty'}</span>
-                    {w.team?.role === 'lead' && <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700"><Crown size={10} /> Team lead</span>}
+                    <span className="text-[10px] font-semibold text-slate-400">{w.isOnline ? t('sp.onDuty', 'On duty') : t('sp.offDuty', 'Off duty')}</span>
+                    {w.team?.role === 'lead' && <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700"><Crown size={10} /> {t('sp.wk.teamLead', 'Team lead')}</span>}
                   </div>
                   {/* Leads see and assign their group's jobs (server shop/partner.service). */}
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <button type="button" onClick={() => teamAct({ workerId: w._id, role: w.team?.role === 'lead' ? 'member' : 'lead' }, w.team?.role === 'lead' ? 'No longer a lead' : 'Made a team lead')}
-                      className="rounded-md px-2 py-1 text-[11px] font-semibold text-zappy-700 ring-1 ring-zappy-200">{w.team?.role === 'lead' ? 'Remove lead' : 'Make lead'}</button>
+                    <button type="button" onClick={() => teamAct({ workerId: w._id, role: w.team?.role === 'lead' ? 'member' : 'lead' }, w.team?.role === 'lead' ? t('sp.wk.noLongerLead', 'No longer a lead') : t('sp.wk.madeLead', 'Made a team lead'))}
+                      className="rounded-md px-2 py-1 text-[11px] font-semibold text-zappy-700 ring-1 ring-zappy-200">{w.team?.role === 'lead' ? t('sp.wk.removeLead', 'Remove lead') : t('sp.wk.makeLead', 'Make lead')}</button>
                     {w.team?.role !== 'lead' && leads.length > 0 && (
-                      <select value={w.team?.leadId || ''} onChange={(e) => teamAct({ workerId: w._id, leadId: e.target.value || null }, 'Group saved')}
-                        className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-600" aria-label="Team lead">
-                        <option value="">No group</option>
-                        {leads.map((l) => <option key={l._id} value={l._id}>In {l.name || l.phone}'s group</option>)}
+                      <select value={w.team?.leadId || ''} onChange={(e) => teamAct({ workerId: w._id, leadId: e.target.value || null }, t('sp.wk.groupSaved', 'Group saved'))}
+                        className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-600" aria-label={t('sp.wk.teamLead', 'Team lead')}>
+                        <option value="">{t('sp.wk.noGroup', 'No group')}</option>
+                        {leads.map((l) => <option key={l._id} value={l._id}>{t('sp.wk.inGroup', "In {name}'s group").replace('{name}', l.name || l.phone)}</option>)}
                       </select>
                     )}
                   </div>
@@ -148,7 +149,7 @@ export default function ShopWorkersPage() {
               <h3 className="text-lg font-bold text-slate-900">{t('sp.wk.addWorker', 'Add Worker')}</h3>
               <button type="button" onClick={() => setShowAdd(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
             </div>
-            <p className="text-xs text-slate-400 -mt-2">If this phone number already belongs to a ZappyOne worker, we'll just link them to your shop.</p>
+            <p className="text-xs text-slate-400 -mt-2">{t('sp.wk.linkNote', "If this phone number already belongs to a ZappyOne worker, we'll just link them to your shop.")}</p>
             <div>
               <label className="text-[12px] font-bold text-slate-700 block mb-1.5">{t('sp.wk.phone', 'Phone Number')} <span className="text-red-500">*</span></label>
               <input value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder={t('sp.wk.phoneEg', '10-digit mobile number')}

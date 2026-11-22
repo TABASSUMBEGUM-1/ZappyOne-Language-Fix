@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronRight, Loader2, MapPin, X } from 'lucide-react';
 import { reverseGeocode } from '../../utils/reverseGeocode';
+import { useServiceProT } from '../../i18n/I18nProvider';
 
 const LiveTrackingMap = lazy(() => import('../../modules/tracking/LiveTrackingMap'));
 
@@ -16,6 +17,7 @@ const named = new Map(); // "lat,lng" → area name, so every screen does not as
  * coordinates: [lng, lat]. label: shown as-is instead of looking it up.
  */
 export default function MyAreaChip({ coordinates, label = null, live = false, className = '' }) {
+  const t = useServiceProT();
   const [lng, lat] = coordinates?.length === 2 ? coordinates : [];
   const has = typeof lat === 'number' && typeof lng === 'number' && (lat || lng);
   const key = has ? `${lat.toFixed(3)},${lng.toFixed(3)}` : null;
@@ -57,29 +59,29 @@ export default function MyAreaChip({ coordinates, label = null, live = false, cl
   if (!has) return <span title={text} className={chipCls}>{inner}</span>;
   return (
     <>
-      <button type="button" title={`${text}, see on the map`} onClick={() => setOpen(true)} className={`group ${chipCls} pr-1.5 transition hover:shadow-sm active:scale-[0.98]`}>
+      <button type="button" title={t('sp.text_see_on_the_map', '{text}, see on the map').replace('{text}', text)} onClick={() => setOpen(true)} className={`group ${chipCls} pr-1.5 transition hover:shadow-sm active:scale-[0.98]`}>
         <motion.span className="flex shrink-0" animate={still ? undefined : { y: [0, -2.5, 0] }} transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 1.4, ease: 'easeInOut' }}>
           <MapPin size={12} className={live ? 'text-zappy-600' : 'text-slate-400'} />
         </motion.span>
         <span className="truncate">{text}</span>
         <span className={`ml-0.5 flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-px text-[10.5px] font-bold ${live ? 'bg-zappy-100 text-zappy-800' : 'bg-slate-100 text-slate-600'}`}>
-          Map <ChevronRight size={11} strokeWidth={3} className="transition group-hover:translate-x-0.5" />
+          {t('sp.map', 'Map')} <ChevronRight size={11} strokeWidth={3} className="transition group-hover:translate-x-0.5" />
         </span>
       </button>
       {createPortal(
         <AnimatePresence>
           {open && (
             <motion.div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/45 sm:items-center sm:p-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)}>
-              <motion.div role="dialog" aria-label={`Your location, ${text}`} onClick={(e) => e.stopPropagation()}
+              <motion.div role="dialog" aria-label={t('sp.your_location_text', 'Your location, {text}').replace('{text}', text)} onClick={(e) => e.stopPropagation()}
                 initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 34 }}
                 className="w-full max-w-xl overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl">
                 <div className="flex items-center gap-3 px-4 py-3">
                   <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${live ? 'bg-zappy-50 text-zappy-600' : 'bg-slate-100 text-slate-500'}`}><MapPin size={17} /></span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[14px] font-extrabold text-slate-900">{text}</p>
-                    <p className="text-[11.5px] text-slate-500">{live ? 'Live now. Jobs near here come to you first.' : 'Your pinned location'}</p>
+                    <p className="text-[11.5px] text-slate-500">{live ? t('sp.live_now_jobs_near_here_come_to_you_first', 'Live now. Jobs near here come to you first.') : t('sp.your_pinned_location', 'Your pinned location')}</p>
                   </div>
-                  <button type="button" onClick={() => setOpen(false)} aria-label="Close map" className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-slate-100"><X size={18} /></button>
+                  <button type="button" onClick={() => setOpen(false)} aria-label={t('sp.close_map', 'Close map')} className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-slate-100"><X size={18} /></button>
                 </div>
                 <Suspense fallback={<div className="flex h-[55vh] items-center justify-center bg-slate-50"><Loader2 size={20} className="animate-spin text-slate-300" /></div>}>
                   <LiveTrackingMap workerLocation={{ lat, lng }} workerLabel="You" height="55vh" />

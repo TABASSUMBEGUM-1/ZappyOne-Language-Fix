@@ -9,6 +9,8 @@ import { useGetWorkerMeQuery } from '../../services/api';
 import { useSelector } from 'react-redux';
 import { selectRole } from '../../modules/auth/authSlice';
 import { STAFF_PORTAL } from '../staffPortal';
+import { useI18n, useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 /**
  * Work — everything a provider holds, and everything open near them that
@@ -20,9 +22,13 @@ import { STAFF_PORTAL } from '../staffPortal';
  *
  *   kinds   the job kinds this app works
  */
-const when = (at) => (at ? new Date(at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : null);
+const when = (at, lang = 'en') => (at ? new Date(at).toLocaleString(`${lang}-IN`, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : null);
+
+// Titles the hook falls back to when the server sends none.
+const FALLBACK_TITLES = ['Repair', 'Pet care', 'Errand'];
 
 function MineRow({ job, onOpen }) {
+  const t = useServiceProT();
   return (
     <button
       type="button"
@@ -30,11 +36,11 @@ function MineRow({ job, onOpen }) {
       className="flex w-full items-center gap-3 rounded-xl bg-white px-4 py-3.5 text-left ring-1 ring-slate-200/80 transition hover:ring-slate-300"
     >
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[15px] font-semibold capitalize text-navy">{job.title}</span>
+        <span className="block truncate text-[15px] font-semibold capitalize text-navy">{FALLBACK_TITLES.includes(job.title) ? t(labelKey(job.title), job.title) : job.title}</span>
         <span className="block truncate text-[13px] capitalize text-slate-500">{job.subtitle}</span>
       </span>
       <span className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-semibold ${job.attention ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>
-        {job.status}
+        {t(labelKey(job.status), job.status)}
       </span>
       <ChevronRight size={16} className="shrink-0 text-slate-400" />
     </button>
@@ -42,23 +48,25 @@ function MineRow({ job, onOpen }) {
 }
 
 function OpenCard({ job, busy, onTake }) {
+  const t = useServiceProT();
+  const { lang } = useI18n();
   return (
     <article className={`flex flex-col gap-3 overflow-hidden rounded-xl bg-white p-4 ${job.boostPaise > 0 ? 'ring-2 ring-amber-300 shadow-[0_6px_20px_-8px_rgba(245,158,11,0.45)]' : 'ring-1 ring-slate-200/80'}`}>
       {job.boostPaise > 0 && !STAFF_PORTAL && (
         <p className="-mx-4 -mt-4 flex items-center gap-1.5 bg-amber-300 px-4 py-1.5 text-[12px] font-extrabold text-amber-950">
-          <TrendingUp size={13} /> Customer raised the offer by {formatPaise(job.boostPaise)}, all yours
+          <TrendingUp size={13} /> {t('sp.wbd.boost', 'Customer raised the offer by {n}, all yours').replace('{n}', formatPaise(job.boostPaise))}
         </p>
       )}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[12px] font-semibold capitalize text-zappy-700">{job.service}</p>
-          <p className="mt-0.5 truncate text-[15px] font-semibold capitalize text-navy">{job.title}</p>
+          <p className="mt-0.5 truncate text-[15px] font-semibold capitalize text-navy">{FALLBACK_TITLES.includes(job.title) ? t(labelKey(job.title), job.title) : job.title}</p>
         </div>
         {!STAFF_PORTAL && <div className="shrink-0 text-right">
           <p className="text-[17px] font-bold tabular-nums text-emerald-700">{formatPaise(job.earningPaise)}</p>
-          <p className="text-[11px] text-slate-500">you earn</p>
+          <p className="text-[11px] text-slate-500">{t('sp.wbd.youEarn', 'you earn')}</p>
           {/* The customer added this for a faster match; it is all theirs, and included above. */}
-          {job.boostPaise > 0 && <p className="mt-0.5 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">incl. +{formatPaise(job.boostPaise)} extra</p>}
+          {job.boostPaise > 0 && <p className="mt-0.5 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{t('sp.wbd.incl', 'incl. +{n} extra').replace('{n}', formatPaise(job.boostPaise))}</p>}
         </div>}
       </div>
 
@@ -72,13 +80,13 @@ function OpenCard({ job, busy, onTake }) {
           </p>
         )}
         <p className="text-slate-500">
-          {[job.km != null ? `${job.km} km away` : null, when(job.at)].filter(Boolean).join(', ')}
+          {[job.km != null ? t('sp.wbd.kmAway', '{n} km away').replace('{n}', job.km) : null, when(job.at, lang)].filter(Boolean).join(', ')}
         </p>
       </div>
 
       {job.frontPaise > 0 && (
         <p className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-[12.5px] font-medium text-amber-800">
-          <Banknote size={14} /> You pay {formatPaise(job.frontPaise)} at the shop; the customer repays against the receipt
+          <Banknote size={14} /> {t('sp.wbd.front', 'You pay {n} at the shop; the customer repays against the receipt').replace('{n}', formatPaise(job.frontPaise))}
         </p>
       )}
 
@@ -88,13 +96,14 @@ function OpenCard({ job, busy, onTake }) {
         disabled={busy}
         className="rounded-lg bg-zappy-600 py-2.5 text-[14px] font-semibold text-white transition hover:bg-zappy-700 disabled:opacity-50"
       >
-        Take this job
+        {t('sp.wbd.take', 'Take this job')}
       </button>
     </article>
   );
 }
 
 export default function WorkBoardPage({ kinds }) {
+  const t = useServiceProT();
   const nav = useNavigate();
   const { mine, open, notApproved, isLoading, taking, take, refetch } = useProviderJobs({ kinds });
   // A worker's own position for the surge zones card; a shop owner has none.
@@ -104,12 +113,12 @@ export default function WorkBoardPage({ kinds }) {
   async function onTake(job) {
     try {
       const to = await take(job);
-      toast.success('It’s yours');
+      toast.success(t('sp.wbd.yours', 'It’s yours'));
       nav(to);
     } catch (err) {
-      if (err?.data?.code === 'ALREADY_CLAIMED') { toast.error('Someone else took it first'); refetch(); }
-      else if (err?.data?.code === 'NOT_APPROVED_FOR_SERVICE') toast.error('Get verified for this service first');
-      else toast.error(err?.data?.error || 'Could not take this job');
+      if (err?.data?.code === 'ALREADY_CLAIMED') { toast.error(t('sp.wbd.taken', 'Someone else took it first')); refetch(); }
+      else if (err?.data?.code === 'NOT_APPROVED_FOR_SERVICE') toast.error(t('sp.wbd.verifyFirst', 'Get verified for this service first'));
+      else toast.error(err?.data?.error || t('sp.wbd.cantTake', 'Could not take this job'));
     }
   }
 
@@ -117,10 +126,10 @@ export default function WorkBoardPage({ kinds }) {
     <div className="min-h-screen bg-[#F4F7FB]">
       <header className="sticky top-0 z-10 border-b border-slate-200/70 bg-white">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => nav('/worker')} aria-label="Back" className="-ml-1 rounded-lg p-1.5 hover:bg-slate-100">
+          <button type="button" onClick={() => nav('/worker')} aria-label={t('sp.back', 'Back')} className="-ml-1 rounded-lg p-1.5 hover:bg-slate-100">
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-[18px] font-bold text-navy">Work</h1>
+          <h1 className="text-[18px] font-bold text-navy">{t('sp.work', 'Work')}</h1>
         </div>
       </header>
 
@@ -133,16 +142,16 @@ export default function WorkBoardPage({ kinds }) {
 
         {!isLoading && (
           <section className="space-y-2.5">
-            <h2 className="text-[14px] font-semibold text-slate-600">Your jobs{mine.length ? `, ${mine.length}` : ''}</h2>
+            <h2 className="text-[14px] font-semibold text-slate-600">{t('sp.wbd.mineTitle', 'Your jobs')}{mine.length ? `, ${mine.length}` : ''}</h2>
             {mine.length
               ? mine.map((j) => <MineRow key={`${j.kind}-${j.id}`} job={j} onOpen={() => nav(j.to)} />)
-              : <p className="rounded-xl bg-white px-4 py-5 text-[14px] text-slate-500 ring-1 ring-slate-200/80">Nothing in hand right now.</p>}
+              : <p className="rounded-xl bg-white px-4 py-5 text-[14px] text-slate-500 ring-1 ring-slate-200/80">{t('sp.wbd.nothing', 'Nothing in hand right now.')}</p>}
           </section>
         )}
 
         {!isLoading && open !== null && (
           <section className="space-y-2.5">
-            <h2 className="text-[14px] font-semibold text-slate-600">Open near you{open.length ? `, ${open.length}` : ''}</h2>
+            <h2 className="text-[14px] font-semibold text-slate-600">{t('sp.wbd.openTitle', 'Open near you')}{open.length ? `, ${open.length}` : ''}</h2>
             {open.length > 0 && (
               <div className="grid gap-3 sm:grid-cols-2">
                 {open.map((j) => <OpenCard key={`${j.kind}-${j.id}`} job={j} busy={taking} onTake={() => onTake(j)} />)}
@@ -150,7 +159,7 @@ export default function WorkBoardPage({ kinds }) {
             )}
             {!open.length && !notApproved.length && (
               <p className="rounded-xl bg-white px-4 py-5 text-[14px] text-slate-500 ring-1 ring-slate-200/80">
-                No open jobs near you. New ones appear here, and you’ll get an alert.
+                {t('sp.wbd.noOpen', 'No open jobs near you. New ones appear here, and you’ll get an alert.')}
               </p>
             )}
             {notApproved.length > 0 && (
@@ -161,7 +170,7 @@ export default function WorkBoardPage({ kinds }) {
               >
                 <ShieldCheck size={18} className="shrink-0 text-zappy-600" />
                 <span className="min-w-0 flex-1 text-[14px] text-slate-600">
-                  Get verified for {notApproved.map((k) => (k === 'pet' ? 'pet care' : 'helping')).join(' and ')} to see open jobs there.
+                  {t('sp.wbd.getVerified', 'Get verified for {k} to see open jobs there.').replace('{k}', notApproved.map((k) => (k === 'pet' ? t('sp.wbd.petCare', 'pet care') : t('sp.wbd.helping', 'helping'))).join(' ' + t('sp.wbd.and', 'and') + ' '))}
                 </span>
                 <ChevronRight size={16} className="shrink-0 text-slate-400" />
               </button>

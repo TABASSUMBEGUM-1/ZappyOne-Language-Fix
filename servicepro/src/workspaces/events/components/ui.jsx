@@ -1,4 +1,5 @@
 import PageSkeleton from '@shared/components/common/Skeleton';
+import { useT } from '@shared/i18n/I18nProvider';
 
 /**
  * The few building blocks every partner page shares. Kept deliberately small:
@@ -6,8 +7,9 @@ import PageSkeleton from '@shared/components/common/Skeleton';
  */
 
 // Pages loading show their shape, not a spinner (shared Skeleton).
-export function Spinner({ label = 'Loading', kind = 'list' }) {
-  return <PageSkeleton kind={kind} label={label} />;
+export function Spinner({ label, kind = 'list' }) {
+  const t = useT();
+  return <PageSkeleton kind={kind} label={label || t('sp.c.loading', 'Loading…')} />;
 }
 
 export function PageHeader({ title, subtitle, action }) {

@@ -1,13 +1,18 @@
 import { useNavigate } from 'react-router-dom';
-import { useT } from '@shared/i18n/I18nProvider';
+import { useT, useI18n } from '@shared/i18n/I18nProvider';
 import { motion } from 'framer-motion';
 import { ArrowRight, CircleCheck, CircleDashed, Clock3 } from 'lucide-react';
 import { useProviderSetupJourneyQuery } from '@shared/services/api';
+
+const STEP = { profile: 'Profile complete', services: 'Choose your services', approved: 'ZappyOne checks your documents', prices: 'Set your work and prices', area: 'Where you work' };
 
 // Where the shop is on the way to taking work: done, waiting on ZappyOne, and the one thing to do next. Gone once every step is done.
 export default function SetupJourney() {
   const nav = useNavigate();
   const t = useT();
+  const { lang } = useI18n();
+  // Step names come from the server in English; translate by step key, keep the server's text for a step this app does not know.
+  const stepName = (s) => (STEP[s.key] ? t(`sp.sj.${s.key}`, STEP[s.key]) : s.label);
   const { data } = useProviderSetupJourneyQuery();
   if (!data || data.complete) return null;
   const pct = Math.round((data.done / data.total) * 100);
@@ -15,8 +20,8 @@ export default function SetupJourney() {
     <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-zappy-600">Your setup · {data.done} of {data.total}</p>
-          <h2 className="mt-1 text-[17px] font-extrabold text-[#0F172A]">{data.next ? `Next: ${data.next.label.toLowerCase()}` : 'ZappyOne is checking your details'}</h2>
+          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-zappy-600">{t('sp.sj.setup', 'Your setup · {done} of {total}').replace('{done}', data.done).replace('{total}', data.total)}</p>
+          <h2 className="mt-1 text-[17px] font-extrabold text-[#0F172A]">{data.next ? t('sp.sj.next', 'Next: {step}').replace('{step}', lang === 'en' ? stepName(data.next).toLowerCase() : stepName(data.next)) : t('sp.sj.checking', 'ZappyOne is checking your details')}</h2>
         </div>
         {data.next && (
           <button type="button" onClick={() => nav(data.next.path)} className="btn-primary flex items-center gap-1.5 px-4 py-2.5 text-[13px]">
@@ -34,7 +39,7 @@ export default function SetupJourney() {
             <li key={s.key}>
               <button type="button" onClick={() => nav(s.path)} className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-[12.5px] font-semibold hover:bg-slate-50">
                 <Icon size={16} className={`shrink-0 ${s.done ? 'text-emerald-600' : s.waiting ? 'text-amber-600' : 'text-slate-300'}`} />
-                <span className={`min-w-0 ${s.done ? 'text-slate-500' : 'text-slate-800'}`}>{s.label}{s.waiting ? ' · in review' : ''}</span>
+                <span className={`min-w-0 ${s.done ? 'text-slate-500' : 'text-slate-800'}`}>{stepName(s)}{s.waiting ? ` · ${t('sp.sj.inReview', 'in review')}` : ''}</span>
               </button>
             </li>
           );

@@ -44,6 +44,8 @@ import {
 import { useLivePoll } from '../../hooks/useSocket';
 import { stageLabel } from '../useProviderJobs';
 import { termsOf, capWord } from '../../customer/repairBasket';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 /**
  * Worker's repair job screen.
@@ -84,21 +86,23 @@ const rupees = formatPaise;
  * has no repair yet: their vertical's catalog, the jobs they do listed first.
  */
 function RepairPicker({ vertical, value, onChange }) {
+  const t = useServiceProT();
   const { data, isLoading } = useRepairWorkCatalogQuery({ vertical });
   const repairs = quoteRepairOptions(data?.groups);
   return (
     <div>
-      <label className="text-[12px] font-bold text-slate-700 block mb-1.5">What will you fix?</label>
+      <label className="text-[12px] font-bold text-slate-700 block mb-1.5">{t('sp.wrj.pick', 'What will you fix?')}</label>
       <select value={value} onChange={(e) => onChange(e.target.value)} disabled={isLoading}
         className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-zappy-100">
-        <option value="">{isLoading ? 'Loading…' : 'Choose the repair'}</option>
-        {repairs.map((r) => <option key={r.code} value={r.code}>{r.name}{r.selected ? '' : ' (not in your list)'}</option>)}
+        <option value="">{isLoading ? t('sp.wrj.loading', 'Loading…') : t('sp.wrj.choose', 'Choose the repair')}</option>
+        {repairs.map((r) => <option key={r.code} value={r.code}>{r.name}{r.selected ? '' : ' ' + t('sp.wrj.notInList', '(not in your list)')}</option>)}
       </select>
     </div>
   );
 }
 
 function QuoteBuilder({ bookingId, repairCode: bookedRepair, vertical, additional = false, snapshot = {}, onSent, onCancel }) {
+  const t = useServiceProT();
   // An inspection has no repair yet: the technician says which one they quote for.
   const [repairCode, setRepairCode] = useState(bookedRepair || '');
   // A price the customer already agreed to (fixed price at booking) stays: what
@@ -122,16 +126,16 @@ function QuoteBuilder({ bookingId, repairCode: bookedRepair, vertical, additiona
 
   async function send() {
     const { body, error } = quotePayload({ repairCode, summary, items, warrantyDays, additional, agreedPaise, replace, replaceReason, photos: readyKeys(photos) });
-    if (error) return toast.error(error);
+    if (error) return toast.error(t(labelKey(error), error));
 
     try {
       await submit({ id: bookingId, ...body }).unwrap();
       toast.success(additional
-        ? 'Sent - the customer decides before you carry on'
-        : 'Quote sent - waiting for the customer to approve');
+        ? t('sp.wrj.sentExtra', 'Sent - the customer decides before you carry on')
+        : t('sp.wrj.sentQuote', 'Quote sent - waiting for the customer to approve'));
       onSent();
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not send the quote');
+      toast.error(err?.data?.error || t('sp.wrj.cantQuote', 'Could not send the quote'));
     }
   }
 
@@ -139,7 +143,7 @@ function QuoteBuilder({ bookingId, repairCode: bookedRepair, vertical, additiona
     <div className="card space-y-3">
       <div className="flex items-center justify-between">
         <p className="font-bold text-sm text-[#0F172A]">
-          {additional ? 'Extra work found' : 'Raise a quote'}
+          {additional ? t('sp.wrj.extraFound', 'Extra work found') : t('sp.wrj.raise', 'Raise a quote')}
         </p>
         <button onClick={onCancel} className="text-slate-400"><X size={17} /></button>
       </div>
@@ -147,11 +151,11 @@ function QuoteBuilder({ bookingId, repairCode: bookedRepair, vertical, additiona
       {agreedPaise > 0 && (
         <div className="space-y-2 rounded-xl bg-slate-50 p-2.5">
           <p className="text-[12px] text-slate-700">
-            The customer booked this at <b>{rupees(agreedPaise)}</b>.
+            {t('sp.wrj.booked', 'The customer booked this at {n}.').split('{n}')[0]}<b>{rupees(agreedPaise)}</b>{t('sp.wrj.booked', 'The customer booked this at {n}.').split('{n}')[1]}
           </p>
           <div className="grid grid-cols-2 gap-1.5">
-            {[[false, `Add on top of ${rupees(agreedPaise)}`], [true, 'Change the whole price']].map(([v, label]) => (
-              <button key={label} type="button" onClick={() => setReplace(v)}
+            {[[false, t('sp.wrj.addOnTop', 'Add on top of {n}').replace('{n}', rupees(agreedPaise))], [true, t('sp.wrj.changeAll', 'Change the whole price')]].map(([v, label]) => (
+              <button key={String(v)} type="button" onClick={() => setReplace(v)}
                 className={`rounded-lg border px-2 py-2 text-[12px] font-semibold ${replace === v ? 'border-zappy-600 bg-white text-zappy-700' : 'border-slate-200 bg-white text-slate-600'}`}>
                 {label}
               </button>
@@ -159,10 +163,10 @@ function QuoteBuilder({ bookingId, repairCode: bookedRepair, vertical, additiona
           </div>
           {replace ? (
             <textarea rows={2} value={replaceReason} onChange={(e) => setReplaceReason(e.target.value)}
-              placeholder="Why the booked price no longer fits, e.g. a different part is needed"
+              placeholder={t('sp.wrj.whyChange', 'Why the booked price no longer fits, e.g. a different part is needed')}
               className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zappy-100" />
           ) : (
-            <p className="text-[11.5px] text-slate-500">Enter only the extra parts or work. The booked price stays.</p>
+            <p className="text-[11.5px] text-slate-500">{t('sp.wrj.extraOnly', 'Enter only the extra parts or work. The booked price stays.')}</p>
           )}
         </div>
       )}
@@ -170,37 +174,37 @@ function QuoteBuilder({ bookingId, repairCode: bookedRepair, vertical, additiona
       {additional && (
         <p className="rounded-xl bg-amber-50 p-2.5 text-[11.5px] leading-relaxed text-amber-800">
           {agreedPaise && !replace
-            ? 'Enter only what is extra. Work stops until the customer answers, and the clock pauses while it does.'
-            : 'Include everything the customer is paying in total, not just the new part. Work stops until they answer, and the clock pauses while it does.'}
+            ? t('sp.wrj.extraInfo1', 'Enter only what is extra. Work stops until the customer answers, and the clock pauses while it does.')
+            : t('sp.wrj.extraInfo2', 'Include everything the customer is paying in total, not just the new part. Work stops until they answer, and the clock pauses while it does.')}
         </p>
       )}
 
       {!bookedRepair && <RepairPicker vertical={vertical} value={repairCode} onChange={setRepairCode} />}
 
       <div>
-        <label className="text-[12px] font-bold text-slate-700 block mb-1.5">What did you find?</label>
+        <label className="text-[12px] font-bold text-slate-700 block mb-1.5">{t('sp.wrj.found', 'What did you find?')}</label>
         <textarea rows={3} value={summary} onChange={(e) => setSummary(e.target.value)}
-          placeholder="e.g. Panel and digitizer both failed; frame is intact."
+          placeholder={t('sp.wrj.foundPh', 'e.g. Panel and digitizer both failed; frame is intact.')}
           className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-zappy-100 resize-none" />
-        <p className="text-[11px] text-slate-400 mt-1">The customer sees this word for word.</p>
+        <p className="text-[11px] text-slate-400 mt-1">{t('sp.wrj.seenWord', 'The customer sees this word for word.')}</p>
       </div>
 
       <div className="space-y-2">
-        <label className="text-[12px] font-bold text-slate-700 block">Charges</label>
+        <label className="text-[12px] font-bold text-slate-700 block">{t('sp.wrj.charges', 'Charges')}</label>
         {items.map((item, idx) => (
           <div key={idx} className="space-y-1.5">
           <div className="flex items-center gap-2">
             <select value={item.kind} onChange={(e) => setItem(idx, { kind: e.target.value })}
               className="border border-slate-200 rounded-lg px-2 py-2 text-xs w-24 outline-none">
               {QUOTE_LINE_KINDS.map((k) => (
-                <option key={k} value={k}>{k}</option>
+                <option key={k} value={k}>{t(labelKey(k), k)}</option>
               ))}
             </select>
             <input value={item.label} onChange={(e) => setItem(idx, { label: e.target.value })}
-              placeholder="Description" className="input text-sm flex-1" />
+              placeholder={t('sp.wrj.desc', 'Description')} className="input text-sm flex-1" />
             <label className="relative w-28 shrink-0">
               <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-semibold text-ink-500">₹</span>
-              <input inputMode="decimal" value={item.priceRupees} aria-label="Price in rupees"
+              <input inputMode="decimal" value={item.priceRupees} aria-label={t('sp.wrj.priceAria', 'Price in rupees')}
                 onChange={(e) => setItem(idx, { priceRupees: rupeesInput(e.target.value) })}
                 placeholder="0" className="input w-full pl-7 text-sm tabular-nums" />
             </label>
@@ -210,12 +214,12 @@ function QuoteBuilder({ bookingId, repairCode: bookedRepair, vertical, additiona
             )}
           </div>
           {item.kind === 'part' && (
-            <div role="radiogroup" aria-label="What this part is" className="grid grid-cols-3 gap-1.5">
+            <div role="radiogroup" aria-label={t('sp.wrj.partAria', 'What this part is')} className="grid grid-cols-3 gap-1.5">
               {PART_GRADES.map((g) => (
                 <button key={g.key} type="button" role="radio" aria-checked={item.partGrade === g.key} onClick={() => setItem(idx, { partGrade: g.key })}
                   className={`rounded-lg border px-2 py-1.5 text-left ${item.partGrade === g.key ? 'border-zappy-500 bg-zappy-50' : 'border-slate-200'}`}>
-                  <span className="block text-[12px] font-bold text-slate-800">{g.label}</span>
-                  <span className="block text-[10.5px] text-slate-500">{g.hint}</span>
+                  <span className="block text-[12px] font-bold text-slate-800">{t(labelKey(g.label), g.label)}</span>
+                  <span className="block text-[10.5px] text-slate-500">{t(labelKey(g.hint), g.hint)}</span>
                 </button>
               ))}
             </div>
@@ -224,34 +228,34 @@ function QuoteBuilder({ bookingId, repairCode: bookedRepair, vertical, additiona
         ))}
         <button onClick={() => setItems((l) => [...l, { kind: 'part', label: '', priceRupees: '', quantity: 1 }])}
           className="flex items-center gap-1.5 text-xs font-semibold text-zappy-600">
-          <Plus size={13} /> Add line
+          <Plus size={13} /> {t('sp.wrj.addLine', 'Add line')}
         </button>
       </div>
 
       <div>
-        <label className="text-[12px] font-bold text-slate-700 block mb-1.5">Warranty (days)</label>
+        <label className="text-[12px] font-bold text-slate-700 block mb-1.5">{t('sp.wrj.warranty', 'Warranty (days)')}</label>
         <input type="number" value={warrantyDays} onChange={(e) => setWarrantyDays(e.target.value)}
           className="input text-sm w-32" />
       </div>
 
       {agreedPaise > 0 && !replace && (
         <div className="space-y-1 px-1 text-[12.5px] text-slate-600">
-          <div className="flex justify-between"><span>Booked price</span><span className="tabular-nums">{rupees(agreedPaise)}</span></div>
-          <div className="flex justify-between"><span>Extra</span><span className="tabular-nums">+ {rupees(total)}</span></div>
+          <div className="flex justify-between"><span>{t('sp.wrj.bookedPrice', 'Booked price')}</span><span className="tabular-nums">{rupees(agreedPaise)}</span></div>
+          <div className="flex justify-between"><span>{t('sp.wrj.extra', 'Extra')}</span><span className="tabular-nums">+ {rupees(total)}</span></div>
         </div>
       )}
       <div className="flex items-center justify-between bg-slate-50 rounded-xl px-3 py-2.5">
-        <span className="text-sm font-semibold text-slate-600">{agreedPaise > 0 && !replace ? 'New subtotal (before fees)' : 'Subtotal (before tax)'}</span>
+        <span className="text-sm font-semibold text-slate-600">{agreedPaise > 0 && !replace ? t('sp.wrj.newSub', 'New subtotal (before fees)') : t('sp.wrj.sub', 'Subtotal (before tax)')}</span>
         <span className="text-lg font-black text-[#0F172A]">{rupees(agreedPaise > 0 && !replace ? agreedPaise + total : total)}</span>
       </div>
 
       {needsPhoto && (
         <ProofPhotos photos={photos} onChange={setPhotos} folder="order-proof" max={4}
-          title="Photo of what you found" hint="The customer sees it with the price and approves before you carry on." requiredNote="At least one photo is needed for extra work" />
+          title={t('sp.wrj.foundPhoto', 'Photo of what you found')} hint={t('sp.wrj.foundPhotoH', 'The customer sees it with the price and approves before you carry on.')} requiredNote={t('sp.wrj.foundPhotoN', 'At least one photo is needed for extra work')} />
       )}
 
       <button onClick={send} disabled={isLoading || (needsPhoto && !photosSettled(photos))} className="btn-primary w-full">
-        {isLoading ? <><Loader2 size={15} className="animate-spin" /> Sending…</> : 'Send quote to customer'}
+        {isLoading ? <><Loader2 size={15} className="animate-spin" /> {t('sp.wrj.sending', 'Sending…')}</> : t('sp.wrj.sendQuote', 'Send quote to customer')}
       </button>
     </div>
   );
@@ -260,6 +264,7 @@ function QuoteBuilder({ bookingId, repairCode: bookedRepair, vertical, additiona
 /* QA checklist */
 
 function QAPanel({ bookingId, onDone }) {
+  const t = useServiceProT();
   const { data, isLoading } = useRepairQaChecklistQuery(bookingId);
   const [submit, { isLoading: submitting }] = useSubmitRepairQaMutation();
   const [results, setResults] = useState({});
@@ -277,13 +282,13 @@ function QAPanel({ bookingId, onDone }) {
       const res = await submit({ id: bookingId, ...qaPayload(checklist, results) }).unwrap();
 
       if (res.passed) {
-        toast.success('All checks passed. You can finish the job.');
+        toast.success(t('sp.wrj.qaOk', 'All checks passed. You can finish the job.'));
         onDone();
       } else {
-        toast.error('Some checks failed. Fix them and check again.');
+        toast.error(t('sp.wrj.qaFail', 'Some checks failed. Fix them and check again.'));
       }
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not save the checks');
+      toast.error(err?.data?.error || t('sp.wrj.qaSave', 'Could not save the checks'));
     }
   }
 
@@ -294,7 +299,7 @@ function QAPanel({ bookingId, onDone }) {
         <p className="font-bold text-sm text-[#0F172A]">{checklist.name}</p>
       </div>
       <p className="text-[11px] text-slate-400 -mt-1">
-        Required checks must pass before the job can be completed.
+        {t('sp.wrj.qaReq', 'Required checks must pass before the job can be completed.')}
       </p>
 
       <div className="space-y-1.5">
@@ -304,7 +309,7 @@ function QAPanel({ bookingId, onDone }) {
             <div key={item.code} className="flex items-center gap-2 py-1.5 border-b border-slate-50 last:border-0">
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-[#0F172A]">{item.label}</p>
-                {item.required && <span className="text-[10px] font-bold text-red-500">REQUIRED</span>}
+                {item.required && <span className="text-[10px] font-bold text-red-500">{t('sp.wrj.required', 'REQUIRED')}</span>}
               </div>
               <div className="flex gap-1 shrink-0">
                 {[['pass', Check, 'emerald'], ['fail', X, 'red'], ['not_applicable', null, 'slate']].map(([r, Icon, tone]) => (
@@ -315,7 +320,7 @@ function QAPanel({ bookingId, onDone }) {
                           : tone === 'red' ? 'bg-red-600 text-white' : 'bg-slate-600 text-white'
                         : 'bg-slate-100 text-slate-500'
                     }`}>
-                    {Icon ? <Icon size={11} /> : 'N/A'}
+                    {Icon ? <Icon size={11} /> : t('sp.wrj.na', 'N/A')}
                   </button>
                 ))}
               </div>
@@ -328,15 +333,15 @@ function QAPanel({ bookingId, onDone }) {
         <div className="flex items-start gap-2 bg-red-50 rounded-xl px-3 py-2">
           <AlertTriangle size={14} className="text-red-600 shrink-0 mt-0.5" />
           <p className="text-xs text-red-700">
-            {failedRequired.length} required check{failedRequired.length > 1 ? 's' : ''} failed. Completion is blocked until resolved.
+            {t('sp.wrj.failedReq', '{n} required check(s) failed. Completion is blocked until resolved.').replace('{n}', failedRequired.length)}
           </p>
         </div>
       )}
 
       <button onClick={send} disabled={submitting || requiredUntested.length > 0} className="btn-primary w-full">
-        {submitting ? <><Loader2 size={15} className="animate-spin" /> Submitting…</>
-          : requiredUntested.length > 0 ? `${requiredUntested.length} required check(s) left`
-            : 'Save the checks'}
+        {submitting ? <><Loader2 size={15} className="animate-spin" /> {t('sp.wrj.submitting', 'Submitting…')}</>
+          : requiredUntested.length > 0 ? t('sp.wrj.leftChecks', '{n} required check(s) left').replace('{n}', requiredUntested.length)
+            : t('sp.wrj.saveChecks', 'Save the checks')}
       </button>
     </div>
   );
@@ -347,6 +352,7 @@ function QAPanel({ bookingId, onDone }) {
 const FINISH_STEPS = [['photos', 'Add photos of the finished work'], ['paid', 'Get paid'], ['done', 'Tap Complete job']];
 
 export default function WorkerRepairJobPage() {
+  const t = useServiceProT();
   const { id } = useParams();
   const nav = useNavigate();
   const { data, isLoading, refetch } = useGetRepairBookingQuery(id, { pollingInterval: useLivePoll(20000) });
@@ -403,8 +409,8 @@ export default function WorkerRepairJobPage() {
   const booking = data?.booking;
   if (!booking) {
     return <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center gap-3">
-      <p className="font-bold text-slate-700">Job not found</p>
-      <button onClick={() => nav('/worker')} className="btn-primary px-6">Back to dashboard</button>
+      <p className="font-bold text-slate-700">{t('sp.wrj.notFound', 'Job not found')}</p>
+      <button onClick={() => nav('/worker')} className="btn-primary px-6">{t('sp.wrj.toDash', 'Back to dashboard')}</button>
     </div>;
   }
 
@@ -439,12 +445,12 @@ export default function WorkerRepairJobPage() {
     try {
       await verifyCode({ id, kind: gateKind, code: otp }).unwrap();
       setOtp('');
-      toast.success('Code confirmed');
+      toast.success(t('sp.wrj.codeOk', 'Code confirmed'));
       refetch();
     } catch (err) {
       // The server's words — it knows whether this was wrong, expired, or
       // never issued, and each needs a different response from the technician.
-      toast.error(err?.data?.error || 'That code did not work');
+      toast.error(err?.data?.error || t('sp.wrj.codeBad', 'That code did not work'));
       setOtp('');
     }
   }
@@ -466,10 +472,10 @@ export default function WorkerRepairJobPage() {
   async function collect() {
     try {
       const res = await collectCash(id).unwrap();
-      toast.success(res.alreadyPaid ? 'Already recorded' : 'Payment recorded');
+      toast.success(res.alreadyPaid ? t('sp.wrj.already', 'Already recorded') : t('sp.wrj.payOk', 'Payment recorded'));
       refetch();
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not record the payment');
+      toast.error(err?.data?.error || t('sp.wrj.payFail', 'Could not record the payment'));
     }
   }
 
@@ -486,10 +492,10 @@ export default function WorkerRepairJobPage() {
   async function passBack(reason) {
     try {
       await declineJob({ id, reason }).unwrap();
-      toast.success('Sent back to your shop owner');
+      toast.success(t('sp.wrj.passOk', 'Sent back to your shop owner'));
       nav('/worker');
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not pass the job back');
+      toast.error(err?.data?.error || t('sp.wrj.passFail', 'Could not pass the job back'));
     }
   }
 
@@ -499,11 +505,11 @@ export default function WorkerRepairJobPage() {
       const keys = readyKeys(photos);
       if (keys.length) await attachPhotos({ id, photos: keys }).unwrap();
       await checkedIn(() => transition({ id, status: to }).unwrap());
-      if (to === 'COMPLETED') setJustDone(true); else toast.success('Updated');
+      if (to === 'COMPLETED') setJustDone(true); else toast.success(t('sp.wrj.updated', 'Updated'));
       refetch();
     } catch (err) {
       // Surface the server's real reason — e.g. QA still failing.
-      toast.error(err?.data?.error || 'Could not update this job');
+      toast.error(err?.data?.error || t('sp.wrj.cantUpdate', 'Could not update this job'));
     }
   }
 
@@ -516,21 +522,21 @@ export default function WorkerRepairJobPage() {
     return (
       <div className="min-h-screen bg-[#F9FAFB] pb-10">
         <header className="page-header"><div className="page-header-inner">
-          <button onClick={() => setCodeOpen(false)} className="back-btn" aria-label="See the job"><ArrowLeft size={18} strokeWidth={2.5} /></button>
+          <button onClick={() => setCodeOpen(false)} className="back-btn" aria-label={t('sp.wrj.seeJob', 'See the job')}><ArrowLeft size={18} strokeWidth={2.5} /></button>
           <div>
             <p className="t-label">{booking.reference}</p>
-            <p className="font-semibold text-ink-900">{gateKind === 'return' ? 'Hand it back' : 'Start the job'}</p>
+            <p className="font-semibold text-ink-900">{gateKind === 'return' ? t('sp.wrj.handBack', 'Hand it back') : t('sp.wrj.startJob', 'Start the job')}</p>
           </div>
         </div></header>
         <div className="mx-auto max-w-md space-y-4 px-4 pt-6">
           <div className="card">
             {gateKind === 'start' && <div className="mb-4"><WaitingMeter booking={booking} /></div>}
-            <OtpEntry value={otp} onChange={setOtp} length={codeLength} title={GATE_COPY[gateKind].title} hint={GATE_COPY[gateKind].hint} />
+            <OtpEntry value={otp} onChange={setOtp} length={codeLength} title={t(labelKey(GATE_COPY[gateKind].title), GATE_COPY[gateKind].title)} hint={t(labelKey(GATE_COPY[gateKind].hint), GATE_COPY[gateKind].hint)} />
             <button onClick={confirmCode} disabled={otp.length < codeLength || verifying} className="btn-primary mt-3 w-full disabled:opacity-50">
-              {verifying ? <><Loader2 size={15} className="animate-spin" /> Checking…</> : 'Confirm code'}
+              {verifying ? <><Loader2 size={15} className="animate-spin" /> {t('sp.wrj.checking', 'Checking…')}</> : t('sp.wrj.confirmCode', 'Confirm code')}
             </button>
           </div>
-          <button type="button" onClick={() => setCodeOpen(false)} className="mx-auto block text-[14px] font-semibold text-zappy-700 hover:underline">See the job details</button>
+          <button type="button" onClick={() => setCodeOpen(false)} className="mx-auto block text-[14px] font-semibold text-zappy-700 hover:underline">{t('sp.wrj.seeDetails', 'See the job details')}</button>
         </div>
       </div>
     );
@@ -545,7 +551,7 @@ export default function WorkerRepairJobPage() {
       <header className="page-header"><div className="page-header-inner">
         <button onClick={() => nav(isOwner ? '/shop' : '/worker')} className="back-btn"><ArrowLeft size={18} strokeWidth={2.5} /></button>
         <div>
-          <p className="t-label">Repair job</p>
+          <p className="t-label">{t('sp.wrj.repairJob', 'Repair job')}</p>
           <p className="font-semibold text-[#0F172A]">{booking.reference}</p>
         </div>
         <JobChatButton jobId={booking._id} className="ml-auto" />
@@ -554,20 +560,20 @@ export default function WorkerRepairJobPage() {
       <div className="max-w-lg lg:max-w-2xl mx-auto px-4 pt-4 space-y-3">
         {booking.returnOldParts && at('arrived', 'work') && (
           <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[13px] font-semibold text-amber-900">
-            The customer asked for the replaced part back. Hand it over before you finish.
+            {t('sp.wrj.partBack', 'The customer asked for the replaced part back. Hand it over before you finish.')}
           </p>
         )}
-        {at('arrived', 'work') && <p className="px-1 text-[11.5px] font-semibold text-slate-500">{PRIVACY_PLEDGE.partner}</p>}
+        {at('arrived', 'work') && <p className="px-1 text-[11.5px] font-semibold text-slate-500">{t(labelKey(PRIVACY_PLEDGE.partner), PRIVACY_PLEDGE.partner)}</p>}
         {at('arrived') && !ownerWatching && <WaitingMeter booking={booking} />}
         {onTrip && (!isOwner || ownerGoing) && <TripSharingBanner sharing={sharingLocation} {...tripOf('repair', booking)} />}
         {at('arrived', 'work') && <OnSiteCard onSite={booking.onSite} />}
         {at('arrived', 'work') && <ExtrasCard extras={booking.extras} />}
         {isOwner && (at('go') || booking.workerId) && (
           <div className="card">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Technician</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t('sp.wrj.technician', 'Technician')}</p>
             {!booking.workerId && (
               <p className="mt-1 text-[12px] text-slate-600">
-                You can go yourself: use the steps below and the customer follows you live. Or hand it to one of your technicians.
+                {t('sp.wrj.goSelf', 'You can go yourself: use the steps below and the customer follows you live. Or hand it to one of your technicians.')}
               </p>
             )}
             <AssignTechnician jobId={id} workerId={booking.workerId} onDone={refetch} startOpen={!booking.workerId} />
@@ -578,17 +584,17 @@ export default function WorkerRepairJobPage() {
           <JobMapCard to={pointOf(booking.location)} live={!isOwner || ownerGoing} />
         )}
         <div className="card">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Status</p>
-          <p className="font-bold text-[#0F172A] mt-1 capitalize">{stageLabel('repair', booking.status)}</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t('sp.wrj.status', 'Status')}</p>
+          <p className="font-bold text-[#0F172A] mt-1 capitalize">{t(labelKey(stageLabel('repair', booking.status)), stageLabel('repair', booking.status))}</p>
         </div>
         {finishing && !ownerWatching && (
           <div className="card">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">To finish</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{t('sp.wrj.toFinish', 'To finish')}</p>
             <ol className="space-y-1.5">
               {FINISH_STEPS.filter(([key]) => key !== 'photos' || words.flow?.photos !== false).map(([key, label], i) => (
                 <li key={key} className="flex items-center gap-2.5">
                   <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10.5px] font-black ${finishDone[key] ? 'bg-zappy-50 text-zappy-600' : 'bg-slate-100 text-slate-500'}`}>{finishDone[key] ? '✓' : i + 1}</span>
-                  <span className={`text-[13px] ${finishDone[key] ? 'text-slate-400' : 'font-bold text-[#0F172A]'}`}>{label}</span>
+                  <span className={`text-[13px] ${finishDone[key] ? 'text-slate-400' : 'font-bold text-[#0F172A]'}`}>{t('sp.wrj.step.' + key, label)}</span>
                 </li>
               ))}
             </ol>
@@ -598,9 +604,9 @@ export default function WorkerRepairJobPage() {
           <div className="card bg-amber-50 ring-amber-200 flex items-start gap-2.5">
             <FileText size={16} className="text-amber-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-sm text-amber-900">Waiting for customer approval</p>
+              <p className="font-bold text-sm text-amber-900">{t('sp.wrj.waitApp', 'Waiting for customer approval')}</p>
               <p className="text-xs text-amber-700 mt-0.5">
-                Do not start work until they approve the quote.
+                {t('sp.wrj.dontStart', 'Do not start work until they approve the quote.')}
               </p>
             </div>
           </div>
@@ -613,8 +619,8 @@ export default function WorkerRepairJobPage() {
               photos={photos}
               onChange={setPhotos}
               folder="order-proof"
-              title={`Photos of the finished ${words.job}`}
-              hint="The customer sees these. They are also your evidence if the work is questioned later."
+              title={t('sp.wrj.photosOf', 'Photos of the finished {job}').replace('{job}', t(labelKey(words.job), words.job))}
+              hint={t('sp.wrj.photosHint', 'The customer sees these. They are also your evidence if the work is questioned later.')}
             />
           </div>
         )}
@@ -623,14 +629,14 @@ export default function WorkerRepairJobPage() {
             paid={booking.paymentStatus === 'paid'} collecting={collecting} onCollect={collect} jobId={booking._id} claim={booking.payClaim} />
         )}
         {codeDue && (
-          <button type="button" onClick={() => setCodeOpen(true)} className="btn-primary w-full">Enter the customer's code</button>
+          <button type="button" onClick={() => setCodeOpen(true)} className="btn-primary w-full">{t('sp.wrj.enterCode', 'Enter the customer\'s code')}</button>
         )}
         {/* The next step stays pinned to the bottom while the pro scrolls; finishing is a slide, every other step a button. */}
         {!ownerWatching && action && (
         <div className="sticky bottom-0 z-10 -mx-4 space-y-2 border-t border-slate-100 bg-white/95 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur">
-        {mustBePaid && <p className="text-center text-[12px] font-semibold text-amber-700">Get paid first, then complete.</p>}
+        {mustBePaid && <p className="text-center text-[12px] font-semibold text-amber-700">{t('sp.wrj.payFirst', 'Get paid first, then complete.')}</p>}
         {action.to === 'COMPLETED' ? (
-          <SwipeToConfirm label={action.label} onConfirm={() => move(action.to)} loading={moving}
+          <SwipeToConfirm label={t(labelKey(action.label), action.label)} onConfirm={() => move(action.to)} loading={moving}
             disabled={(gateKind && !gatePassed) || photosBlocked || mustBePaid} />
         ) : (
           <button
@@ -638,7 +644,7 @@ export default function WorkerRepairJobPage() {
             disabled={moving || (gateKind && !gatePassed) || tooFarToArrive || photosBlocked || mustBePaid}
             className="btn-primary w-full disabled:opacity-40"
           >
-            {moving ? <><Loader2 size={15} className="animate-spin" /> Updating…</> : action.label}
+            {moving ? <><Loader2 size={15} className="animate-spin" /> {t('sp.wrj.updating', 'Updating…')}</> : t(labelKey(action.label), action.label)}
           </button>
         )}
         </div>
@@ -662,22 +668,22 @@ export default function WorkerRepairJobPage() {
             */
             <button onClick={() => setShowQuote('additional')}
               className="w-full flex items-center justify-center gap-2 bg-white ring-1 ring-amber-300 text-amber-700 font-bold text-sm py-3 rounded-xl">
-              <AlertTriangle size={15} /> I've found another problem
+              <AlertTriangle size={15} /> {t('sp.wrj.foundMore', 'I\'ve found another problem')}
             </button>
           ) : (
             <button onClick={() => setShowQuote(true)}
               className="w-full flex items-center justify-center gap-2 bg-white ring-1 ring-zappy-200 text-zappy-700 font-bold text-sm py-3 rounded-xl">
-              <FileText size={15} /> Raise a quote
+              <FileText size={15} /> {t('sp.wrj.raise', 'Raise a quote')}
             </button>
           )
         )}
         {ownerWatching && action && (
-          <p className="card text-center text-sm text-slate-500">Your technician takes the next step from their app: {action.label.toLowerCase()}.</p>
+          <p className="card text-center text-sm text-slate-500">{t('sp.wrj.techNext', 'Your technician takes the next step from their app: {n}.').replace('{n}', t(labelKey(action.label), action.label).toLowerCase())}</p>
         )}
         {booking.status === 'COMPLETED' && <JobEarningsCard jobId={booking._id} />}
         {booking.status === 'COMPLETED' && <RateCustomerCard jobId={booking._id} rated={!!booking.customerRating?.stars} />}
         <div className="card space-y-2.5">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Job</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t('sp.wrj.job', 'Job')}</p>
           {[
             // A packaged service (a dance class) is one line: what was booked. Repairs keep device, problem and repair.
             ...(termsOf(booking.vertical, verticals?.items).packaged ? [[capWord(termsOf(booking.vertical, verticals?.items).job), booking.repairName || booking.repairCode?.replace(/_/g, ' ') || '-']] : [
@@ -701,28 +707,28 @@ export default function WorkerRepairJobPage() {
             ['Address', booking.location?.address],
           ].map(([k, v]) => (
             <div key={k} className="flex items-start justify-between gap-3">
-              <span className="text-xs text-slate-500">{k}</span>
-              <span className="text-sm font-semibold text-[#0F172A] text-right capitalize">{v || '-'}</span>
+              <span className="text-xs text-slate-500">{t(labelKey(k), k)}</span>
+              <span className="text-sm font-semibold text-[#0F172A] text-right capitalize">{v ? t(labelKey(v), v) : '-'}</span>
             </div>
           ))}
         </div>
         {(transcript.length > 0 || (booking.diagnosisSummary && !repairDirect(words))) && (
           <div className="card">
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
-              What the customer told us
+              {t('sp.wrj.told', 'What the customer told us')}
             </p>
 
             {transcript.length > 0 ? (
               <ol className="space-y-2">
-                {transcript.map((t, i) => (
-                  <li key={t.questionId || i} className="flex gap-2.5">
+                {transcript.map((tr, i) => (
+                  <li key={tr.questionId || i} className="flex gap-2.5">
                     <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10.5px] font-black text-slate-500">
                       {i + 1}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[11.5px] leading-snug text-slate-500">{t.question}</span>
+                      <span className="block text-[11.5px] leading-snug text-slate-500">{tr.question}</span>
                       <span className="mt-0.5 block text-[13px] font-bold leading-snug text-[#0F172A]">
-                        {t.answer}
+                        {tr.answer}
                       </span>
                     </span>
                   </li>
@@ -730,7 +736,7 @@ export default function WorkerRepairJobPage() {
               </ol>
             ) : (
               <p className="text-[11.5px] leading-relaxed text-amber-600">
-                The step-by-step answers were not recorded for this booking.
+                {t('sp.wrj.notRec', 'The step-by-step answers were not recorded for this booking.')}
               </p>
             )}
 
@@ -744,17 +750,17 @@ export default function WorkerRepairJobPage() {
         {!(readyForPayment && (snap.totalPaise || 0) > 0) && (
         <div className="card">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-[#0F172A]">{snap.isEstimate ? 'Estimate' : 'Agreed price'}</span>
+            <span className="text-sm font-bold text-[#0F172A]">{snap.isEstimate ? t('sp.wrj.estimate', 'Estimate') : t('sp.wrj.agreed', 'Agreed price')}</span>
             <span className="text-xl font-black text-[#0F172A]">{rupees(snap.totalPaise)}</span>
           </div>
         </div>
         )}
         {quotes.length > 0 && (
           <div className="card">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Quotes raised</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">{t('sp.wrj.quotes', 'Quotes raised')}</p>
             {quotes.map((q) => (
               <div key={q._id} className="flex items-center justify-between text-xs py-1">
-                <span className="text-slate-500">r{q.revision}, {q.status.replace(/_/g, ' ')}</span>
+                <span className="text-slate-500">r{q.revision}, {t(labelKey(q.status.replace(/_/g, ' ')), q.status.replace(/_/g, ' '))}</span>
                 <span className="font-semibold text-[#0F172A]">{rupees(q.totalPaise)}</span>
               </div>
             ))}
@@ -765,14 +771,14 @@ export default function WorkerRepairJobPage() {
           <div className="card">
             {askingPassReason ? (
               <PassReasonPicker
-                title="Why are you passing this back to your shop?"
+                title={t('sp.wrj.whyPass', 'Why are you passing this back to your shop?')}
                 busy={passing}
                 onPick={passBack}
                 onCancel={() => setAskingPassReason(false)}
               />
             ) : (
               <button onClick={() => setAskingPassReason(true)} className="w-full text-sm font-semibold text-slate-500 hover:text-slate-700">
-                Can't do this job? Pass it back to your shop
+                {t('sp.wrj.passBack', 'Can\'t do this job? Pass it back to your shop')}
               </button>
             )}
           </div>
@@ -781,7 +787,7 @@ export default function WorkerRepairJobPage() {
         {/* Safety: on every live job, one hold away. */}
         {!ownerWatching && !REPAIR_NO_SOS.includes(booking.status) && (
           <div className="space-y-1.5 pt-2">
-            <p className="text-[12px] font-semibold text-slate-500">Feeling unsafe or need urgent help?</p>
+            <p className="text-[12px] font-semibold text-slate-500">{t('sp.wrj.unsafe', 'Feeling unsafe or need urgent help?')}</p>
             <SOSButton jobId={booking._id} kind="repair" service={booking.vertical} />
           </div>
         )}

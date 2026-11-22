@@ -50,11 +50,11 @@ import { useI18n } from '@shared/i18n/I18nProvider';
  */
 
 const KYC_META = {
-  not_submitted: { label: 'We are checking your documents', tone: 'bg-slate-100 text-slate-600', Icon: AlertTriangle },
-  pending_review: { label: 'Under review', tone: 'bg-amber-50 text-amber-700', Icon: Clock },
-  approved: { label: 'Verified', tone: 'bg-emerald-50 text-emerald-700', Icon: ShieldCheck },
-  rejected: { label: 'Documents not approved', tone: 'bg-red-50 text-red-700', Icon: XCircle },
-  suspended: { label: 'Paused by ZappyOne', tone: 'bg-red-50 text-red-700', Icon: XCircle },
+  not_submitted: { tk: 'sp.dash.kChecking', label: 'We are checking your documents', tone: 'bg-slate-100 text-slate-600', Icon: AlertTriangle },
+  pending_review: { tk: 'sp.dash.kReview', label: 'Under review', tone: 'bg-amber-50 text-amber-700', Icon: Clock },
+  approved: { tk: 'sp.dash.kVerified', label: 'Verified', tone: 'bg-emerald-50 text-emerald-700', Icon: ShieldCheck },
+  rejected: { tk: 'sp.dash.kRejected', label: 'Documents not approved', tone: 'bg-red-50 text-red-700', Icon: XCircle },
+  suspended: { tk: 'sp.dash.kSusp', label: 'Paused by ZappyOne', tone: 'bg-red-50 text-red-700', Icon: XCircle },
 };
 
 /** Every kind of work a shop can be booked for. */
@@ -133,7 +133,7 @@ function TeamPanel({ workers, jobs, onManage }) {
 
 export default function ShopDashboard() {
   const nav = useNavigate();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   // Customers near the shop asking for its price (repair/services/price-request).
   const { data: priceReqs } = useShopPriceRequestsQuery(undefined, { pollingInterval: 300000 });
   const askingNow = (priceReqs?.requests || []).filter((r) => !r.myOffer).length;
@@ -188,7 +188,7 @@ export default function ShopDashboard() {
 
   if (isLoading) {
     return (
-      <PageSkeleton kind="dashboard" label="Loading your shop" />
+      <PageSkeleton kind="dashboard" label={t('sp.dash.loadingShop', 'Loading your shop')} />
     );
   }
 
@@ -203,26 +203,26 @@ export default function ShopDashboard() {
   const week = last7(weekEarnings?.dailyBreakdown);
   const deltaPct = weekDeltaPct(weekEarnings?.dailyBreakdown);
   const chartPoints = week.map((d) => ({
-    label: new Date(`${d.date}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'short' }),
+    label: new Date(`${d.date}T00:00:00`).toLocaleDateString(`${lang}-IN`, { weekday: 'short' }),
     value: Math.round(d.earningsPaise / 100),
   }));
   const thisWeekPaise = week.reduce((s, d) => s + d.earningsPaise, 0);
   const weekRs = Math.round(thisWeekPaise / 100);
 
   const perfItems = [
-    { label: 'Jobs This Week', value: weekEarnings?.jobs ?? 0, sub: `${earnings?.jobs ?? 0} today` },
-    { label: 'Technicians', value: workers.length, sub: 'On your team' },
-    { label: 'Rating', value: shop?.rating ? Number(shop.rating).toFixed(1) : '-', sub: `${shop?.reviewCount || 0} reviews` },
-    { label: 'Completed', value: shop?.completedJobs ?? 0, sub: 'All time' },
+    { label: t('sp.dash.jobsWeek', 'Jobs This Week'), value: weekEarnings?.jobs ?? 0, sub: t('sp.dash.nToday', '{n} today').replace('{n}', earnings?.jobs ?? 0) },
+    { label: t('sp.dash.technicians', 'Technicians'), value: workers.length, sub: t('sp.dash.onTeam', 'On your team') },
+    { label: t('sp.dash.rating', 'Rating'), value: shop?.rating ? Number(shop.rating).toFixed(1) : '-', sub: t('sp.dash.nReviews', '{n} reviews').replace('{n}', shop?.reviewCount || 0) },
+    { label: t('sp.dash.completed', 'Completed'), value: shop?.completedJobs ?? 0, sub: t('sp.dash.allTime', 'All time') },
   ];
 
   const statCards = [
-    { Icon: IndianRupee, tone: 'green', label: "Today's Earnings", value: inr(earnings?.earningsRupees || 0), sub: 'View details', onClick: () => nav('/shop/earnings') },
-    { Icon: Briefcase, tone: 'amber', label: "Today's Jobs", value: earnings?.jobs || 0, sub: 'View all', onClick: () => nav('/shop/earnings') },
-    { Icon: Wrench, tone: 'blue', label: 'Do this now', value: needsAction.length, sub: needsAction.length ? 'Give to a worker' : null, subTone: 'text-zappy-600' },
-    { Icon: Users, tone: 'violet', label: 'Technicians', value: workers.length, sub: 'Your team', onClick: () => nav('/shop/workers') },
-    { Icon: Star, tone: 'cyan', label: 'Rating', value: shop?.rating ? Number(shop.rating).toFixed(1) : '-', sub: `${shop?.reviewCount || 0} reviews`, onClick: () => nav('/shop/reviews') },
-    { Icon: ShieldCheck, tone: 'rose', label: 'Waiting for approval', value: pendingApprovals, sub: pendingApprovals ? 'Skills & prices' : null },
+    { Icon: IndianRupee, tone: 'green', label: t('sp.dash.todayEarn', "Today's Earnings"), value: inr(earnings?.earningsRupees || 0), sub: t('sp.dash.viewDetails', 'View details'), onClick: () => nav('/shop/earnings') },
+    { Icon: Briefcase, tone: 'amber', label: t('sp.dash.todayJobs', "Today's Jobs"), value: earnings?.jobs || 0, sub: t('sp.dash.viewAll', 'View all'), onClick: () => nav('/shop/earnings') },
+    { Icon: Wrench, tone: 'blue', label: t('sp.dash.doNow', 'Do this now'), value: needsAction.length, sub: needsAction.length ? t('sp.dash.giveWorker', 'Give to a worker') : null, subTone: 'text-zappy-600' },
+    { Icon: Users, tone: 'violet', label: t('sp.dash.technicians', 'Technicians'), value: workers.length, sub: t('sp.dash.yourTeam', 'Your team'), onClick: () => nav('/shop/workers') },
+    { Icon: Star, tone: 'cyan', label: t('sp.dash.rating', 'Rating'), value: shop?.rating ? Number(shop.rating).toFixed(1) : '-', sub: t('sp.dash.nReviews', '{n} reviews').replace('{n}', shop?.reviewCount || 0), onClick: () => nav('/shop/reviews') },
+    { Icon: ShieldCheck, tone: 'rose', label: t('sp.dash.waitApproval', 'Waiting for approval'), value: pendingApprovals, sub: pendingApprovals ? t('sp.dash.skillsPrices', 'Skills & prices') : null },
   ];
 
   return (
@@ -230,7 +230,7 @@ export default function ShopDashboard() {
       {/* Navigation and sign-out live in the frame (ServiceProShell); this is the shop's day. */}
       <div className="mx-auto max-w-6xl px-4 pt-5">
         <ShopHeader shop={shop} trade={workspace?.domains?.[0]?.name} live={liveNow} isOpen={isOpen}
-          blocker={shop?.bookable?.reason || (kycStatus !== 'approved' ? 'Documents not approved yet' : !hasPin ? 'Pin your shop address' : !shop?.services?.length ? 'Add a service' : null)} />
+          blocker={shop?.bookable?.reason || (kycStatus !== 'approved' ? t('sp.dash.docsNotYet', 'Documents not approved yet') : !hasPin ? t('sp.dash.pinAddr', 'Pin your shop address') : !shop?.services?.length ? t('sp.dash.addService', 'Add a service') : null)} />
       </div>
 
       <div className="mx-auto max-w-6xl px-4 pt-4">
@@ -242,11 +242,11 @@ export default function ShopDashboard() {
             className="mb-4 flex w-full items-center justify-between gap-3 rounded-2xl border border-zappy-200 bg-zappy-50 p-4 text-left">
             <span>
               <span className="block text-[14px] font-black text-[#0F172A]">
-                {askingNow} {askingNow === 1 ? 'customer is' : 'customers are'} asking for your price
+                {askingNow === 1 ? t('sp.dash.askOne', '1 customer is asking for your price') : t('sp.dash.askN', '{n} customers are asking for your price').replace('{n}', askingNow)}
               </span>
-              <span className="block text-[12.5px] text-slate-600">Reply with your price to win the job.</span>
+              <span className="block text-[12.5px] text-slate-600">{t('sp.dash.replyWin', 'Reply with your price to win the job.')}</span>
             </span>
-            <span className="shrink-0 rounded-xl bg-zappy-600 px-3 py-2 text-xs font-bold text-white">Reply</span>
+            <span className="shrink-0 rounded-xl bg-zappy-600 px-3 py-2 text-xs font-bold text-white">{t('sp.dash.reply', 'Reply')}</span>
           </button>
         )}
 
@@ -269,8 +269,8 @@ export default function ShopDashboard() {
                   {kycStatus === 'approved'
                     ? t('sp.dash.approvedBody', 'Your documents are approved. Finish your profile so customers can find you.')
                     : kycStatus === 'pending_review' || verificationInFlight
-                      ? "We'll notify you within 24 hours."
-                      : 'Send your documents to start getting bookings.'}
+                      ? t('sp.dash.notify24', "We'll notify you within 24 hours.")
+                      : t('sp.dash.sendDocs', 'Send your documents to start getting bookings.')}
                 </p>
 
                 {/* What exactly is missing — a checklist beats "complete your profile". */}

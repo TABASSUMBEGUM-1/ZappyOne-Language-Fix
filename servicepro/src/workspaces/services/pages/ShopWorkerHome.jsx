@@ -46,8 +46,8 @@ export default function ShopWorkerHome() {
   // Location is shared app-wide while on duty (provider/OnlineLocation), not only on this page.
 
   async function toggleDuty() {
-    if (kycWaiting) { toast('Your ID is being checked - you can go on duty once it is approved'); return; }
-    if (!kycApproved) { toast.error('Verify your ID first - Aadhaar and a selfie, about 2 minutes'); nav('/worker/kyc'); return; }
+    if (kycWaiting) { toast(t('sp.wh.idChecking', 'Your ID is being checked - you can go on duty once it is approved')); return; }
+    if (!kycApproved) { toast.error(t('sp.wh.verifyFirst', 'Verify your ID first - Aadhaar and a selfie, about 2 minutes')); nav('/worker/kyc'); return; }
     setToggling(true);
     try {
       if (onDuty) {
@@ -57,7 +57,7 @@ export default function ShopWorkerHome() {
         const pos = await getCurrent();
         // The server refuses a location worse than 500 m (worker.service LOCATION_MAX_M).
         await goOnline({ lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy ?? null }).unwrap();
-        toast.success('You are on duty');
+        toast.success(t('sp.wh.nowOn', 'You are on duty'));
       }
       refetchMe();
     } catch (err) {
@@ -77,8 +77,8 @@ export default function ShopWorkerHome() {
             <Store size={20} className="text-zappy-600" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-base font-black text-navy">{me?.name || 'Technician'}</p>
-            <p className="truncate text-xs text-slate-500">{shop ? `Working for ${shop.name}` : 'Loading your shop…'}</p>
+            <p className="truncate text-base font-black text-navy">{me?.name || t('sp.wh.tech', 'Technician')}</p>
+            <p className="truncate text-xs text-slate-500">{shop ? t('sp.wh.workingFor', 'Working for {name}').replace('{name}', shop.name) : t('sp.wh.loadingShop', 'Loading your shop…')}</p>
             {onDuty && <MyAreaChip coordinates={me?.currentLocation?.coordinates} live className="mt-1" />}
           </div>
           {shop?.phone && (
@@ -112,7 +112,7 @@ export default function ShopWorkerHome() {
         )}
         {!kycApproved && !kycWaiting && (
           <button onClick={() => nav('/worker/kyc')} className="flex w-full items-center gap-2 rounded-2xl bg-amber-50 p-3 text-left text-xs font-semibold text-amber-800 ring-1 ring-amber-200">
-            <ShieldCheck size={15} /> Show your ID to start work - Aadhaar and a selfie, about 2 minutes <ChevronRight size={14} className="ml-auto" />
+            <ShieldCheck size={15} /> {t('sp.wh.showId', 'Show your ID to start work - Aadhaar and a selfie, about 2 minutes')} <ChevronRight size={14} className="ml-auto" />
           </button>
         )}
 
@@ -121,7 +121,7 @@ export default function ShopWorkerHome() {
             <div key={title} className="rounded-2xl bg-white p-4 ring-1 ring-slate-100">
               <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400">{title}</p>
               <p className="mt-1 text-2xl font-black tabular-nums text-navy">{stat?.jobs ?? '–'}</p>
-              <p className="text-xs text-slate-500">{t('sp.jobsDone', 'jobs done')}, <span className="tabular-nums">{stat ? formatPaise(stat.valuePaise) : '–'}</span></p>
+              <p className="text-xs text-slate-500">{t('sp.wh.jobsDone', 'jobs done')}, <span className="tabular-nums">{stat ? formatPaise(stat.valuePaise) : '–'}</span></p>
             </div>
           ))}
         </section>
@@ -157,7 +157,7 @@ export default function ShopWorkerHome() {
 
         {visits.length > 0 && (
           <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-100">
-            <p className="flex items-center gap-2 text-sm font-black text-navy"><Repeat size={15} className="text-zappy-600" /> Plan visits this week</p>
+            <p className="flex items-center gap-2 text-sm font-black text-navy"><Repeat size={15} className="text-zappy-600" /> {t('sp.wh.planVisits', 'Plan visits this week')}</p>
             <ul className="mt-3 space-y-2">{visits.map((v) => <VisitRow key={v._id} v={v} sos />)}</ul>
           </section>
         )}

@@ -6,10 +6,16 @@ import { selectAuth } from '../../modules/auth/authSlice';
 import { API_BASE } from '../../services/apiBase';
 import { fetchOk } from '../../utils/fetchOk';
 import { statementMonths } from '../statementMonths';
+import { useI18n, useServiceProT } from '../../i18n/I18nProvider';
 
 // A month's statement (earnings, commission, dues paid, payouts) as a CSV for the partner's accounts (server shop/shop-statement).
 export default function StatementDownload() {
-  const months = statementMonths(12);
+  const t = useServiceProT();
+  const { lang } = useI18n();
+  const months = statementMonths(12).map((m) => {
+    const [y, mo] = m.key.split('-').map(Number);
+    return { ...m, label: new Date(y, mo - 1, 1).toLocaleDateString(`${lang}-IN`, { month: 'long', year: 'numeric' }) };
+  });
   const [month, setMonth] = useState(months[0]?.key || '');
   const [busy, setBusy] = useState(false);
   const { accessToken } = useSelector(selectAuth);
@@ -21,21 +27,21 @@ export default function StatementDownload() {
       const a = document.createElement('a');
       a.href = url; a.download = `zappyone-statement-${month}.csv`; a.click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
-    } catch { toast.error('Could not download the statement. Try again.'); }
+    } catch { toast.error(t('sp.could_not_download_the_statement_try_again', 'Could not download the statement. Try again.')); }
     setBusy(false);
   }
   return (
     <div className="card grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
       <div className="min-w-0">
-        <p className="text-sm font-bold text-slate-900">Monthly statement</p>
-        <p className="text-[12px] text-slate-500">What you earned, fees, what you owe and money sent to you, for your accounts and GST.</p>
+        <p className="text-sm font-bold text-slate-900">{t('sp.monthly_statement', 'Monthly statement')}</p>
+        <p className="text-[12px] text-slate-500">{t('sp.what_you_earned_fees_what_you_owe_and_money_sent_to_you_for_your_accounts_and_gst', 'What you earned, fees, what you owe and money sent to you, for your accounts and GST.')}</p>
       </div>
       <div className="flex min-w-0 gap-2">
-        <select value={month} onChange={(e) => setMonth(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm sm:flex-none" aria-label="Month">
+        <select value={month} onChange={(e) => setMonth(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm sm:flex-none" aria-label={t('sp.month', 'Month')}>
           {months.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
         </select>
         <button type="button" onClick={download} disabled={busy} className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-zappy-600 px-3.5 py-2 text-sm font-bold text-white disabled:opacity-50">
-          {busy ? <Loader2 size={15} className="animate-spin" /> : <FileDown size={15} />} Download
+          {busy ? <Loader2 size={15} className="animate-spin" /> : <FileDown size={15} />} {t('sp.download', 'Download')}
         </button>
       </div>
     </div>

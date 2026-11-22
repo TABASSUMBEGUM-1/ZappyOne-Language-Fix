@@ -106,13 +106,14 @@ export function Avatar({ url, initials, size = 40, ring = true }) {
    Single control: the pill shows the current state AND flips it. (A second
    "Go Online" button here was redundant — same onToggle — so it was removed.) */
 export function OnlineControl({ isOnline, busy, onToggle }) {
+  const t = useServiceProT();
   return (
     <button
       type="button"
       onClick={onToggle}
       disabled={busy}
       aria-pressed={isOnline}
-      aria-label={isOnline ? 'Go offline' : 'Go online'}
+      aria-label={isOnline ? t('sp.wui.goOffline', 'Go offline') : t('sp.wui.goOnline', 'Go online')}
       className={`flex items-center gap-2 rounded-full border px-3.5 py-2 shadow-sm transition-colors disabled:opacity-60 ${
         isOnline
           ? 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100'
@@ -123,7 +124,7 @@ export function OnlineControl({ isOnline, busy, onToggle }) {
         ? <Loader2 size={15} className="animate-spin text-slate-500" />
         : <Radio size={15} strokeWidth={2.6} className={isOnline ? 'text-emerald-600' : 'text-slate-400'} />}
       <span className={`text-[13px] font-bold ${isOnline ? 'text-emerald-600' : 'text-slate-600'}`}>
-        {isOnline ? 'Online' : 'Go Online'}
+        {isOnline ? t('sp.wui.online', 'Online') : t('sp.wui.goOnlineBtn', 'Go Online')}
       </span>
       <span
         className={`relative h-5 w-9 rounded-full transition-colors ${
@@ -164,7 +165,7 @@ export const WorkerSidebar = memo(function WorkerSidebar({
               type="button"
               onClick={() => onNavigate(item)}
               aria-current={active ? 'page' : undefined}
-              title={item.locked ? 'Opens when your profile is complete' : undefined}
+              title={item.locked ? t('sp.wui.lockedTip', 'Opens when your profile is complete') : undefined}
               className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-semibold transition-colors ${
                 active
                   ? 'bg-zappy-600 text-white shadow-sm'
@@ -173,7 +174,7 @@ export const WorkerSidebar = memo(function WorkerSidebar({
             >
               <item.Icon size={18} strokeWidth={2.2} />
               <span className="flex-1 text-left">{t(labelKey(item.label), item.label)}</span>
-              {item.locked && !active && <Lock size={14} className="shrink-0 text-slate-300" aria-label="Locked" />}
+              {item.locked && !active && <Lock size={14} className="shrink-0 text-slate-300" aria-label={t('sp.wui.locked', 'Locked')} />}
               {(item.key === 'notifications' || item.key === 'alerts') && unread > 0 && (
                 <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${active ? 'bg-white/25 text-white' : 'bg-zappy-600 text-white'}`}>
                   {unread > 99 ? '99+' : unread}
@@ -186,13 +187,13 @@ export const WorkerSidebar = memo(function WorkerSidebar({
 
       {onGoOnline && !isOnline && (
         <div className="m-3 rounded-2xl bg-zappy-50 p-4">
-          <p className="text-[12.5px] font-semibold text-navy-900">Go online to get more jobs</p>
+          <p className="text-[12.5px] font-semibold text-navy-900">{t('sp.wui.moreJobs', 'Go online to get more jobs')}</p>
           <button
             type="button"
             onClick={onGoOnline}
             className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl bg-zappy-600 px-4 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-zappy-700 active:scale-95"
           >
-            <Radio size={15} strokeWidth={2.6} /> Go Online
+            <Radio size={15} strokeWidth={2.6} /> {t('sp.wui.goOnlineBtn', 'Go Online')}
           </button>
         </div>
       )}
@@ -236,7 +237,7 @@ export function WorkerBottomNav({ activeKey, onNavigate, items = BOTTOM_NAV }) {
               key={item.key}
               type="button"
               onClick={() => onNavigate(item)}
-              aria-label={item.label}
+              aria-label={t(labelKey(item.label), item.label)}
               aria-current={active ? 'page' : undefined}
               className="flex min-w-0 flex-1 flex-col items-center gap-1 py-2.5"
             >
@@ -246,7 +247,7 @@ export function WorkerBottomNav({ activeKey, onNavigate, items = BOTTOM_NAV }) {
                   strokeWidth={active ? 2.6 : 2}
                   className={active ? 'text-zappy-600' : item.locked ? 'text-slate-300' : 'text-slate-400'}
                 />
-                {item.locked && !active && <Lock size={10} strokeWidth={3} className="absolute -right-1.5 -top-1 rounded-full bg-white text-slate-400" aria-label="Locked" />}
+                {item.locked && !active && <Lock size={10} strokeWidth={3} className="absolute -right-1.5 -top-1 rounded-full bg-white text-slate-400" aria-label={t('sp.wui.locked', 'Locked')} />}
               </span>
               {/* One line, one word: "Services & prices" reads "Services" here and in full in the menu. */}
               <span className={`max-w-full truncate whitespace-nowrap px-0.5 text-[10.5px] font-bold ${active ? 'text-zappy-600' : 'text-slate-400'}`}>
@@ -262,15 +263,16 @@ export function WorkerBottomNav({ activeKey, onNavigate, items = BOTTOM_NAV }) {
 
 /* Greeting / hero card */
 export function GreetingCard({ name, locationLabel, isOnline, busy, disabled, onToggle }) {
+  const t = useServiceProT();
   return (
     <section className="rounded-2xl border border-slate-200 bg-zappy-50/60 p-4 sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-[22px] font-black tracking-tight text-navy-900 sm:text-[26px]">
-            Hello, {name}
+            {t('sp.wui.hello', 'Hello, {n}').replace('{n}', name)}
           </h1>
           <p className="mt-0.5 text-[13px] font-medium text-slate-500">
-            {isOnline ? 'You’re online - new jobs will ring in.' : 'Go online to get more jobs'}
+            {isOnline ? t('sp.wui.nowOn', 'You’re online - new jobs will ring in.') : t('sp.wui.moreJobs', 'Go online to get more jobs')}
           </p>
           {locationLabel && (
             <p className="mt-1 flex items-center gap-1 text-[12.5px] font-semibold text-slate-600">
@@ -340,6 +342,7 @@ export function EmptyState({ Icon = Search, title, sub, action }) {
 
 /* Earnings line chart (SVG, no dependency) */
 export function EarningsChart({ points }) {
+  const t = useServiceProT();
   // `points` = [{ label, value }] for the last 7 days. Pure SVG so there's no
   // charting library to ship; the shape mirrors the reference exactly.
   const W = 320;
@@ -360,7 +363,7 @@ export function EarningsChart({ points }) {
   const ticks = [0, niceMax / 2, niceMax];
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Weekly earnings">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={t('sp.wui.weekly', 'Weekly earnings')}>
       {ticks.map((t, i) => (
         <g key={i}>
           <line x1={padL} x2={W - padR} y1={y(t)} y2={y(t)} stroke="#E2E8F0" strokeWidth="1" />

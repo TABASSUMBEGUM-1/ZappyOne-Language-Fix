@@ -6,8 +6,12 @@ import PassReasonPicker from '../worker/PassReasonPicker';
 import DistanceStrip from './DistanceStrip';
 import { startRinging } from '../../utils/alertSound';
 import { formatPaise } from '../../utils/money';
-import { offerClock as clock, DEFAULT_WINDOW_SEC, customerRecordLine, canOfferLater, laterChoicesOf } from './jobOffers';
+import { offerClock as clock, DEFAULT_WINDOW_SEC, canOfferLater, laterChoicesOf } from './jobOffers';
 import { STAFF_PORTAL } from '../../provider/staffPortal';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
+
+const fill = (s, o) => Object.keys(o).reduce((a, k) => a.split(`{${k}}`).join(o[k]), s);
 
 /**
  * A job has arrived — the provider is rung, not nudged. Every kind uses this.
@@ -31,6 +35,7 @@ import { STAFF_PORTAL } from '../../provider/staffPortal';
  */
 
 export default function JobOfferAlert({ offer, myLocation, onAccept, onDecline, onClose, declineTitle, more = 0, onOfferLater }) {
+  const t = useServiceProT();
   const [busy, setBusy] = useState(null); // 'accept' | 'decline'
   const [askingReason, setAskingReason] = useState(false);
   const [offeringTime, setOfferingTime] = useState(false);
@@ -44,19 +49,21 @@ export default function JobOfferAlert({ offer, myLocation, onAccept, onDecline, 
 
   // Ring for as long as it is on screen, and stop the moment it leaves —
   // a ringtone that outlives its alert is how an app gets uninstalled.
+  const ringTitle = offer?.heading ? t(labelKey(offer.heading), offer.heading) : t('sp.new_job_for_you', 'New job for you');
+  const ringBody = offer?.title ? t(labelKey(offer.title), offer.title) : t('sp.open_zappyone_to_accept', 'Open ZappyOne to accept');
   useEffect(() => {
     if (!offer) return undefined;
-    return startRinging({ title: offer.heading || 'New job for you', body: offer.title || 'Open ZappyOne to accept' });
-  }, [offer]);
+    return startRinging({ title: ringTitle, body: ringBody });
+  }, [offer, ringTitle, ringBody]);
 
   useEffect(() => {
     if (!offer) return undefined;
-    const t = setInterval(() => {
+    const timer = setInterval(() => {
       const remaining = Math.max(0, Math.round((expiry - Date.now()) / 1000));
       setLeft(remaining);
       if (remaining === 0) onClose?.('expired');
     }, 1000);
-    return () => clearInterval(t);
+    return () => clearInterval(timer);
   }, [offer, expiry, onClose]);
 
   if (!offer) return null;
@@ -67,6 +74,12 @@ export default function JobOfferAlert({ offer, myLocation, onAccept, onDecline, 
   const pct = Math.max(0, Math.min(100, (left / windowSec) * 100));
   const urgent = left <= windowSec / 5;
   const boost = offer.boostPaise > 0 ? offer.boostPaise : 0;
+  const tr = (s) => (s ? t(labelKey(s), s) : s);
+  const times = (n, one, many) => fill(n === 1 ? one : many, { n });
+  const record = [];
+  if (offer.customer?.missedVisits) record.push(times(offer.customer.missedVisits, t('sp.not_home_n_time', 'not home {n} time'), t('sp.not_home_n_times', 'not home {n} times')));
+  if (offer.customer?.cashRefused) record.push(times(offer.customer.cashRefused, t('sp.did_not_pay_n_time', 'did not pay {n} time'), t('sp.did_not_pay_n_times', 'did not pay {n} times')));
+  const recordLine = record.length ? fill(t('sp.before_list', 'Before: {list}'), { list: record.join(', ') }) : null;
 
   function openDirections() {
     const [lng, lat] = offer.coordinates || [];
@@ -95,7 +108,7 @@ export default function JobOfferAlert({ offer, myLocation, onAccept, onDecline, 
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         role="alertdialog"
-        aria-label={offer.heading}
+        aria-label={tr(offer.heading)}
       >
         <motion.div
           className="w-full overflow-hidden rounded-card bg-white shadow-2xl sm:max-w-md"
@@ -126,18 +139,18 @@ export default function JobOfferAlert({ offer, myLocation, onAccept, onDecline, 
                 transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 1.2, ease: 'easeInOut' }}
               />
               <p className="relative flex items-center gap-2 text-[13px] font-extrabold">
-                <TrendingUp size={16} /> Customer raised the offer by {formatPaise(boost)}
+                <TrendingUp size={16} /> {fill(t('sp.customer_raised_the_offer_by_amt', 'Customer raised the offer by {amt}'), { amt: formatPaise(boost) })}
               </p>
-              <p className="relative text-[11px] font-semibold text-amber-900">All of it is yours on top of the job price. Take it before someone else does.</p>
+              <p className="relative text-[11px] font-semibold text-amber-900">{t('sp.all_of_it_is_yours_on_top_of_the_job_price_take_it_before_someone_else_does', 'All of it is yours on top of the job price. Take it before someone else does.')}</p>
             </motion.div>
           )}
 
           <div className="p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[12px] font-semibold text-zappy-700">{offer.heading}</p>
-                {more > 0 && <p className="mt-0.5 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">+{more} more {more === 1 ? 'job' : 'jobs'} waiting after this</p>}
-                <p className="mt-0.5 truncate text-[18px] font-bold capitalize text-navy">{offer.title}</p>
+                <p className="text-[12px] font-semibold text-zappy-700">{tr(offer.heading)}</p>
+                {more > 0 && <p className="mt-0.5 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">{fill(more === 1 ? t('sp.n_more_job_waiting_after_this', '+{n} more job waiting after this') : t('sp.n_more_jobs_waiting_after_this', '+{n} more jobs waiting after this'), { n: more })}</p>}
+                <p className="mt-0.5 truncate text-[18px] font-bold capitalize text-navy">{tr(offer.title)}</p>
               </div>
               <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums ${
                 urgent ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'
@@ -149,35 +162,35 @@ export default function JobOfferAlert({ offer, myLocation, onAccept, onDecline, 
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div className={`rounded-2xl p-3 ${boost ? 'bg-amber-50 ring-2 ring-amber-300' : 'bg-slate-50'}`}>
                 <p className="flex items-center gap-1 text-[11px] font-semibold text-slate-500">
-                  <IndianRupee size={11} /> {offer.valueLabel}
+                  <IndianRupee size={11} /> {tr(offer.valueLabel)}
                 </p>
-                <p className="mt-0.5 text-[18px] font-bold tabular-nums text-navy">{STAFF_PORTAL ? 'Salaried' : formatPaise(offer.valuePaise)}</p>
-                {STAFF_PORTAL && <p className="text-[11px] font-semibold text-emerald-700">Tips are yours</p>}
+                <p className="mt-0.5 text-[18px] font-bold tabular-nums text-navy">{STAFF_PORTAL ? t('sp.salaried', 'Salaried') : formatPaise(offer.valuePaise)}</p>
+                {STAFF_PORTAL && <p className="text-[11px] font-semibold text-emerald-700">{t('sp.tips_are_yours', 'Tips are yours')}</p>}
                 {offer.groupSize > 1 && (
-                  <p className="text-[11px] font-bold text-zappy-700">1 of {offer.groupSize} items at this visit, your answer covers all</p>
+                  <p className="text-[11px] font-bold text-zappy-700">{fill(t('sp.1_of_n_items_at_this_visit_your_answer_covers_all', '1 of {n} items at this visit, your answer covers all'), { n: offer.groupSize })}</p>
                 )}
                 {!STAFF_PORTAL && offer.travelPaise > 0 && (
-                  <p className="text-[11px] font-semibold tabular-nums text-emerald-700">incl. +{formatPaise(offer.travelPaise)} travel{offer.distanceKm != null ? ` (${Math.round(offer.distanceKm * 10) / 10} km)` : ''}, yours</p>
+                  <p className="text-[11px] font-semibold tabular-nums text-emerald-700">{offer.distanceKm != null ? fill(t('sp.incl_amt_travel_km_km_yours', 'incl. +{amt} travel ({km} km), yours'), { amt: formatPaise(offer.travelPaise), km: Math.round(offer.distanceKm * 10) / 10 }) : fill(t('sp.incl_amt_travel_yours', 'incl. +{amt} travel, yours'), { amt: formatPaise(offer.travelPaise) })}</p>
                 )}
                 {!STAFF_PORTAL && offer.surgePaise > 0 && (
-                  <p className="text-[11px] font-semibold tabular-nums text-orange-600">incl. +{formatPaise(offer.surgePaise)} surge, yours</p>
+                  <p className="text-[11px] font-semibold tabular-nums text-orange-600">{fill(t('sp.incl_amt_surge_yours', 'incl. +{amt} surge, yours'), { amt: formatPaise(offer.surgePaise) })}</p>
                 )}
                 {!STAFF_PORTAL && boost > 0 && (
                   <p className="text-[11px] font-semibold tabular-nums text-amber-700">
-                    <span className="text-slate-400 line-through">{formatPaise(offer.valuePaise - boost)}</span> + {formatPaise(boost)} extra
+                    <span className="text-slate-400 line-through">{formatPaise(offer.valuePaise - boost)}</span> {fill(t('sp.amt_extra', '+ {amt} extra'), { amt: formatPaise(boost) })}
                   </p>
                 )}
                 {offer.cash && (
                   <p className="flex items-center gap-1 text-[11px] font-medium text-emerald-700">
-                    <Banknote size={10} /> Collect in cash
+                    <Banknote size={10} /> {t('sp.collect_in_cash', 'Collect in cash')}
                   </p>
                 )}
               </div>
               <div className="rounded-2xl bg-slate-50 p-3">
                 <p className="flex items-center gap-1 text-[11px] font-semibold text-slate-500">
-                  <Briefcase size={11} /> How
+                  <Briefcase size={11} /> {t('sp.how', 'How')}
                 </p>
-                <p className="mt-0.5 text-[14px] font-semibold capitalize leading-tight text-navy">{offer.howLabel}</p>
+                <p className="mt-0.5 text-[14px] font-semibold capitalize leading-tight text-navy">{tr(offer.howLabel)}</p>
               </div>
             </div>
 
@@ -191,7 +204,7 @@ export default function JobOfferAlert({ offer, myLocation, onAccept, onDecline, 
               <MapPin size={15} className="mt-0.5 shrink-0 text-zappy-500" />
               <span className="min-w-0 flex-1">
                 <span className="block text-[13px] font-medium leading-snug text-navy">
-                  {offer.address || 'Address shared after accepting'}
+                  {offer.address || t('sp.address_shared_after_accepting', 'Address shared after accepting')}
                 </span>
                 {offer.landmark && <span className="block text-[11px] text-slate-500">{offer.landmark}</span>}
               </span>
@@ -202,10 +215,10 @@ export default function JobOfferAlert({ offer, myLocation, onAccept, onDecline, 
             {offer.customer && (
               <p className={`mt-2 flex items-center gap-1.5 text-[12px] font-medium ${offer.customer.rating != null && offer.customer.rating < 3 ? 'text-red-700' : 'text-slate-600'}`}>
                 <Star size={12} className={offer.customer.rating != null ? 'fill-amber-400 text-amber-400' : 'text-slate-400'} />
-                {offer.customer.rating != null ? `Customer rated ${Number(offer.customer.rating).toFixed(1)} by ${offer.customer.count} provider${offer.customer.count === 1 ? '' : 's'}` : 'New customer'}
+                {offer.customer.rating != null ? fill(offer.customer.count === 1 ? t('sp.customer_rated_rating_by_n_provider', 'Customer rated {rating} by {n} provider') : t('sp.customer_rated_rating_by_n_providers', 'Customer rated {rating} by {n} providers'), { rating: Number(offer.customer.rating).toFixed(1), n: offer.customer.count }) : t('sp.new_customer', 'New customer')}
               </p>
             )}
-            {customerRecordLine(offer.customer) && <p className="mt-1 text-[12px] font-bold text-amber-700">{customerRecordLine(offer.customer)}</p>}
+            {recordLine && <p className="mt-1 text-[12px] font-bold text-amber-700">{recordLine}</p>}
 
             {offer.whenLabel && (
               <p className="mt-2 flex items-center gap-1.5 text-[12px] font-medium text-slate-600">
@@ -215,13 +228,13 @@ export default function JobOfferAlert({ offer, myLocation, onAccept, onDecline, 
 
             {offer.frontPaise > 0 && (
               <p className="mt-2 flex items-center gap-1.5 rounded-xl bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-800">
-                <Banknote size={13} /> You pay {formatPaise(offer.frontPaise)} at the shop; repaid against the receipt
+                <Banknote size={13} /> {fill(t('sp.you_pay_amt_at_the_shop_repaid_against_the_receipt', 'You pay {amt} at the shop; repaid against the receipt'), { amt: formatPaise(offer.frontPaise) })}
               </p>
             )}
 
             {askingReason ? (
               <div className="mt-4">
-                <PassReasonPicker title={declineTitle} busy={busy === 'decline'} onPick={pass} onCancel={() => setAskingReason(false)} />
+                <PassReasonPicker title={declineTitle ? t(labelKey(declineTitle), declineTitle) : undefined} busy={busy === 'decline'} onPick={pass} onCancel={() => setAskingReason(false)} />
               </div>
             ) : (
               <div className="mt-4 flex items-center gap-2">
@@ -231,7 +244,7 @@ export default function JobOfferAlert({ offer, myLocation, onAccept, onDecline, 
                   disabled={!!busy}
                   className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 disabled:opacity-50"
                 >
-                  {busy === 'decline' ? <Loader2 size={15} className="animate-spin" /> : 'Pass'}
+                  {busy === 'decline' ? <Loader2 size={15} className="animate-spin" /> : t('sp.pass', 'Pass')}
                 </button>
                 <button
                   type="button"
@@ -239,7 +252,7 @@ export default function JobOfferAlert({ offer, myLocation, onAccept, onDecline, 
                   disabled={!!busy}
                   className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:opacity-60"
                 >
-                  {busy === 'accept' ? <Loader2 size={16} className="animate-spin" /> : (offer.acceptLabel || 'Accept job')}
+                  {busy === 'accept' ? <Loader2 size={16} className="animate-spin" /> : (tr(offer.acceptLabel) || t('sp.accept_job', 'Accept job'))}
                 </button>
               </div>
             )}
@@ -247,17 +260,17 @@ export default function JobOfferAlert({ offer, myLocation, onAccept, onDecline, 
             {onOfferLater && canOfferLater(offer) && !askingReason && (
               offeringTime ? (
                 <div className="mt-3 rounded-2xl bg-slate-50 p-3">
-                  <p className="text-[12.5px] font-semibold text-slate-700">I can be there in</p>
+                  <p className="text-[12.5px] font-semibold text-slate-700">{t('sp.i_can_be_there_in', 'I can be there in')}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {laterChoicesOf(offer).map((m) => (
                       <button key={m} type="button" disabled={!!busy} onClick={() => act('later', () => onOfferLater(m))}
-                        className="rounded-full border border-zappy-200 bg-white px-3.5 py-1.5 text-[13px] font-bold text-zappy-700 hover:bg-zappy-50 disabled:opacity-50">{m} min</button>
+                        className="rounded-full border border-zappy-200 bg-white px-3.5 py-1.5 text-[13px] font-bold text-zappy-700 hover:bg-zappy-50 disabled:opacity-50">{fill(t('sp.in_n_min', '{n} min'), { n: m })}</button>
                     ))}
                   </div>
                 </div>
               ) : (
                 <button type="button" onClick={() => setOfferingTime(true)} className="mt-3 w-full text-center text-[12.5px] font-semibold text-zappy-700">
-                  Can't come now? Offer a time
+                  {t('sp.can_t_come_now_offer_a_time', 'Can\'t come now? Offer a time')}
                 </button>
               )
             )}
@@ -268,7 +281,7 @@ export default function JobOfferAlert({ offer, myLocation, onAccept, onDecline, 
             onClick={() => onClose?.('dismissed')}
             className="flex w-full items-center justify-center gap-1 border-t border-slate-100 py-2.5 text-[12px] font-medium text-slate-500"
           >
-            <X size={12} /> Hide - it stays on your Work page
+            <X size={12} /> {t('sp.hide_it_stays_on_your_work_page', 'Hide - it stays on your Work page')}
           </button>
         </motion.div>
       </motion.div>

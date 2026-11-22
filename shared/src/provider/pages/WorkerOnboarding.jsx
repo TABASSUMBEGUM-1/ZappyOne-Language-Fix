@@ -20,10 +20,12 @@ import {
 import { useWorkerCompleteOnboardingMutation, useGetWorkerMeQuery } from '../../services/api';
 import { ZappyWordmark } from '../../components/common/ZappyLogo';
 import toast from 'react-hot-toast';
+import { useServiceProT } from '../../i18n/I18nProvider';
 
 const STEPS = ['name', 'emergency'];
 
 export default function WorkerOnboarding({ onComplete }) {
+  const t = useServiceProT();
   const nav = useNavigate();
   const { data: meData } = useGetWorkerMeQuery();
   const [complete, { isLoading }] = useWorkerCompleteOnboardingMutation();
@@ -44,7 +46,7 @@ export default function WorkerOnboarding({ onComplete }) {
 
   async function handleFinish({ withContact }) {
     if (withContact && !ecPhoneValid) {
-      toast.error('Enter a valid 10-digit mobile number');
+      toast.error(t('sp.wo.badPhone', 'Enter a valid 10-digit mobile number'));
       return;
     }
     try {
@@ -60,7 +62,7 @@ export default function WorkerOnboarding({ onComplete }) {
       // verified for a service, so that is where they go next.
       nav('/provider/onboarding', { replace: true });
     } catch (err) {
-      toast.error(err.data?.error || 'Setup failed');
+      toast.error(err.data?.error || t('sp.wo.fail', 'Setup failed'));
     }
   }
 
@@ -74,29 +76,29 @@ export default function WorkerOnboarding({ onComplete }) {
         <span className="flex h-11 w-11 items-center justify-center rounded-btn bg-zappy-50 text-zappy-600">
           <User size={20} />
         </span>
-        <h1 className="pt-2 text-[24px] font-bold leading-tight text-ink-900">What's your name?</h1>
-        <p className="text-[15px] text-ink-500">Customers see this when you're assigned to their job.</p>
+        <h1 className="pt-2 text-[24px] font-bold leading-tight text-ink-900">{t('sp.wo.nameQ', 'What\'s your name?')}</h1>
+        <p className="text-[15px] text-ink-500">{t('sp.wo.nameSub', 'Customers see this when you\'re assigned to their job.')}</p>
       </div>
 
       <div className="space-y-4">
         <div>
-          <label htmlFor="ob-name" className={label}>Full name</label>
+          <label htmlFor="ob-name" className={label}>{t('sp.wo.fullName', 'Full name')}</label>
           <input
             id="ob-name"
             autoFocus
             autoComplete="name"
             className={field}
-            placeholder="e.g. Ravi Kumar"
+            placeholder={t('sp.wo.namePh', 'e.g. Ravi Kumar')}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
         </div>
         <div>
-          <span className={label}>Mobile number</span>
+          <span className={label}>{t('sp.wo.mobile', 'Mobile number')}</span>
           <div className="flex min-h-[44px] items-center gap-2 rounded-btn border border-line bg-sunken px-3.5">
             <Phone size={16} className="text-ink-400" />
             <span className="text-[16px] font-semibold tabular-nums text-ink-700">{phone}</span>
-            <span className="chip ml-auto bg-green-50 text-green-700"><CheckCircle2 size={12} /> Verified</span>
+            <span className="chip ml-auto bg-green-50 text-green-700"><CheckCircle2 size={12} /> {t('sp.wo.verified', 'Verified')}</span>
           </div>
         </div>
       </div>
@@ -105,8 +107,7 @@ export default function WorkerOnboarding({ onComplete }) {
       <div className="flex items-start gap-2.5 rounded-card border border-line bg-sunken p-3.5">
         <ShieldCheck size={17} className="mt-0.5 shrink-0 text-zappy-600" />
         <p className="text-[13px] leading-relaxed text-ink-700">
-          Next you'll choose what you work on: phones, laptops and more. Each one is verified
-          separately, so customers know exactly what you're qualified for.
+          {t('sp.wo.next', 'Next you\'ll choose what you work on: phones, laptops and more. Each one is verified separately, so customers know exactly what you\'re qualified for.')}
         </p>
       </div>
 
@@ -115,7 +116,7 @@ export default function WorkerOnboarding({ onComplete }) {
         onClick={() => setStep(1)}
         className="btn-primary mt-auto w-full"
       >
-        Continue <ChevronRight size={18} />
+        {t('sp.wo.continue', 'Continue')} <ChevronRight size={18} />
       </button>
     </div>,
 
@@ -125,37 +126,37 @@ export default function WorkerOnboarding({ onComplete }) {
         <span className="flex h-11 w-11 items-center justify-center rounded-btn bg-red-50 text-red-600">
           <Heart size={20} />
         </span>
-        <h1 className="pt-2 text-[24px] font-bold leading-tight text-ink-900">Emergency contact</h1>
+        <h1 className="pt-2 text-[24px] font-bold leading-tight text-ink-900">{t('sp.wo.ecTitle', 'Emergency contact')}</h1>
         <p className="text-[15px] text-ink-500">
-          Who should we call if something happens on a job? Optional, but strongly recommended.
+          {t('sp.wo.ecSub', 'Who should we call if something happens on a job? Optional, but strongly recommended.')}
         </p>
       </div>
 
       <div className="space-y-4">
         <div>
-          <label htmlFor="ob-ec-name" className={label}>Contact name</label>
+          <label htmlFor="ob-ec-name" className={label}>{t('sp.wo.ecName', 'Contact name')}</label>
           <input
             id="ob-ec-name"
             className={field}
-            placeholder="e.g. Wife, Mother, Friend"
+            placeholder={t('sp.wo.ecNamePh', 'e.g. Wife, Mother, Friend')}
             value={ecName}
             onChange={(e) => setEcName(e.target.value)}
           />
         </div>
         <div>
-          <label htmlFor="ob-ec-phone" className={label}>Contact phone</label>
+          <label htmlFor="ob-ec-phone" className={label}>{t('sp.wo.ecPhone', 'Contact phone')}</label>
           <input
             id="ob-ec-phone"
             type="tel"
             inputMode="numeric"
             className={`${field} ${ecPhoneValid ? '' : 'border-red-300 bg-red-50'}`}
-            placeholder="10-digit mobile number"
+            placeholder={t('sp.wo.ecPhonePh', '10-digit mobile number')}
             value={ecPhone}
             onChange={(e) => setEcPhone(e.target.value)}
           />
           {!ecPhoneValid && (
             <p className="mt-1.5 text-[13px] font-semibold text-red-600">
-              That doesn't look like an Indian mobile number.
+              {t('sp.wo.ecBad', 'That doesn\'t look like an Indian mobile number.')}
             </p>
           )}
         </div>
@@ -164,7 +165,7 @@ export default function WorkerOnboarding({ onComplete }) {
       <div className="mt-auto space-y-2">
         <div className="flex gap-2">
           <button onClick={() => setStep(0)} className="btn-outline px-4">
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={16} /> {t('sp.back', 'Back')}
           </button>
           <button
             onClick={() => handleFinish({ withContact: true })}
@@ -172,7 +173,7 @@ export default function WorkerOnboarding({ onComplete }) {
             className="btn-primary flex-1"
           >
             {isLoading && <Loader2 size={18} className="animate-spin" />}
-            {isLoading ? 'Setting up…' : 'Continue'}
+            {isLoading ? t('sp.wo.settingUp', 'Setting up…') : t('sp.wo.continue', 'Continue')}
           </button>
         </div>
         <button
@@ -180,7 +181,7 @@ export default function WorkerOnboarding({ onComplete }) {
           disabled={isLoading}
           className="min-h-[44px] w-full text-[13px] font-semibold text-ink-500 hover:text-ink-700"
         >
-          Skip for now
+          {t('sp.wo.skip', 'Skip for now')}
         </button>
       </div>
     </div>,
@@ -192,7 +193,7 @@ export default function WorkerOnboarding({ onComplete }) {
         <div className="mx-auto w-full max-w-md px-5 pb-3 pt-4">
           <div className="flex items-center justify-between">
             <ZappyWordmark size={24} />
-            <span className="text-[13px] font-semibold tabular-nums text-ink-500">Step {step + 1} of {STEPS.length}</span>
+            <span className="text-[13px] font-semibold tabular-nums text-ink-500">{t('sp.wo.stepOf', 'Step {a} of {b}').replace('{a}', step + 1).replace('{b}', STEPS.length)}</span>
           </div>
           <div className="mt-3 flex gap-1.5" aria-hidden="true">
             {STEPS.map((_, i) => (

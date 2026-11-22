@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Flag, Loader2, EyeOff, MessageSquare } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useI18n, useServiceProT } from '../../i18n/I18nProvider';
 import { useMyReviewsQuery, useReportReviewMutation } from '../../services/api';
 
 /**
@@ -14,8 +15,9 @@ import { useMyReviewsQuery, useReportReviewMutation } from '../../services/api';
  *   embedded  inside a portal shell that already has its own header (events)
  */
 function Stars({ value, size = 14 }) {
+  const t = useServiceProT();
   return (
-    <span className="flex items-center gap-0.5" aria-label={`${value} out of 5`}>
+    <span className="flex items-center gap-0.5" aria-label={t('sp.wr.outOf5', '{n} out of 5').replace('{n}', value)}>
       {[1, 2, 3, 4, 5].map((n) => (
         <Star key={n} size={size} className={n <= value ? 'fill-amber-400 text-amber-400' : 'text-line-strong'} />
       ))}
@@ -24,31 +26,34 @@ function Stars({ value, size = 14 }) {
 }
 
 function ReportBox({ review, onDone }) {
+  const t = useServiceProT();
   const [reason, setReason] = useState('');
   const [report, { isLoading }] = useReportReviewMutation();
   async function send(e) {
     e.preventDefault();
     try {
       await report({ id: review.id, reason: reason.trim() }).unwrap();
-      toast.success('Sent for review. We will look at it and let you know.');
+      toast.success(t('sp.wr.sentOk', 'Sent for review. We will look at it and let you know.'));
       onDone();
-    } catch (err) { toast.error(err?.data?.error || 'That did not go through. Please try again.'); }
+    } catch (err) { toast.error(err?.data?.error || t('sp.wr.sentFail', 'That did not go through. Please try again.')); }
   }
   return (
     <form onSubmit={send} className="mt-3 space-y-2">
       <textarea rows={2} maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} className="input w-full resize-none py-2"
-        placeholder="What is wrong with this review? For example: I did not do this job." aria-label="Why you are reporting this review" />
+        placeholder={t('sp.wr.reasonPh', 'What is wrong with this review? For example: I did not do this job.')} aria-label={t('sp.wr.reasonAria', 'Why you are reporting this review')} />
       <div className="flex gap-2">
         <button type="submit" disabled={isLoading || reason.trim().length < 5} className="btn-primary min-h-[38px] px-4 text-[13px]">
-          {isLoading && <Loader2 size={14} className="animate-spin" />} Send
+          {isLoading && <Loader2 size={14} className="animate-spin" />} {t('sp.wr.send', 'Send')}
         </button>
-        <button type="button" onClick={onDone} className="btn-outline min-h-[38px] px-4 text-[13px]">Cancel</button>
+        <button type="button" onClick={onDone} className="btn-outline min-h-[38px] px-4 text-[13px]">{t('sp.wr.cancel', 'Cancel')}</button>
       </div>
     </form>
   );
 }
 
 export default function ProviderReviewsPage({ back = '/worker', embedded = false }) {
+  const t = useServiceProT();
+  const { lang } = useI18n();
   const nav = useNavigate();
   const [page, setPage] = useState(1);
   const [reporting, setReporting] = useState(null);
@@ -57,12 +62,12 @@ export default function ProviderReviewsPage({ back = '/worker', embedded = false
 
   return (
     <div className={embedded ? '' : 'min-h-screen bg-canvas'}>
-      {embedded ? <h1 className="mx-auto max-w-2xl px-4 pt-5 text-[20px] font-bold text-ink-900">My reviews</h1> : <header className="sticky top-0 z-20 border-b border-line bg-white">
+      {embedded ? <h1 className="mx-auto max-w-2xl px-4 pt-5 text-[20px] font-bold text-ink-900">{t('sp.wr.title', 'My reviews')}</h1> : <header className="sticky top-0 z-20 border-b border-line bg-white">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => nav(back)} aria-label="Back" className="flex h-10 w-10 items-center justify-center rounded-btn bg-sunken text-ink-700 hover:bg-line">
+          <button type="button" onClick={() => nav(back)} aria-label={t('sp.back', 'Back')} className="flex h-10 w-10 items-center justify-center rounded-btn bg-sunken text-ink-700 hover:bg-line">
             <ArrowLeft size={18} />
           </button>
-          <h1 className="text-[17px] font-bold text-ink-900">My reviews</h1>
+          <h1 className="text-[17px] font-bold text-ink-900">{t('sp.wr.title', 'My reviews')}</h1>
         </div>
       </header>}
 
@@ -71,8 +76,8 @@ export default function ProviderReviewsPage({ back = '/worker', embedded = false
           <div className="flex justify-center py-16"><Loader2 className="animate-spin text-zappy-600" /></div>
         ) : isError ? (
           <div className="rounded-card border border-line bg-white p-6 text-center">
-            <p className="text-[14px] text-ink-500">Your reviews did not load.</p>
-            <button type="button" onClick={refetch} className="btn-outline mt-3 min-h-[38px] px-4 text-[13px]">Try again</button>
+            <p className="text-[14px] text-ink-500">{t('sp.wr.loadFail', 'Your reviews did not load.')}</p>
+            <button type="button" onClick={refetch} className="btn-outline mt-3 min-h-[38px] px-4 text-[13px]">{t('sp.wr.retry', 'Try again')}</button>
           </div>
         ) : (
           <>
@@ -80,7 +85,7 @@ export default function ProviderReviewsPage({ back = '/worker', embedded = false
               <div className="flex shrink-0 flex-col items-center justify-center">
                 <p className="text-[36px] font-extrabold leading-none text-ink-900 tabular-nums">{total ? data.rating.toFixed(1) : '-'}</p>
                 <div className="mt-2"><Stars value={Math.round(data.rating)} /></div>
-                <p className="mt-1.5 text-[12px] text-ink-500">{total ? `${total} review${total === 1 ? '' : 's'}` : 'No reviews yet'}</p>
+                <p className="mt-1.5 text-[12px] text-ink-500">{total ? (total === 1 ? t('sp.wr.one', '{n} review') : t('sp.wr.many', '{n} reviews')).replace('{n}', total) : t('sp.wr.none', 'No reviews yet')}</p>
               </div>
               <div className="flex-1 space-y-1.5">
                 {[5, 4, 3, 2, 1].map((n) => {
@@ -101,8 +106,8 @@ export default function ProviderReviewsPage({ back = '/worker', embedded = false
             {!data.reviews.length ? (
               <div className="rounded-card border border-line bg-white p-8 text-center">
                 <MessageSquare className="mx-auto text-ink-400" size={24} />
-                <p className="mt-2 text-[15px] font-semibold text-ink-900">No reviews yet</p>
-                <p className="mt-1 text-[13px] text-ink-500">Customers can rate you after each finished job. Their reviews show here.</p>
+                <p className="mt-2 text-[15px] font-semibold text-ink-900">{t('sp.wr.none', 'No reviews yet')}</p>
+                <p className="mt-1 text-[13px] text-ink-500">{t('sp.wr.noneH', 'Customers can rate you after each finished job. Their reviews show here.')}</p>
               </div>
             ) : (
               <ul className="space-y-3">
@@ -112,20 +117,20 @@ export default function ProviderReviewsPage({ back = '/worker', embedded = false
                       <div className="min-w-0">
                         <Stars value={r.rating} />
                         <p className="mt-1 text-[13px] text-ink-500">
-                          {r.by}{r.service ? `, ${r.service}` : ''}, {new Date(r.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {r.by}{r.service ? `, ${r.service}` : ''}, {new Date(r.at).toLocaleDateString(`${lang}-IN`, { day: 'numeric', month: 'short', year: 'numeric' })}
                         </p>
                       </div>
                       {!r.reported && reporting !== r.id && (
                         <button type="button" onClick={() => setReporting(r.id)} className="flex shrink-0 items-center gap-1 text-[12px] font-semibold text-ink-500 hover:text-ink-900">
-                          <Flag size={13} /> Report
+                          <Flag size={13} /> {t('sp.wr.report', 'Report')}
                         </button>
                       )}
                     </div>
                     {r.text && <p className="mt-2 text-[14px] leading-relaxed text-ink-900">{r.text}</p>}
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {r.reported && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Reported, being looked at</span>}
-                      {r.hidden && <span className="flex items-center gap-1 rounded-full bg-sunken px-2 py-0.5 text-[11px] font-semibold text-ink-500"><EyeOff size={11} /> Not shown to customers</span>}
-                      {r.excluded && <span className="rounded-full bg-sunken px-2 py-0.5 text-[11px] font-semibold text-ink-500">Not counted in your rating</span>}
+                      {r.reported && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">{t('sp.wr.reported', 'Reported, being looked at')}</span>}
+                      {r.hidden && <span className="flex items-center gap-1 rounded-full bg-sunken px-2 py-0.5 text-[11px] font-semibold text-ink-500"><EyeOff size={11} /> {t('sp.wr.hidden', 'Not shown to customers')}</span>}
+                      {r.excluded && <span className="rounded-full bg-sunken px-2 py-0.5 text-[11px] font-semibold text-ink-500">{t('sp.wr.excluded', 'Not counted in your rating')}</span>}
                     </div>
                     {reporting === r.id && <ReportBox review={r} onDone={() => setReporting(null)} />}
                   </li>
@@ -135,9 +140,9 @@ export default function ProviderReviewsPage({ back = '/worker', embedded = false
 
             {data.pages > 1 && (
               <div className="flex items-center justify-between">
-                <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="btn-outline min-h-[38px] px-4 text-[13px]">Newer</button>
-                <span className="text-[12px] text-ink-500 tabular-nums">Page {page} of {data.pages}</span>
-                <button type="button" disabled={page >= data.pages} onClick={() => setPage((p) => p + 1)} className="btn-outline min-h-[38px] px-4 text-[13px]">Older</button>
+                <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="btn-outline min-h-[38px] px-4 text-[13px]">{t('sp.wr.newer', 'Newer')}</button>
+                <span className="text-[12px] text-ink-500 tabular-nums">{t('sp.wr.page', 'Page {a} of {b}').replace('{a}', page).replace('{b}', data.pages)}</span>
+                <button type="button" disabled={page >= data.pages} onClick={() => setPage((p) => p + 1)} className="btn-outline min-h-[38px] px-4 text-[13px]">{t('sp.wr.older', 'Older')}</button>
               </div>
             )}
           </>

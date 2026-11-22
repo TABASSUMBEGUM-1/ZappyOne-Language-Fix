@@ -5,10 +5,13 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, TrendingUp, Download, Zap, ChevronDown, ChevronUp, Loader2, Info, BarChart2 } from 'lucide-react';
 import { useGetJobEarningsQuery } from '../../services/api';
+import { useI18n, useServiceProT } from '../../i18n/I18nProvider';
 
 const fmt = v => `₹${(v / 100).toFixed(2)}`;
 
 function EarningRow({ job, expanded, onToggle, index }) {
+  const t = useServiceProT();
+  const { lang } = useI18n();
   const hasSurge = job.surgeMultiplier && job.surgeMultiplier > 1;
   return (
     <motion.div
@@ -22,8 +25,8 @@ function EarningRow({ job, expanded, onToggle, index }) {
           {hasSurge ? <Zap size={18} className="text-white fill-white" /> : <TrendingUp size={18} className="text-white" />}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-black text-slate-800 truncate leading-tight mb-0.5">{job.serviceLabel ?? 'Service'}</p>
-          <p className="text-xs font-semibold text-slate-400">{new Date(job.completedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+          <p className="text-[15px] font-black text-slate-800 truncate leading-tight mb-0.5">{job.serviceLabel ?? t('sp.we.service', 'Service')}</p>
+          <p className="text-xs font-semibold text-slate-400">{new Date(job.completedAt).toLocaleDateString(`${lang}-IN`, { day: 'numeric', month: 'short' })}</p>
         </div>
         <div className="text-right shrink-0">
           <p className="font-black text-lg text-slate-800">{fmt(job.net)}</p>
@@ -41,19 +44,19 @@ function EarningRow({ job, expanded, onToggle, index }) {
             className="overflow-hidden"
           >
             <div className="border-t border-slate-50 px-5 pb-5 pt-4 bg-slate-50/50 space-y-2.5 text-sm">
-              <div className="flex justify-between items-center"><span className="text-slate-500 font-medium">Gross earnings</span><span className="font-bold text-slate-700">{fmt(job.gross)}</span></div>
+              <div className="flex justify-between items-center"><span className="text-slate-500 font-medium">{t('sp.we.gross', 'Gross earnings')}</span><span className="font-bold text-slate-700">{fmt(job.gross)}</span></div>
               <div className="flex justify-between items-center"><span className="text-slate-500 font-medium">ZappyOne</span><span className="font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md">-{fmt(job.platformFee)}</span></div>
-              {job.tip > 0 && <div className="flex justify-between items-center"><span className="text-slate-500 font-medium">Customer tip</span><span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">+{fmt(job.tip)}</span></div>}
-              {job.bonus > 0 && <div className="flex justify-between items-center"><span className="text-slate-500 font-medium">Bonus</span><span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">+{fmt(job.bonus)}</span></div>}
+              {job.tip > 0 && <div className="flex justify-between items-center"><span className="text-slate-500 font-medium">{t('sp.we.tip', 'Customer tip')}</span><span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">+{fmt(job.tip)}</span></div>}
+              {job.bonus > 0 && <div className="flex justify-between items-center"><span className="text-slate-500 font-medium">{t('sp.we.bonus', 'Bonus')}</span><span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">+{fmt(job.bonus)}</span></div>}
               {hasSurge && (
-                <div className="flex justify-between items-center"><span className="text-slate-500 font-medium">Surge multiplier</span>
+                <div className="flex justify-between items-center"><span className="text-slate-500 font-medium">{t('sp.we.surgeM', 'Surge multiplier')}</span>
                   <span className="text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-md">{job.surgeMultiplier}×</span>
                 </div>
               )}
               <div className="border-t border-slate-200/60 pt-3 mt-1 flex justify-between items-center">
-                <span className="text-slate-800 font-black">Money you get</span><span className="text-zappy-600 font-black text-lg">{fmt(job.net)}</span>
+                <span className="text-slate-800 font-black">{t('sp.we.money', 'Money you get')}</span><span className="text-zappy-600 font-black text-lg">{fmt(job.net)}</span>
               </div>
-              {job.orderId && <p className="text-[10px] text-slate-400 font-semibold pt-1">Order ID: {job.orderId}</p>}
+              {job.orderId && <p className="text-[10px] text-slate-400 font-semibold pt-1">{t('sp.we.orderId', 'Order ID: {n}').replace('{n}', job.orderId)}</p>}
             </div>
           </motion.div>
         )}
@@ -85,12 +88,13 @@ function generatePayslipCSV(jobs, period) {
 }
 
 const PERIODS = [
-  { id: 'week', label: 'This Week' },
-  { id: 'month', label: 'This Month' },
-  { id: '3months', label: '3 Months' },
+  { id: 'week', label: 'This Week', tk: 'sp.we.week' },
+  { id: 'month', label: 'This Month', tk: 'sp.we.month' },
+  { id: '3months', label: '3 Months', tk: 'sp.we.3months' },
 ];
 
 export default function WorkerEarningsPage() {
+  const t = useServiceProT();
   const nav = useNavigate();
   const [period, setPeriod] = useState('month');
   const [expanded, setExpanded] = useState(null);
@@ -113,14 +117,14 @@ export default function WorkerEarningsPage() {
               <motion.button onClick={() => nav(-1)} whileTap={{ scale: 0.9 }} className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white">
                 <ArrowLeft size={20} strokeWidth={2.5} />
               </motion.button>
-              <h1 className="text-white font-black tracking-wide text-lg">Earnings</h1>
-              <motion.button onClick={() => generatePayslipCSV(jobs, period)} whileTap={{ scale: 0.9 }} className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white" title="Download list">
+              <h1 className="text-white font-black tracking-wide text-lg">{t('sp.we.earnings', 'Earnings')}</h1>
+              <motion.button onClick={() => generatePayslipCSV(jobs, period)} whileTap={{ scale: 0.9 }} className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white" title={t('sp.we.dlList', 'Download list')}>
                 <Download size={18} strokeWidth={2} />
               </motion.button>
             </div>
 
             <div className="text-center">
-              <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1.5">Total Net Earnings</p>
+              <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1.5">{t('sp.we.totalNet', 'Total Net Earnings')}</p>
               <h2 className="text-white font-black text-5xl tracking-tight drop-shadow-lg">{fmt(summary.totalNet ?? 0)}</h2>
             </div>
           </div>
@@ -136,7 +140,7 @@ export default function WorkerEarningsPage() {
             {PERIODS.map(p => (
               <button key={p.id} onClick={() => setPeriod(p.id)}
                 className={`flex-1 text-[13px] font-bold py-2.5 rounded-xl transition-all duration-300 ${period === p.id ? 'bg-zappy-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}>
-                {p.label}
+                {t(p.tk, p.label)}
               </button>
             ))}
           </div>
@@ -144,15 +148,15 @@ export default function WorkerEarningsPage() {
           {/* Quick Stats Grid */}
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="grid grid-cols-3 gap-3 mb-6">
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 text-center">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Jobs Done</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('sp.we.jobsDone', 'Jobs Done')}</p>
               <p className="text-xl font-black text-slate-800">{summary.count ?? 0}</p>
             </div>
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 text-center">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tips</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('sp.we.tips', 'Tips')}</p>
               <p className="text-xl font-black text-emerald-500">{fmt(summary.totalTips ?? 0)}</p>
             </div>
             <div className=" bg-amber-50 rounded-2xl p-4 shadow-sm border border-amber-100 text-center">
-              <p className="text-[10px] font-bold text-amber-600/70 uppercase tracking-wider mb-1">Surge Jobs</p>
+              <p className="text-[10px] font-bold text-amber-600/70 uppercase tracking-wider mb-1">{t('sp.we.surgeJobs', 'Surge Jobs')}</p>
               <p className="text-xl font-black text-amber-600">{summary.surgeCount ?? 0}</p>
             </div>
           </motion.div>
@@ -160,24 +164,24 @@ export default function WorkerEarningsPage() {
           {/* ZappyOne amount note */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="bg-zappy-50/50 border border-zappy-100/50 rounded-2xl p-4 flex gap-3 text-[13px] text-zappy-800/80 mb-8 font-medium">
             <Info size={16} className="shrink-0 mt-0.5 text-zappy-500" />
-            <p>ZappyOne's amount on each job is added to what you pay ZappyOne. Tips and customer boosts are all yours.</p>
+            <p>{t('sp.we.note', "ZappyOne's amount on each job is added to what you pay ZappyOne. Tips and customer boosts are all yours.")}</p>
           </motion.div>
 
           {/* Jobs list */}
           <div>
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Job Breakdown</p>
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">{t('sp.we.breakdown', 'Job Breakdown')}</p>
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <Loader2 size={24} className="animate-spin text-zappy-400 mb-3" />
-                <p className="text-sm font-semibold text-slate-400">Loading earnings...</p>
+                <p className="text-sm font-semibold text-slate-400">{t('sp.we.loading', 'Loading earnings...')}</p>
               </div>
             ) : jobs.length === 0 ? (
               <div className="bg-white rounded-[1.5rem] border border-dashed border-slate-200 p-12 text-center shadow-sm">
                 <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-4">
                   <BarChart2 size={24} className="text-slate-300" />
                 </div>
-                <p className="font-bold text-slate-500">No earnings found</p>
-                <p className="text-sm text-slate-400 mt-1">Complete jobs in this period to see them here.</p>
+                <p className="font-bold text-slate-500">{t('sp.we.none', 'No earnings found')}</p>
+                <p className="text-sm text-slate-400 mt-1">{t('sp.we.noneH', 'Complete jobs in this period to see them here.')}</p>
               </div>
             ) : jobs.map((j, i) => (
               <EarningRow key={j._id} job={j} index={i} expanded={expanded === j._id} onToggle={() => toggle(j._id)} />

@@ -15,25 +15,25 @@ import { sendSigned } from '@shared/utils/sendSigned';
 import MyVerificationPanel from '@shared/provider/MyVerificationPanel';
 
 const DOCS = [
-  { key: 'ownerIdUrl', tk: 'sp.kyc.ownerId', label: "Owner's ID Proof", sublabel: 'Aadhaar / PAN / Voter ID - clear photo', Icon: IdCard, required: true },
-  { key: 'shopPhotoUrl', tk: 'sp.kyc.shopPhoto', label: 'Shop Photo', sublabel: 'Photo of your shop front / signboard', Icon: Store, required: true },
+  { key: 'ownerIdUrl', tk: 'sp.kyc.ownerId', label: "Owner's ID Proof", sk: 'sp.ky.sOwner', sublabel: 'Aadhaar / PAN / Voter ID - clear photo', Icon: IdCard, required: true },
+  { key: 'shopPhotoUrl', tk: 'sp.kyc.shopPhoto', label: 'Shop Photo', sk: 'sp.ky.sShop', sublabel: 'Photo of your shop front / signboard', Icon: Store, required: true },
   // Taken live with the front camera, with the place and time it was taken: never picked from a gallery.
-  { key: 'selfieUrl', tk: 'sp.kyc.selfie', label: 'Owner Selfie', sublabel: 'Taken live with your front camera; your location is recorded', Icon: Camera, required: true, live: true },
-  { key: 'businessRegistrationUrl', tk: 'sp.kyc.reg', label: 'Business Registration (optional)', sublabel: 'Shop & establishment license, if you have one', Icon: FileText, required: false },
-  { key: 'gstCertificateUrl', tk: 'sp.kyc.gst', label: 'GST Certificate (optional)', sublabel: 'If your shop is GST-registered', Icon: FileText, required: false },
+  { key: 'selfieUrl', tk: 'sp.kyc.selfie', label: 'Owner Selfie', sk: 'sp.ky.sSelfie', sublabel: 'Taken live with your front camera; your location is recorded', Icon: Camera, required: true, live: true },
+  { key: 'businessRegistrationUrl', tk: 'sp.kyc.reg', label: 'Business Registration (optional)', sk: 'sp.ky.sReg', sublabel: 'Shop & establishment license, if you have one', Icon: FileText, required: false },
+  { key: 'gstCertificateUrl', tk: 'sp.kyc.gst', label: 'GST Certificate (optional)', sk: 'sp.ky.sGst', sublabel: 'If your shop is GST-registered', Icon: FileText, required: false },
 ];
 
 const STATUS_META = {
   pending_review: {
-    title: 'Under Review', body: "Your shop documents are being checked. We'll notify you within 24 hours.", Icon: Clock,
+    tk: 'sp.ky.review', title: 'Under Review', bk: 'sp.ky.reviewBody', body: "Your shop documents are being checked. We'll notify you within 24 hours.", Icon: Clock,
     card: 'bg-amber-50 ring-1 ring-amber-200', icon: 'text-amber-600', title_: 'text-amber-800', body_: 'text-amber-600',
   },
   approved: {
-    title: 'Shop documents approved', body: 'Your documents are checked. Jobs come only for the services approved below.', Icon: ShieldCheck,
+    tk: 'sp.ky.appr', title: 'Shop documents approved', bk: 'sp.ky.apprBody', body: 'Your documents are checked. Jobs come only for the services approved below.', Icon: ShieldCheck,
     card: 'bg-emerald-50 ring-1 ring-emerald-200', icon: 'text-emerald-600', title_: 'text-emerald-800', body_: 'text-emerald-600',
   },
   suspended: {
-    title: 'Verification Suspended', body: 'Talk to ZappyOne if you need help with your shop ID check.', Icon: XCircle,
+    tk: 'sp.ky.susp', title: 'Verification Suspended', bk: 'sp.ky.suspBody', body: 'Talk to ZappyOne if you need help with your shop ID check.', Icon: XCircle,
     card: 'bg-red-50 ring-1 ring-red-200', icon: 'text-red-600', title_: 'text-red-800', body_: 'text-red-600',
   },
 };
@@ -65,14 +65,14 @@ export default function ShopKycPage() {
   async function handleUpload(docKey, picked, meta = null) {
     const file = await prepareImage(picked);
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) return toast.error('File too large - max 5MB');
+    if (file.size > 5 * 1024 * 1024) return toast.error(t('sp.ky.tooBig', 'File too large - max 5MB'));
     try {
       setUploading(docKey);
       const type = file.type || 'image/jpeg';
       const signed = await sendSigned(() => presign({ folder: 'kyc', contentType: type }).unwrap(), file, type);
       setUrls((prev) => ({ ...prev, [docKey]: signed.key }));
       if (meta) setSelfieMeta(meta);
-      toast.success(meta ? 'Selfie saved' : 'Document uploaded');
+      toast.success(meta ? t('sp.ky.selfieSaved', 'Selfie saved') : t('sp.ky.docUp', 'Document uploaded'));
     } catch {
       toast.error(t('sp.uploadFailed', 'Upload failed. Please try again.'));
     } finally {
@@ -82,15 +82,15 @@ export default function ShopKycPage() {
 
   async function submit() {
     if (asked) {
-      if (![...asked].every((k) => urls[k])) return toast.error('Add a new copy of each document asked for');
+      if (![...asked].every((k) => urls[k])) return toast.error(t('sp.ky.addNew', 'Add a new copy of each document asked for'));
     } else if (!urls.ownerIdUrl || !urls.selfieUrl || (shopPhoto && !urls.shopPhotoUrl)) {
-      return toast.error(shopPhoto ? 'Owner ID, shop photo, and selfie are all required' : 'Your ID and a live selfie are required');
+      return toast.error(shopPhoto ? t('sp.ky.reqAll', 'Owner ID, shop photo, and selfie are all required') : t('sp.ky.reqTwo', 'Your ID and a live selfie are required'));
     }
-    if (opens('selfieUrl') && !selfieMeta) return toast.error('Take your selfie with the camera');
+    if (opens('selfieUrl') && !selfieMeta) return toast.error(t('sp.ky.takeSelfie', 'Take your selfie with the camera'));
     try {
       const docs = asked ? Object.fromEntries([...asked].map((k) => [k, urls[k]])) : urls;
       await submitKyc({ ...docs, ...(opens('selfieUrl') && { selfieMetadata: selfieMeta }), gstNumber: gstNumber || undefined, panNumber: panNumber || undefined }).unwrap();
-      toast.success('Documents sent. We will check them');
+      toast.success(t('sp.ky.sent', 'Documents sent. We will check them'));
       refetch();
     } catch (err) {
       toast.error(err?.data?.error || t('sp.kyc.submitFail', 'Submission failed'));
@@ -99,7 +99,7 @@ export default function ShopKycPage() {
 
   if (isLoading) {
     return (
-      <PageSkeleton kind="form" label="Loading verification" />
+      <PageSkeleton kind="form" label={t('sp.ky.loading', 'Loading verification')} />
     );
   }
 
@@ -108,15 +108,15 @@ export default function ShopKycPage() {
     return (
       <div className="min-h-screen bg-[#F9FAFB]">
         <header className="page-header"><div className="page-header-inner">
-          <button onClick={() => nav('/shop')} className="back-btn"><ArrowLeft size={18} strokeWidth={2.5} /></button>
-          <h1 className="h-card">ID check</h1>
+          <button onClick={() => nav('/shop')} className="back-btn" aria-label={t('sp.back', 'Back')}><ArrowLeft size={18} strokeWidth={2.5} /></button>
+          <h1 className="h-card">{t('sp.ky.title', 'ID check')}</h1>
         </div></header>
         <div className="max-w-lg lg:max-w-2xl mx-auto px-4 pt-4">
           <div className={`card ${meta.card} flex items-center gap-3`}>
             <meta.Icon size={18} className={`${meta.icon} shrink-0`} />
             <div>
-              <p className={`font-bold text-sm ${meta.title_}`}>{meta.title}</p>
-              <p className={`text-xs mt-0.5 ${meta.body_}`}>{meta.body}</p>
+              <p className={`font-bold text-sm ${meta.title_}`}>{t(meta.tk, meta.title)}</p>
+              <p className={`text-xs mt-0.5 ${meta.body_}`}>{t(meta.bk, meta.body)}</p>
             </div>
           </div>
           {/* What the shop gave us, and where each service stands. */}
@@ -129,18 +129,18 @@ export default function ShopKycPage() {
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-32">
       <header className="page-header"><div className="page-header-inner">
-        <button onClick={() => nav('/shop')} className="back-btn"><ArrowLeft size={18} strokeWidth={2.5} /></button>
-        <h1 className="h-card">ID check</h1>
+        <button onClick={() => nav('/shop')} className="back-btn" aria-label={t('sp.back', 'Back')}><ArrowLeft size={18} strokeWidth={2.5} /></button>
+        <h1 className="h-card">{t('sp.ky.title', 'ID check')}</h1>
       </div></header>
 
       <div className="max-w-lg lg:max-w-2xl mx-auto px-4 pt-4 space-y-3">
 
         {clar && (
           <div className="card bg-amber-50 ring-1 ring-amber-200">
-            <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">Please send again</p>
+            <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">{t('sp.ky.again', 'Please send again')}</p>
             <p className="text-sm text-amber-800 mt-1 leading-relaxed">{clar.message}</p>
             <p className="text-xs text-amber-700 mt-1.5">
-              {DOCS.filter((d) => asked?.has(d.key)).map((d) => d.label).join(', ')}. Everything else you sent is kept.
+              {DOCS.filter((d) => asked?.has(d.key)).map((d) => t(d.tk, d.label)).join(', ')}. {t('sp.ky.kept', 'Everything else you sent is kept.')}
             </p>
           </div>
         )}
@@ -161,14 +161,14 @@ export default function ShopKycPage() {
           <div className="flex items-start gap-3">
             <ShieldCheck size={16} className="text-zappy-600 shrink-0 mt-0.5" />
             <p className="text-xs font-medium text-zappy-700 leading-relaxed">
-              When we approve your shop, customers trust you more and find you in Nearby Shops. We check within 24 hours.
+              {t('sp.ky.trust', 'When we approve your shop, customers trust you more and find you in Nearby Shops. We check within 24 hours.')}
             </p>
           </div>
         </div>
 
         {capturing && (
           <LiveSelfieCapture
-            title="Owner selfie"
+            title={t('sp.ky.ownerSelfie', 'Owner selfie')}
             onCancel={() => setCapturing(false)}
             onCapture={(blob, meta) => {
               setCapturing(false);
@@ -177,7 +177,7 @@ export default function ShopKycPage() {
           />
         )}
 
-        {docs.map(({ key, tk, label, sublabel, Icon, required, live }) => {
+        {docs.map(({ key, tk, label, sk, sublabel, Icon, required, live }) => {
           const uploaded = !!urls[key];
           const isUploading = uploading === key;
           return (
@@ -191,11 +191,11 @@ export default function ShopKycPage() {
                     <p className="font-semibold text-sm text-[#0F172A]">{t(tk, label)}</p>
                     {required && <span className="text-red-500 text-xs font-bold">*</span>}
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">{opens(key) ? sublabel : 'Accepted, nothing to change'}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{opens(key) ? t(sk, sublabel) : t('sp.ky.accepted', 'Accepted, nothing to change')}</p>
                   {uploaded && (
                     <div className="flex items-center gap-1.5 mt-1.5">
                       <CheckCircle2 size={12} strokeWidth={2.5} className="text-success-600" />
-                      <span className="text-xs font-semibold text-success-700">{live ? 'Taken live' : 'Uploaded'}</span>
+                      <span className="text-xs font-semibold text-success-700">{live ? t('sp.ky.takenLive', 'Taken live') : t('sp.ky.uploaded', 'Uploaded')}</span>
                     </div>
                   )}
                 </div>
@@ -203,8 +203,8 @@ export default function ShopKycPage() {
                   <button type="button" onClick={() => setCapturing(true)} disabled={isUploading}
                     className={`btn-secondary text-xs py-2 px-3 ${isUploading ? 'opacity-50' : ''}`}>
                     {isUploading
-                      ? <span className="flex items-center gap-1.5"><Loader2 size={11} className="animate-spin" /> Saving</span>
-                      : <span className="flex items-center gap-1.5"><Camera size={11} strokeWidth={2.5} />{uploaded ? 'Retake' : 'Take selfie'}</span>}
+                      ? <span className="flex items-center gap-1.5"><Loader2 size={11} className="animate-spin" /> {t('sp.ky.saving', 'Saving')}</span>
+                      : <span className="flex items-center gap-1.5"><Camera size={11} strokeWidth={2.5} />{uploaded ? t('sp.ky.retake', 'Retake') : t('sp.ky.takeBtn', 'Take selfie')}</span>}
                   </button>
                 ) : (
                 <label className={`btn-secondary cursor-pointer text-xs py-2 px-3 ${isUploading ? 'opacity-50' : ''}`}>
@@ -231,7 +231,7 @@ export default function ShopKycPage() {
       <div className="fixed inset-x-0 z-30 bg-white border-t border-slate-100 safe-pb bottom-[var(--frame-bottom,0px)] left-[var(--frame-left,0px)]">
         <div className="max-w-lg lg:max-w-2xl mx-auto px-4 pt-3 pb-2">
           <button onClick={submit} disabled={submitting || (asked ? ![...asked].every((k) => urls[k]) : (!urls.ownerIdUrl || !urls.shopPhotoUrl || !urls.selfieUrl))} className="btn-primary w-full">
-            {submitting ? <><Loader2 size={15} className="animate-spin" /> Submitting…</> : <><ShieldCheck size={15} strokeWidth={2.5} /> Submit for Verification</>}
+            {submitting ? <><Loader2 size={15} className="animate-spin" /> {t('sp.ky.submitting', 'Submitting…')}</> : <><ShieldCheck size={15} strokeWidth={2.5} /> {t('sp.ky.submit', 'Submit for Verification')}</>}
           </button>
         </div>
       </div>

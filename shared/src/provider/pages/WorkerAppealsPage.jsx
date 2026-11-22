@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Plus, ChevronRight, AlertCircle, Clock, CheckCircle, XCircle, Loader2, X, Scale, FileText, MessagesSquare, CheckCircle2, Flag } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useI18n, useServiceProT } from '../../i18n/I18nProvider';
 import { useGetWorkerAppealsQuery, useCreateWorkerAppealMutation } from '../../services/api';
 
 const STATUS_CONFIG = {
-  pending:      { label: 'Pending Review', color: 'amber',   Icon: Clock },
-  under_review: { label: 'Under Review',   color: 'blue',    Icon: AlertCircle },
-  upheld:       { label: 'Upheld (Won)',   color: 'emerald', Icon: CheckCircle },
-  dismissed:    { label: 'Dismissed',      color: 'rose',    Icon: XCircle },
+  pending:      { label: 'Pending Review', k: 'pending', color: 'amber',   Icon: Clock },
+  under_review: { label: 'Under Review', k: 'underReview', color: 'blue',    Icon: AlertCircle },
+  upheld:       { label: 'Upheld (Won)', k: 'upheld', color: 'emerald', Icon: CheckCircle },
+  dismissed:    { label: 'Dismissed', k: 'dismissed', color: 'rose',    Icon: XCircle },
 };
 
 const TYPE_OPTS = ['rating', 'penalty', 'cancellation', 'pause', 'dues', 'verification', 'order_issue'];
@@ -24,28 +25,30 @@ function StarIcon(props) {
 }
 
 function StatusBadge({ status }) {
+  const t = useServiceProT();
   const c = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending;
   return (
     <span className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border bg-${c.color}-50 text-${c.color}-700 border-${c.color}-200/50`}>
-      <c.Icon size={12} strokeWidth={2.5} /> {c.label}
+      <c.Icon size={12} strokeWidth={2.5} /> {t('sp.wa.' + c.k, c.label)}
     </span>
   );
 }
 
 function NewAppealSheet({ onClose }) {
+  const t = useServiceProT();
   const [form, setForm] = useState({ type: 'rating', subject: '', description: '', jobRef: '' });
   const [create, { isLoading }] = useCreateWorkerAppealMutation();
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
   async function submit(e) {
     e.preventDefault();
-    if (form.description.length < 30) return toast.error('Please describe the issue in at least 30 characters');
+    if (form.description.length < 30) return toast.error(t('sp.wa.minChars', 'Please describe the issue in at least 30 characters'));
     try {
       await create(form).unwrap();
-      toast.success('Appeal submitted successfully');
+      toast.success(t('sp.wa.ok', 'Appeal submitted successfully'));
       onClose();
     } catch (err) {
-      toast.error(err?.data?.error || 'Failed to submit appeal. Please try again.');
+      toast.error(err?.data?.error || t('sp.wa.fail', 'Failed to submit appeal. Please try again.'));
     }
   }
 
@@ -56,7 +59,7 @@ function NewAppealSheet({ onClose }) {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 px-6 border-b border-slate-100 bg-white z-10 sticky top-0">
-          <h2 className="font-black text-slate-800 text-[16px] tracking-wide">File an Appeal</h2>
+          <h2 className="font-black text-slate-800 text-[16px] tracking-wide">{t('sp.wa.file', 'File an Appeal')}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors shrink-0"><X size={16} strokeWidth={2.5} /></button>
         </div>
 
@@ -64,18 +67,18 @@ function NewAppealSheet({ onClose }) {
           <form onSubmit={submit} className="space-y-6">
             
             <div>
-              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-1">What is this regarding?</p>
+              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-1">{t('sp.wa.regarding', 'What is this regarding?')}</p>
               <div className="grid grid-cols-2 gap-2.5">
-                {TYPE_OPTS.map(t => {
-                  const Icon = TYPE_ICONS[t];
-                  const isSelected = form.type === t;
+                {TYPE_OPTS.map(ty => {
+                  const Icon = TYPE_ICONS[ty];
+                  const isSelected = form.type === ty;
                   return (
-                    <button type="button" key={t} onClick={() => set('type', t)}
+                    <button type="button" key={ty} onClick={() => set('type', ty)}
                       className={`flex flex-col items-start gap-2 p-3.5 rounded-[1.25rem] border-2 transition-all duration-200 ${isSelected ? 'border-zappy-500 bg-zappy-50 shadow-[0_2px_10px_rgba(59,130,246,0.1)] text-zappy-900' : 'border-slate-100 bg-white text-slate-600 hover:border-zappy-200 hover:bg-slate-50'}`}>
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-zappy-600 text-white shadow-sm' : 'bg-slate-100 text-slate-400'}`}>
                         <Icon size={14} strokeWidth={isSelected ? 2.5 : 2} />
                       </div>
-                      <span className={`text-[13px] text-left leading-tight ${isSelected ? 'font-black' : 'font-bold'}`}>{TYPE_LABELS[t]}</span>
+                      <span className={`text-[13px] text-left leading-tight ${isSelected ? 'font-black' : 'font-bold'}`}>{t('sp.wa.t.' + ty, TYPE_LABELS[ty])}</span>
                     </button>
                   );
                 })}
@@ -84,33 +87,33 @@ function NewAppealSheet({ onClose }) {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 pl-1">Subject</label>
+                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 pl-1">{t('sp.wa.subject', 'Subject')}</label>
                 <input
                   className="w-full bg-slate-50 border-2 border-transparent focus:bg-white focus:border-zappy-500 rounded-2xl px-4 py-3.5 text-[15px] font-bold text-slate-800 outline-none transition-all placeholder:text-slate-400 placeholder:font-medium shadow-inner"
-                  placeholder="e.g. Unfair 1-star rating from customer"
+                  placeholder={t('sp.wa.subjectPh', 'e.g. Unfair 1-star rating from customer')}
                   value={form.subject} onChange={e => set('subject', e.target.value)} required
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 pl-1">Booking reference <span className="font-medium normal-case text-slate-300">(Optional)</span></label>
+                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 pl-1">{t('sp.wa.ref', 'Booking reference')} <span className="font-medium normal-case text-slate-300">{t('sp.wa.optional', '(Optional)')}</span></label>
                 <input
                   className="w-full bg-slate-50 border-2 border-transparent focus:bg-white focus:border-zappy-500 rounded-2xl px-4 py-3.5 text-[15px] font-mono font-bold text-slate-800 outline-none transition-all placeholder:text-slate-400 placeholder:font-sans placeholder:font-medium shadow-inner"
-                  placeholder="e.g. ZR5ZRJXCRP, on the job screen"
+                  placeholder={t('sp.wa.refPh', 'e.g. ZR5ZRJXCRP, on the job screen')}
                   value={form.jobRef} maxLength={40} onChange={e => set('jobRef', e.target.value.toUpperCase())}
                 />
               </div>
 
               <div>
                 <div className="flex justify-between items-end mb-1.5 pl-1 pr-1">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest">Detailed Explanation</label>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest">{t('sp.wa.detail', 'Detailed Explanation')}</label>
                   <span className={`text-[10px] font-bold ${form.description.length < 30 ? 'text-amber-500' : 'text-emerald-500'}`}>
-                    {form.description.length}/30 min chars
+                    {t('sp.wa.minCount', '{n}/30 min chars').replace('{n}', form.description.length)}
                   </span>
                 </div>
                 <textarea
                   className="w-full bg-slate-50 border-2 border-transparent focus:bg-white focus:border-zappy-500 rounded-2xl px-4 py-3.5 text-[14px] font-medium text-slate-800 outline-none resize-none transition-all placeholder:text-slate-400 shadow-inner"
-                  placeholder="Please describe exactly what happened and why you are appealing. Providing details helps us review faster."
+                  placeholder={t('sp.wa.descPh', 'Please describe exactly what happened and why you are appealing. Providing details helps us review faster.')}
                   rows={5} value={form.description} onChange={e => set('description', e.target.value)} required
                 />
               </div>
@@ -118,14 +121,14 @@ function NewAppealSheet({ onClose }) {
 
             <div className="flex items-start gap-2.5 bg-zappy-50/50 rounded-[1.25rem] p-4 border border-zappy-100/50">
               <Clock size={16} className="shrink-0 text-zappy-500 mt-0.5" strokeWidth={2.5} />
-              <p className="text-xs font-semibold text-zappy-800/80 leading-relaxed">Our support team reviews appeals within 2-3 business days. We will notify you once a decision is made.</p>
+              <p className="text-xs font-semibold text-zappy-800/80 leading-relaxed">{t('sp.wa.review', 'Our support team reviews appeals within 2-3 business days. We will notify you once a decision is made.')}</p>
             </div>
 
             <div className="pt-2 pb-4">
               <button type="submit" disabled={isLoading || form.description.length < 30}
                 className="w-full py-4 rounded-[1.25rem] bg-zappy-600 hover:bg-zappy-700 text-white font-black text-[15px] shadow-lg shadow-zappy-600/20 disabled:opacity-40 disabled:hover:bg-zappy-600 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                 {isLoading ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} strokeWidth={2.5} />} 
-                {isLoading ? 'Submitting...' : 'Submit Appeal'}
+                {isLoading ? t('sp.wa.submitting', 'Submitting...') : t('sp.wa.submit', 'Submit Appeal')}
               </button>
             </div>
             
@@ -137,6 +140,8 @@ function NewAppealSheet({ onClose }) {
 }
 
 export default function WorkerAppealsPage() {
+  const t = useServiceProT();
+  const { lang } = useI18n();
   const nav = useNavigate();
   const { data, isLoading } = useGetWorkerAppealsQuery();
   const [showNew, setShowNew] = useState(false);
@@ -154,9 +159,9 @@ export default function WorkerAppealsPage() {
               <motion.button onClick={() => nav(-1)} whileTap={{ scale: 0.9 }} className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white shadow-sm">
                 <ArrowLeft size={20} strokeWidth={2.5} />
               </motion.button>
-              <h1 className="text-white font-black tracking-wide text-lg">Ask us to recheck</h1>
+              <h1 className="text-white font-black tracking-wide text-lg">{t('sp.wa.title', 'Ask us to recheck')}</h1>
               <motion.button onClick={() => setShowNew(true)} whileTap={{ scale: 0.9 }} className="h-10 px-4 rounded-full bg-white text-zappy-600 font-bold text-sm flex items-center justify-center gap-1.5 shadow-md">
-                <Plus size={16} strokeWidth={2.5} /> File Appeal
+                <Plus size={16} strokeWidth={2.5} /> {t('sp.wa.fileBtn', 'File Appeal')}
               </motion.button>
             </div>
 
@@ -164,8 +169,8 @@ export default function WorkerAppealsPage() {
               <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/20 shadow-inner">
                 <Scale size={32} className="text-blue-300 fill-blue-400/20" strokeWidth={1.5} />
               </div>
-              <p className="text-white font-bold text-lg tracking-tight mb-1">Fair & Transparent</p>
-              <p className="text-white/60 text-xs font-medium px-6">Contest unfair ratings or penalties. Our dedicated team reviews every case carefully.</p>
+              <p className="text-white font-bold text-lg tracking-tight mb-1">{t('sp.wa.fair', 'Fair & Transparent')}</p>
+              <p className="text-white/60 text-xs font-medium px-6">{t('sp.wa.fairSub', 'Contest unfair ratings or penalties. Our dedicated team reviews every case carefully.')}</p>
             </div>
           </div>
         </header>
@@ -175,22 +180,22 @@ export default function WorkerAppealsPage() {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-16 bg-white rounded-[1.5rem] shadow-sm">
               <Loader2 size={28} className="animate-spin text-zappy-400 mb-3" />
-              <p className="text-sm font-semibold text-slate-400">Loading your appeals...</p>
+              <p className="text-sm font-semibold text-slate-400">{t('sp.wa.loading', 'Loading your appeals...')}</p>
             </div>
           ) : appeals.length === 0 ? (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[1.5rem] border border-dashed border-slate-200 p-12 text-center shadow-sm">
               <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-5">
                 <FileText size={32} className="text-slate-300" strokeWidth={1.5} />
               </div>
-              <p className="font-black text-slate-700 text-lg mb-1">No Appeals Yet</p>
-              <p className="text-sm text-slate-500 font-medium mb-6 px-4">If you feel a rating or penalty was unfair, you can file an appeal here.</p>
-              <button onClick={() => setShowNew(true)} className="py-3 px-6 bg-zappy-600 text-white rounded-xl font-bold shadow-md hover:bg-zappy-700 transition-colors">File an Appeal</button>
+              <p className="font-black text-slate-700 text-lg mb-1">{t('sp.wa.none', 'No Appeals Yet')}</p>
+              <p className="text-sm text-slate-500 font-medium mb-6 px-4">{t('sp.wa.noneH', 'If you feel a rating or penalty was unfair, you can file an appeal here.')}</p>
+              <button onClick={() => setShowNew(true)} className="py-3 px-6 bg-zappy-600 text-white rounded-xl font-bold shadow-md hover:bg-zappy-700 transition-colors">{t('sp.wa.file', 'File an Appeal')}</button>
             </motion.div>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between px-2">
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Your Appeal History</p>
-                <span className="text-[11px] font-bold text-slate-500 bg-slate-200/50 px-2.5 py-1 rounded-full">{appeals.length} Total</span>
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{t('sp.wa.history', 'Your Appeal History')}</p>
+                <span className="text-[11px] font-bold text-slate-500 bg-slate-200/50 px-2.5 py-1 rounded-full">{t('sp.wa.total', '{n} Total').replace('{n}', appeals.length)}</span>
               </div>
               
               {appeals.map((a, i) => {
@@ -206,7 +211,7 @@ export default function WorkerAppealsPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center flex-wrap gap-2 mb-2">
                             <span className="inline-flex items-center gap-1 text-[10px] bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-black uppercase tracking-widest">
-                              <TypeIcon size={10} strokeWidth={2.5} /> {TYPE_LABELS[a.type] ?? a.type}
+                              <TypeIcon size={10} strokeWidth={2.5} /> {TYPE_LABELS[a.type] ? t('sp.wa.t.' + a.type, TYPE_LABELS[a.type]) : a.type}
                             </span>
                             <StatusBadge status={a.status} />
                           </div>
@@ -219,7 +224,7 @@ export default function WorkerAppealsPage() {
                         <div className="mt-4 bg-slate-50 rounded-2xl p-4 text-[13px] text-slate-700 border border-slate-100 shadow-inner flex gap-3 items-start">
                           <MessagesSquare size={16} className="text-zappy-400 shrink-0 mt-0.5" strokeWidth={2} />
                           <div>
-                            <p className="font-bold text-slate-800 text-[11px] uppercase tracking-wider mb-0.5">Admin Response</p>
+                            <p className="font-bold text-slate-800 text-[11px] uppercase tracking-wider mb-0.5">{t('sp.wa.adminResp', 'Admin Response')}</p>
                             <p className="font-medium">{a.adminNote}</p>
                           </div>
                         </div>
@@ -228,7 +233,7 @@ export default function WorkerAppealsPage() {
                       <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
                         <p className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
                           <Clock size={12} strokeWidth={2.5} />
-                          Submitted on {new Date(a.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {t('sp.wa.submittedOn', 'Submitted on {d}').replace('{d}', new Date(a.createdAt).toLocaleDateString(`${lang}-IN`, { day: 'numeric', month: 'short', year: 'numeric' }))}
                         </p>
                         {(a.jobRef || a.orderId) && (
                           <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-100">

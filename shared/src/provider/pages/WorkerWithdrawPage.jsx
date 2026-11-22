@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { useGetWorkerBankAccountsQuery, useGetWalletQuery, useRequestPayoutMutation } from '../../services/api';
 import DuesCard from '../DuesCard';
 import { useOtpGate } from '../../components/common/OtpGate';
+import { useServiceProT } from '../../i18n/I18nProvider';
 
 const MIN_PAISE = 5000;   // ₹50 — must match server payout.service.js
 const MAX_PAISE = 2500000; // ₹25,000
@@ -16,6 +17,7 @@ const MAX_PAISE = 2500000; // ₹25,000
  * would promise what does not happen. It returns with the gateway.
  */
 export default function WorkerWithdrawPage() {
+  const t = useServiceProT();
   const nav = useNavigate();
   const { data: walletData, isLoading: walletLoading } = useGetWalletQuery();
   const { data: bankData, isLoading: bankLoading } = useGetWorkerBankAccountsQuery();
@@ -31,7 +33,7 @@ export default function WorkerWithdrawPage() {
   const banks = bankData?.banks ?? [];
   const upiIds = bankData?.upiIds ?? [];
   const allMethods = [
-    ...banks.map(b => ({ id: b._id, type: 'bank', label: b.label || b.bankName || 'Bank Account', sub: b.accountNumber, isDefault: b.isDefault, accountName: b.accountName, ifsc: b.ifsc })),
+    ...banks.map(b => ({ id: b._id, type: 'bank', label: b.label || b.bankName || t('sp.ww.bank', 'Bank Account'), sub: b.accountNumber, isDefault: b.isDefault, accountName: b.accountName, ifsc: b.ifsc })),
     ...upiIds.map(u => ({ id: u._id, type: 'upi', label: u.label || 'UPI', sub: u.upiId, isDefault: u.isDefault })),
   ];
   const defaultMethod = allMethods.find(m => m.isDefault) ?? allMethods[0];
@@ -42,18 +44,18 @@ export default function WorkerWithdrawPage() {
   const amtPaise = Math.round(amtRs * 100);
 
   const validationError = amtPaise < MIN_PAISE && amtRs > 0
-    ? `Minimum withdrawal is ₹${MIN_PAISE / 100}`
+    ? t('sp.ww.min', 'Minimum withdrawal is ₹{n}').replace('{n}', MIN_PAISE / 100)
     : amtPaise > MAX_PAISE
-    ? `Maximum withdrawal is ₹${MAX_PAISE / 100}`
+    ? t('sp.ww.max', 'Maximum withdrawal is ₹{n}').replace('{n}', MAX_PAISE / 100)
     : amtPaise > balancePaise
-    ? 'Insufficient wallet balance'
+    ? t('sp.ww.insuff', 'Insufficient wallet balance')
     : !selected
-    ? 'Add a bank account or UPI ID first'
+    ? t('sp.ww.addFirst', 'Add a bank account or UPI ID first')
     : null;
 
   async function submit() {
     if (validationError) return toast.error(validationError);
-    if (!amtRs) return toast.error('Enter an amount');
+    if (!amtRs) return toast.error(t('sp.ww.enterAmt', 'Enter an amount'));
 
     // Build body matching payout.routes.js Joi schema exactly
     const body = {
@@ -71,10 +73,10 @@ export default function WorkerWithdrawPage() {
     try {
       // Payouts need a fresh OTP; asked for here when the server wants it.
       await otp.run(() => requestPayout(body).unwrap());
-      toast.success('Withdrawal requested successfully!');
+      toast.success(t('sp.ww.ok', 'Withdrawal requested successfully!'));
       nav('/worker');
     } catch (err) {
-      if (err?.message !== 'cancelled') toast.error(err?.data?.error || 'Failed to request withdrawal. Try again.');
+      if (err?.message !== 'cancelled') toast.error(err?.data?.error || t('sp.ww.fail', 'Failed to request withdrawal. Try again.'));
     }
   }
 
@@ -93,18 +95,18 @@ export default function WorkerWithdrawPage() {
               <motion.button onClick={() => nav(-1)} whileTap={{ scale: 0.9 }} className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white">
                 <ArrowLeft size={20} strokeWidth={2.5} />
               </motion.button>
-              <h1 className="text-white font-black tracking-wide text-lg">Take out money</h1>
+              <h1 className="text-white font-black tracking-wide text-lg">{t('sp.ww.title', 'Take out money')}</h1>
               <div className="w-10 h-10" /> {/* Balancer */}
             </div>
 
             <div className="text-center">
-              <p className="text-white/60 text-[11px] font-bold uppercase tracking-widest mb-1.5">Available Balance</p>
+              <p className="text-white/60 text-[11px] font-bold uppercase tracking-widest mb-1.5">{t('sp.ww.avail', 'Available Balance')}</p>
               <h2 className="text-white font-black text-5xl tracking-tight drop-shadow-lg flex items-center justify-center gap-1">
                 <span className="text-3xl text-emerald-400 opacity-80">₹</span>{balanceRs}
               </h2>
               {balancePaise < MIN_PAISE && (
                 <div className="mt-3 inline-flex items-center gap-1.5 bg-amber-500/20 text-amber-300 px-3 py-1.5 rounded-full border border-amber-500/30 text-xs font-bold">
-                  <AlertCircle size={12} strokeWidth={2.5} /> Min. withdrawal ₹{MIN_PAISE / 100}
+                  <AlertCircle size={12} strokeWidth={2.5} /> {t('sp.ww.minTag', 'Min. withdrawal ₹{n}').replace('{n}', MIN_PAISE / 100)}
                 </div>
               )}
             </div>
@@ -114,7 +116,7 @@ export default function WorkerWithdrawPage() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-64 relative z-20">
             <Loader2 size={28} className="animate-spin text-zappy-400 mb-3" />
-            <p className="text-sm font-semibold text-slate-400">Loading wallet...</p>
+            <p className="text-sm font-semibold text-slate-400">{t('sp.ww.loading', 'Loading wallet...')}</p>
           </div>
         ) : (
           <div className="relative z-20 px-4 -mt-16 space-y-5">
@@ -124,10 +126,10 @@ export default function WorkerWithdrawPage() {
             {/* Amount Input */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[1.5rem] border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-5">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Amount to Withdraw</p>
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{t('sp.ww.amtTo', 'Amount to Withdraw')}</p>
                 <button onClick={() => setAmountRs(String(Math.min(Math.floor(balancePaise / 100), MAX_PAISE / 100)))} 
                   className="text-[11px] font-bold text-zappy-600 bg-zappy-50 hover:bg-zappy-100 px-2.5 py-1 rounded-md transition-colors uppercase tracking-wider">
-                  Use Max
+                  {t('sp.ww.useMax', 'Use Max')}
                 </button>
               </div>
               
@@ -161,9 +163,9 @@ export default function WorkerWithdrawPage() {
             {/* Destination Selection */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-[1.5rem] border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-5">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Send To</p>
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{t('sp.ww.sendTo', 'Send To')}</p>
                 <button onClick={() => nav('/worker/bank')} className="text-[11px] font-bold text-zappy-600 hover:text-zappy-700 uppercase tracking-wider bg-slate-50 px-2 py-1 rounded-md">
-                  + Add New
+                  {t('sp.ww.addNew', '+ Add New')}
                 </button>
               </div>
               
@@ -173,8 +175,8 @@ export default function WorkerWithdrawPage() {
                   <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                     <Banknote size={20} className="text-zappy-500" strokeWidth={2} />
                   </div>
-                  <span className="font-bold text-sm">Add Bank Account or UPI</span>
-                  <span className="text-xs text-zappy-400 font-medium mt-0.5">Required to withdraw</span>
+                  <span className="font-bold text-sm">{t('sp.ww.addBU', 'Add Bank Account or UPI')}</span>
+                  <span className="text-xs text-zappy-400 font-medium mt-0.5">{t('sp.ww.req', 'Required to withdraw')}</span>
                 </button>
               ) : (
                 <div className="space-y-2.5">
@@ -195,7 +197,7 @@ export default function WorkerWithdrawPage() {
                           <p className={`text-xs font-semibold truncate mt-0.5 ${isSelected ? 'text-zappy-600/70' : 'text-slate-400'}`}>{m.sub}</p>
                         </div>
                         
-                        {m.isDefault && !isSelected && <span className="text-[9px] bg-slate-100 text-slate-500 font-bold uppercase tracking-wider px-2 py-1 rounded-md shrink-0">Default</span>}
+                        {m.isDefault && !isSelected && <span className="text-[9px] bg-slate-100 text-slate-500 font-bold uppercase tracking-wider px-2 py-1 rounded-md shrink-0">{t('sp.ww.default', 'Default')}</span>}
                         
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${isSelected ? 'border-zappy-600 bg-zappy-600' : 'border-slate-300'}`}>
                           {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
@@ -212,9 +214,9 @@ export default function WorkerWithdrawPage() {
               {amtRs > 0 && !validationError && (
                 <motion.div initial={{ opacity: 0, height: 0, scale: 0.95 }} animate={{ opacity: 1, height: 'auto', scale: 1 }} exit={{ opacity: 0, height: 0, scale: 0.95 }} 
                   className="bg-slate-800 rounded-[1.5rem] p-5 shadow-xl shadow-slate-900/10 text-white space-y-3 overflow-hidden">
-                  <div className="flex justify-between items-center"><span className="text-slate-400 font-semibold text-sm">Withdrawal amount</span><span className="font-bold">₹{amtRs.toFixed(2)}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-slate-400 font-semibold text-sm">{t('sp.ww.wAmt', 'Withdrawal amount')}</span><span className="font-bold">₹{amtRs.toFixed(2)}</span></div>
                   <div className="border-t border-slate-700 pt-3 flex justify-between items-center">
-                    <span className="text-slate-200 font-black">You receive</span>
+                    <span className="text-slate-200 font-black">{t('sp.ww.receive', 'You receive')}</span>
                     <span className="text-2xl font-black text-emerald-400">₹{netRs.toFixed(2)}</span>
                   </div>
                 </motion.div>
@@ -224,7 +226,7 @@ export default function WorkerWithdrawPage() {
             {/* Security Notice */}
             <div className="flex items-start gap-2.5 bg-slate-100/80 rounded-2xl p-4 border border-slate-200 text-xs font-semibold text-slate-500 shadow-inner">
               <ShieldCheck size={16} className="shrink-0 text-emerald-500 mt-0.5" strokeWidth={2} />
-              <p className="leading-relaxed">All withdrawals are securely processed. We review each one and send it to the account you chose.</p>
+              <p className="leading-relaxed">{t('sp.ww.secure', 'All withdrawals are securely processed. We review each one and send it to the account you chose.')}</p>
             </div>
 
             {/* Submit Button */}
@@ -234,7 +236,7 @@ export default function WorkerWithdrawPage() {
                 disabled={submitting || !!validationError || !amtRs || allMethods.length === 0 || balancePaise < MIN_PAISE}
                 className="w-full py-4 rounded-[1.25rem] bg-zappy-600 hover:bg-zappy-700 text-white font-black text-[15px] flex items-center justify-center gap-2 disabled:opacity-40 disabled:hover:bg-zappy-600 shadow-xl shadow-zappy-600/20 transition-all active:scale-[0.98]">
                 {submitting ? <Loader2 size={20} className="animate-spin" /> : <Wallet size={20} strokeWidth={2.5} />}
-                {submitting ? 'Processing Request…' : `Withdraw ₹${netRs > 0 ? netRs.toFixed(2) : '0.00'}`}
+                {submitting ? t('sp.ww.processing', 'Processing Request…') : t('sp.ww.withdraw', 'Withdraw ₹{n}').replace('{n}', netRs > 0 ? netRs.toFixed(2) : '0.00')}
               </button>
             </motion.div>
             

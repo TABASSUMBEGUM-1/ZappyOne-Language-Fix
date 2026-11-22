@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import {
   usePartnerNotificationsQuery, useMarkPartnerNotificationReadMutation, useMarkAllPartnerNotificationsReadMutation,
 } from '@shared/services/api';
+import { useI18n } from '@shared/i18n/I18nProvider';
 import { timeAgo } from '../../lib/format';
 
 const META = {
@@ -20,6 +21,7 @@ const metaOf = (type) => META[type] || { Icon: Bell, tone: 'bg-sunken text-ink-7
 
 /** Booking, verification and money updates, newest first. */
 export default function NotificationPanel({ onClose }) {
+  const { t } = useI18n();
   const [page, setPage] = useState(1);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const { data, isLoading } = usePartnerNotificationsQuery({ page, unreadOnly });
@@ -30,38 +32,38 @@ export default function NotificationPanel({ onClose }) {
 
   async function readAll() {
     await markAllRead().unwrap().catch(() => {});
-    toast.success('All marked as read');
+    toast.success(t('sp.ev.np.allRead', 'All marked as read'));
   }
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex justify-end bg-ink-900/40" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-        className="flex h-full w-full max-w-sm flex-col bg-white shadow-float" aria-label="Notifications">
+        className="flex h-full w-full max-w-sm flex-col bg-white shadow-float" aria-label={t('sp.ev.nav.notif', 'Notifications')}>
         <header className="flex items-center justify-between border-b border-line px-5 py-4">
           <div>
-            <p className="text-[16px] font-bold text-ink-900">Notifications</p>
-            {unread > 0 && <p className="text-[12px] text-zappy-600">{unread} unread</p>}
+            <p className="text-[16px] font-bold text-ink-900">{t('sp.ev.nav.notif', 'Notifications')}</p>
+            {unread > 0 && <p className="text-[12px] text-zappy-600">{t('sp.ev.np.unreadN', '{n} unread').replace('{n}', unread)}</p>}
           </div>
           <div className="flex items-center gap-1">
-            {unread > 0 && <button type="button" onClick={readAll} className="rounded-btn px-2.5 py-1.5 text-[13px] font-semibold text-zappy-600 hover:bg-zappy-50">Mark all read</button>}
-            <button type="button" onClick={onClose} aria-label="Close" className="flex h-9 w-9 items-center justify-center rounded-btn hover:bg-sunken"><X size={17} /></button>
+            {unread > 0 && <button type="button" onClick={readAll} className="rounded-btn px-2.5 py-1.5 text-[13px] font-semibold text-zappy-600 hover:bg-zappy-50">{t('sp.ev.np.markAll', 'Mark all read')}</button>}
+            <button type="button" onClick={onClose} aria-label={t('sp.ev.cal.close', 'Close')} className="flex h-9 w-9 items-center justify-center rounded-btn hover:bg-sunken"><X size={17} /></button>
           </div>
         </header>
 
         <div className="flex gap-2 border-b border-line px-5 py-3">
           {[false, true].map((v) => (
             <button key={String(v)} type="button" onClick={() => { setUnreadOnly(v); setPage(1); }}
-              className={`chip ${unreadOnly === v ? 'bg-zappy-600 text-white' : 'bg-sunken text-ink-700'}`}>{v ? 'Unread' : 'All'}</button>
+              className={`chip ${unreadOnly === v ? 'bg-zappy-600 text-white' : 'bg-sunken text-ink-700'}`}>{v ? t('sp.ev.np.unread', 'Unread') : t('sp.ev.np.all', 'All')}</button>
           ))}
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {isLoading ? <p className="py-16 text-center text-[14px] text-ink-500">Loading…</p>
+          {isLoading ? <p className="py-16 text-center text-[14px] text-ink-500">{t('sp.c.loading', 'Loading…')}</p>
             : !items.length ? (
               <div className="px-6 py-16 text-center">
-                <p className="text-[15px] font-semibold text-ink-900">Nothing here yet</p>
-                <p className="mt-1 text-[13px] text-ink-500">New bookings, ID check and payment news show up here.</p>
+                <p className="text-[15px] font-semibold text-ink-900">{t('sp.ev.np.empty', 'Nothing here yet')}</p>
+                <p className="mt-1 text-[13px] text-ink-500">{t('sp.ev.np.emptyH', 'New bookings, ID check and payment news show up here.')}</p>
               </div>
             ) : (
               <ul className="divide-y divide-line">
@@ -76,7 +78,7 @@ export default function NotificationPanel({ onClose }) {
                         <span className="min-w-0 flex-1">
                           <span className={`block text-[14px] leading-snug ${isUnread ? 'font-semibold text-ink-900' : 'text-ink-700'}`}>{n.title}</span>
                           {n.body && <span className="mt-0.5 block text-[13px] text-ink-500 line-clamp-2">{n.body}</span>}
-                          <span className="mt-1 block text-[12px] text-ink-400">{timeAgo(n.createdAt)}</span>
+                          <span className="mt-1 block text-[12px] text-ink-400">{timeAgo(n.createdAt, t)}</span>
                         </span>
                       </button>
                     </li>
@@ -88,9 +90,9 @@ export default function NotificationPanel({ onClose }) {
 
         {data?.pages > 1 && (
           <footer className="flex items-center justify-between border-t border-line px-5 py-3 text-[13px]">
-            <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="btn-outline min-h-[36px] px-3 disabled:opacity-40">Previous</button>
+            <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="btn-outline min-h-[36px] px-3 disabled:opacity-40">{t('sp.ev.np.prev', 'Previous')}</button>
             <span className="text-ink-500">{page} / {data.pages}</span>
-            <button type="button" disabled={page === data.pages} onClick={() => setPage((p) => p + 1)} className="btn-outline min-h-[36px] px-3 disabled:opacity-40">Next</button>
+            <button type="button" disabled={page === data.pages} onClick={() => setPage((p) => p + 1)} className="btn-outline min-h-[36px] px-3 disabled:opacity-40">{t('sp.ev.np.next', 'Next')}</button>
           </footer>
         )}
       </motion.aside>

@@ -50,10 +50,10 @@ export default function ShopHeader({ shop, trade, live, isOpen, blocker }) {
   const t = useT();
   const hasPin = shop?.address?.location?.coordinates?.length === 2;
   const today = shop?.todayHours;
-  const hours = isOpen === false ? opensLabel(shop?.opensNext) || 'Closed today' : today ? `Open till ${time(today.closesAt)}` : null;
+  const hours = isOpen === false ? opensLabel(shop?.opensNext, t) || t('sp.hdr.closedToday', 'Closed today') : today ? t('sp.hdr.openTill', 'Open till {time}').replace('{time}', time(today.closesAt)) : null;
   const status = live
     ? { title: t('sp.live', 'Live'), sub: t('sp.customers_can_book_you', 'Customers can book you') }
-    : isOpen === false ? { title: t('sp.closed', 'Closed'), sub: hours || 'Outside your hours' } : { title: t('sp.not_live', 'Not live'), sub: blocker || 'Finish setup to go live' };
+    : isOpen === false ? { title: t('sp.closed', 'Closed'), sub: hours || t('sp.hdr.outside', 'Outside your hours') } : { title: t('sp.not_live', 'Not live'), sub: blocker || t('sp.hdr.finish', 'Finish setup to go live') };
   return (
     <header className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <Awning live={live} />
@@ -61,7 +61,7 @@ export default function ShopHeader({ shop, trade, live, isOpen, blocker }) {
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <Avatar name={shop?.businessName} photo={shop?.coverImageUrl} className="h-14 w-14 shrink-0 rounded-2xl text-[20px] ring-2 ring-white shadow-sm" />
           <div className="min-w-0">
-            <p className="truncate text-[10.5px] font-black uppercase tracking-[0.14em] text-slate-400">{trade || 'Shop partner'}</p>
+            <p className="truncate text-[10.5px] font-black uppercase tracking-[0.14em] text-slate-400">{trade ? t(labelKey(trade), trade) : t('sp.hdr.partner', 'Shop partner')}</p>
             <h1 className="truncate text-[20px] font-black leading-tight tracking-tight text-[#0F172A]">{shop?.businessName}</h1>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               {hasPin && <MyAreaChip coordinates={shop.address.location.coordinates} live={live} />}

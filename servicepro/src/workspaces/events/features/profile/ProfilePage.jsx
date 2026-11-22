@@ -10,10 +10,12 @@ import { PageHeader, Spinner, Card, Field } from '../../components/ui';
 import { uploadFile } from '../../lib/upload';
 import PlacePicker from './PlacePicker';
 import KycSection from './KycSection';
+import { useI18n } from '@shared/i18n/I18nProvider';
 import { useFocusField } from '@shared/hooks/useFocusField';
 
 /** The business customers see, where it works, and its verification. */
 export default function ProfilePage() {
+  const { t } = useI18n();
   const { accessToken } = useSelector(selectAuth);
   const { data, isLoading } = usePartnerMeQuery();
   const [updateMe, { isLoading: saving }] = useUpdatePartnerMeMutation();
@@ -40,16 +42,16 @@ export default function ProfilePage() {
   async function pickPhoto(file) {
     setUploading(true);
     try {
-      const key = await uploadFile(presign, file, { folder: 'profile', maxMb: 5 });
+      const key = await uploadFile(presign, file, { folder: 'profile', maxMb: 5, t });
       await updateMe({ profilePhotoKey: key }).unwrap();
       setPhoto(URL.createObjectURL(file));
-      toast.success('Photo updated');
-    } catch (e) { toast.error(e?.data?.error || e.message || 'Upload failed'); } finally { setUploading(false); }
+      toast.success(t('sp.ev.pr.photoUp', 'Photo updated'));
+    } catch (e) { toast.error(e?.data?.error || e.message || t('sp.ev.pe.upFail', 'Upload failed')); } finally { setUploading(false); }
   }
 
   async function save() {
-    if (form.businessName.trim().length < 2) return toast.error('Add your business name');
-    if (!form.cities.length) return toast.error('Choose at least one place you serve');
+    if (form.businessName.trim().length < 2) return toast.error(t('sp.ev.pr.addName', 'Add your business name'));
+    if (!form.cities.length) return toast.error(t('sp.ev.pr.needPlace', 'Choose at least one place you serve'));
     try {
       await updateMe({
         businessName: form.businessName.trim(), ownerName: form.ownerName.trim(), bio: form.bio.trim(),
@@ -57,13 +59,13 @@ export default function ProfilePage() {
         cities: form.cities, serviceRadiusKm: Number(form.serviceRadiusKm) || 30,
       }).unwrap();
       draft.saved(form);
-      toast.success('Profile saved');
-    } catch (e) { toast.error(e?.data?.error || 'Could not save'); }
+      toast.success(t('sp.ev.pr.saved', 'Profile saved'));
+    } catch (e) { toast.error(e?.data?.error || t('sp.ev.pe.saveFail', 'Could not save')); }
   }
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Profile & ID check" subtitle="What customers see about your business." />
+      <PageHeader title={t('sp.ev.pr.title', 'Profile & ID check')} subtitle={t('sp.ev.pr.sub', 'What customers see about your business.')} />
       <DraftRestored show={draft.restored} onDiscard={draft.discard} />
 
       <Card className="space-y-4 p-4">
@@ -74,27 +76,27 @@ export default function ProfilePage() {
             <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) pickPhoto(e.target.files[0]); e.target.value = ''; }} />
           </label>
           <div className="min-w-0">
-            <p className="text-[17px] font-bold text-ink-900">{form.businessName || 'Your business'}</p>
+            <p className="text-[17px] font-bold text-ink-900">{form.businessName || t('sp.ev.pr.yourBiz', 'Your business')}</p>
             <p className="text-[13px] text-ink-500">{partner.phone}</p>
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div data-field="businessName"><Field label="Business name" required><input className="input w-full" value={form.businessName} onChange={(e) => set('businessName', e.target.value)} /></Field></div>
-          <div data-field="ownerName"><Field label="Your name"><input className="input w-full" value={form.ownerName} onChange={(e) => set('ownerName', e.target.value)} /></Field></div>
-          <div data-field="years"><Field label="Years of experience"><input className="input w-full" inputMode="numeric" value={form.yearsExperience} onChange={(e) => set('yearsExperience', e.target.value.replace(/\D/g, '').slice(0, 2))} /></Field></div>
-          <Field label="Travel up to (km)" hint="From your base, for venues within the places you serve.">
+          <div data-field="businessName"><Field label={t('sp.ev.pr.bizName', 'Business name')} required><input className="input w-full" value={form.businessName} onChange={(e) => set('businessName', e.target.value)} /></Field></div>
+          <div data-field="ownerName"><Field label={t('sp.ev.pr.yourName', 'Your name')}><input className="input w-full" value={form.ownerName} onChange={(e) => set('ownerName', e.target.value)} /></Field></div>
+          <div data-field="years"><Field label={t('sp.ev.pr.years', 'Years of experience')}><input className="input w-full" inputMode="numeric" value={form.yearsExperience} onChange={(e) => set('yearsExperience', e.target.value.replace(/\D/g, '').slice(0, 2))} /></Field></div>
+          <Field label={t('sp.ev.pr.travel', 'Travel up to (km)')} hint={t('sp.ev.pr.travelH', 'From your base, for venues within the places you serve.')}>
             <input className="input w-full" inputMode="numeric" value={form.serviceRadiusKm} onChange={(e) => set('serviceRadiusKm', e.target.value.replace(/\D/g, '').slice(0, 3))} />
           </Field>
         </div>
-        <div data-field="bio"><Field label="About your business" hint="Your style, the events you do best.">
+        <div data-field="bio"><Field label={t('sp.ev.pr.about', 'About your business')} hint={t('sp.ev.pr.aboutH', 'Your style, the events you do best.')}>
           <textarea className="input w-full" rows={3} maxLength={600} value={form.bio} onChange={(e) => set('bio', e.target.value)} />
         </Field></div>
         <div data-field="cities">
-          <p className="mb-1.5 text-[13px] font-semibold text-ink-700">Where you work <span className="text-red-600">*</span></p>
+          <p className="mb-1.5 text-[13px] font-semibold text-ink-700">{t('sp.ev.pr.where', 'Where you work')} <span className="text-red-600">*</span></p>
           <PlacePicker value={form.cities} onChange={(v) => set('cities', v)} />
         </div>
         <button type="button" onClick={save} disabled={saving} className="btn-primary w-full sm:w-auto">
-          {saving && <Loader2 size={16} className="animate-spin" />} Save profile
+          {saving && <Loader2 size={16} className="animate-spin" />} {t('sp.ev.pr.save', 'Save profile')}
         </button>
       </Card>
 

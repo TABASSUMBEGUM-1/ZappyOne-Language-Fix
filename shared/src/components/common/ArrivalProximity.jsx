@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { metresBetween, ARRIVAL_RADIUS_M } from '../../utils/distance';
 import { useGeolocation } from '../../hooks/useGeolocation';
+import { useServiceProT } from '../../i18n/I18nProvider';
 
 /**
  * How close the technician is, and whether they may call themselves arrived.
@@ -53,6 +54,7 @@ export function useArrivalProximity(destination, { enabled = true } = {}) {
 }
 
 export default function ArrivalProximity({ metres, radius = ARRIVAL_RADIUS_M }) {
+  const t = useServiceProT();
   if (metres === null || metres === undefined) return null;
 
   const within = metres <= radius;
@@ -89,16 +91,16 @@ export default function ArrivalProximity({ metres, radius = ARRIVAL_RADIUS_M }) 
       <div className="min-w-0 flex-1">
         {within ? (
           <>
-            <p className="text-sm font-extrabold text-green-800">You&apos;re at the location</p>
+            <p className="text-sm font-extrabold text-green-800">{t('sp.you_re_at_the_location', 'You\'re at the location')}</p>
             <p className="text-xs font-medium text-green-600">
-              {Math.round(metres)} m, tap to confirm arrival
+              {t('sp.n_m_tap_to_confirm_arrival', '{n} m, tap to confirm arrival').replace('{n}', Math.round(metres))}
             </p>
           </>
         ) : (
           <>
-            <p className="text-sm font-extrabold text-amber-800">{Math.round(metres)} m away</p>
+            <p className="text-sm font-extrabold text-amber-800">{t('sp.n_m_away', '{n} m away').replace('{n}', Math.round(metres))}</p>
             <p className="text-xs font-medium text-amber-600">
-              Get within {radius} m to mark arrived
+              {t('sp.get_within_n_m_to_mark_arrived', 'Get within {n} m to mark arrived').replace('{n}', radius)}
             </p>
           </>
         )}

@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Play, CheckCircle, Lock, Award, ChevronRight, Loader2, X, AlertCircle, PlayCircle, Clock, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useServiceProT } from '../../i18n/I18nProvider';
 import { useGetTrainingModulesQuery, useGetTrainingModuleQuery, useSubmitTrainingQuizMutation } from '../../services/api';
 
 const DIFF_COLOR = { beginner: 'emerald', intermediate: 'amber', advanced: 'rose' };
-const DIFF_LABEL = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' };
+const DIFF_LABEL = { beginner: ['beginner', 'Beginner'], intermediate: ['intermediate', 'Intermediate'], advanced: ['advanced', 'Advanced'] };
+const diffText = (t, d) => (DIFF_LABEL[d] ? t('sp.wt.' + DIFF_LABEL[d][0], DIFF_LABEL[d][1]) : undefined);
 
 function ModuleCard({ mod, onOpen, index }) {
+  const t = useServiceProT();
   const dc = DIFF_COLOR[mod.difficulty] ?? 'indigo';
   const isCertified = mod.certified;
   
@@ -21,7 +24,7 @@ function ModuleCard({ mod, onOpen, index }) {
     >
       {isCertified && (
         <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[9px] font-black px-3 py-1 rounded-bl-xl tracking-widest uppercase flex items-center gap-1 z-10 shadow-sm">
-          <Award size={10} /> Certified
+          <Award size={10} /> {t('sp.wt.certified', 'Certified')}
         </div>
       )}
 
@@ -45,10 +48,10 @@ function ModuleCard({ mod, onOpen, index }) {
         {/* Badges */}
         <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
           <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest shadow-sm bg-${dc}-500 text-white`}>
-            {DIFF_LABEL[mod.difficulty]}
+            {diffText(t, mod.difficulty)}
           </span>
           <span className="text-[10px] bg-black/50 text-white font-bold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
-            <Clock size={10} /> {mod.durationMin}m
+            <Clock size={10} /> {t('sp.wt.mins', '{n}m').replace('{n}', mod.durationMin)}
           </span>
         </div>
       </div>
@@ -59,14 +62,14 @@ function ModuleCard({ mod, onOpen, index }) {
         
         <div className="flex items-center justify-between pt-3 border-t border-slate-100">
           <div className="flex flex-wrap gap-1.5">
-            {mod.xpReward > 0 && <span className="text-[10px] bg-zappy-50 border border-zappy-100 text-zappy-700 font-black px-2 py-1 rounded flex items-center gap-1"><Award size={10} className="text-zappy-500" /> +{mod.xpReward} XP</span>}
+            {mod.xpReward > 0 && <span className="text-[10px] bg-zappy-50 border border-zappy-100 text-zappy-700 font-black px-2 py-1 rounded flex items-center gap-1"><Award size={10} className="text-zappy-500" /> {t('sp.wt.xp', '+{n} XP').replace('{n}', mod.xpReward)}</span>}
             {mod.bonusRupees > 0 && <span className="text-[10px] bg-emerald-50 border border-emerald-100 text-emerald-700 font-black px-2 py-1 rounded">+₹{mod.bonusRupees}</span>}
           </div>
           
           <button onClick={() => onOpen(mod._id)}
             className={`flex items-center gap-1.5 text-xs font-black px-4 py-2 rounded-xl transition-all shadow-sm active:scale-95 ${isCertified ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200' : 'bg-zappy-600 text-white hover:bg-zappy-700'}`}>
             {isCertified ? <CheckCircle size={14} /> : <PlayCircle size={14} />}
-            {isCertified ? 'Review' : 'Start'}
+            {isCertified ? t('sp.wt.review', 'Review') : t('sp.wt.start', 'Start')}
           </button>
         </div>
       </div>
@@ -75,6 +78,7 @@ function ModuleCard({ mod, onOpen, index }) {
 }
 
 function QuizModal({ moduleId, onClose }) {
+  const t = useServiceProT();
   const { data: mod, isLoading } = useGetTrainingModuleQuery(moduleId);
   const [submit, { isLoading: submitting }] = useSubmitTrainingQuizMutation();
   const [answers, setAnswers] = useState({});
@@ -85,7 +89,7 @@ function QuizModal({ moduleId, onClose }) {
 
   async function handleSubmit() {
     const quizAnswers = mod.quiz.map((_, i) => answers[i] ?? -1);
-    if (quizAnswers.includes(-1)) return toast.error('Please answer all questions before submitting');
+    if (quizAnswers.includes(-1)) return toast.error(t('sp.wt.answerAll', 'Please answer all questions before submitting'));
     try {
       const res = await submit({ id: moduleId, answers: quizAnswers }).unwrap();
       setResult(res);
@@ -94,7 +98,7 @@ function QuizModal({ moduleId, onClose }) {
       if (errData?.passed === false) {
         setResult({ passed: false, score: errData.score, passingScore: mod.passingScore });
       } else {
-        toast.error(errData?.error || errData?.message || 'Submission failed. Try again.');
+        toast.error(errData?.error || errData?.message || t('sp.wt.subFail', 'Submission failed. Try again.'));
       }
     }
   }
@@ -106,7 +110,7 @@ function QuizModal({ moduleId, onClose }) {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 px-6 border-b border-slate-100 bg-white z-10 sticky top-0">
-          <h2 className="font-black text-slate-800 text-[15px] truncate pr-4">{mod?.title ?? 'Training Module'}</h2>
+          <h2 className="font-black text-slate-800 text-[15px] truncate pr-4">{mod?.title ?? t('sp.wt.module', 'Training Module')}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors shrink-0"><X size={16} strokeWidth={2.5} /></button>
         </div>
 
@@ -114,7 +118,7 @@ function QuizModal({ moduleId, onClose }) {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-24">
               <Loader2 size={32} className="animate-spin text-zappy-500 mb-4" />
-              <p className="text-slate-400 font-bold">Loading content...</p>
+              <p className="text-slate-400 font-bold">{t('sp.wt.loading', 'Loading content...')}</p>
             </div>
           ) : result ? (
             <div className="p-8 text-center space-y-6">
@@ -124,27 +128,27 @@ function QuizModal({ moduleId, onClose }) {
                     <div className="absolute inset-0 rounded-full animate-ping bg-emerald-400 opacity-20" />
                     <Award size={48} className="text-emerald-500" />
                   </div>
-                  <h3 className="text-3xl font-black text-slate-800 mb-2">Congratulations!</h3>
-                  <p className="text-slate-500 text-sm mb-6">You passed with a score of <span className="font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">{result.score}%</span></p>
+                  <h3 className="text-3xl font-black text-slate-800 mb-2">{t('sp.wt.congrats', 'Congratulations!')}</h3>
+                  <p className="text-slate-500 text-sm mb-6">{t('sp.wt.passed', 'You passed with a score of {n}%').split('{n}%')[0]}<span className="font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">{result.score}%</span>{t('sp.wt.passed', 'You passed with a score of {n}%').split('{n}%')[1]}</p>
                   
                   <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-3 mb-8">
-                    {result.bonusAdded > 0 && <p className="text-[13px] font-bold text-emerald-600 flex items-center justify-center gap-1.5"><CheckCircle size={14} /> +₹{result.bonusAdded / 100} bonus credited to wallet</p>}
-                    {result.unlockedService && <p className="text-[13px] font-bold text-zappy-600 flex items-center justify-center gap-1.5"><Lock size={14} className="opacity-50" /> Unlocked: {result.unlockedService}</p>}
-                    {result.xpAdded > 0 && <p className="text-[13px] font-bold text-amber-600 flex items-center justify-center gap-1.5"><Award size={14} /> +{result.xpAdded} XP Earned</p>}
+                    {result.bonusAdded > 0 && <p className="text-[13px] font-bold text-emerald-600 flex items-center justify-center gap-1.5"><CheckCircle size={14} /> {t('sp.wt.bonus', '+₹{n} bonus credited to wallet').replace('{n}', result.bonusAdded / 100)}</p>}
+                    {result.unlockedService && <p className="text-[13px] font-bold text-zappy-600 flex items-center justify-center gap-1.5"><Lock size={14} className="opacity-50" /> {t('sp.wt.unlocked', 'Unlocked: {n}').replace('{n}', result.unlockedService)}</p>}
+                    {result.xpAdded > 0 && <p className="text-[13px] font-bold text-amber-600 flex items-center justify-center gap-1.5"><Award size={14} /> {t('sp.wt.xpEarned', '+{n} XP Earned').replace('{n}', result.xpAdded)}</p>}
                   </div>
                   
-                  <button onClick={onClose} className="w-full py-4 bg-zappy-600 hover:bg-zappy-700 text-white rounded-[1.25rem] font-black shadow-lg shadow-zappy-600/20 active:scale-[0.98] transition-all">Continue to Dashboard</button>
+                  <button onClick={onClose} className="w-full py-4 bg-zappy-600 hover:bg-zappy-700 text-white rounded-[1.25rem] font-black shadow-lg shadow-zappy-600/20 active:scale-[0.98] transition-all">{t('sp.wt.cont', 'Continue to Dashboard')}</button>
                 </motion.div>
               ) : (
                 <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
                   <div className="w-24 h-24 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-6 shadow-inner">
                     <AlertCircle size={48} className="text-rose-500" />
                   </div>
-                  <h3 className="text-3xl font-black text-slate-800 mb-2">Not Quite There</h3>
-                  <p className="text-slate-500 text-sm mb-2">You scored <span className="font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md">{result.score}%</span>.</p>
-                  <p className="text-slate-500 text-sm mb-8">You need <span className="font-bold">{result.passingScore ?? mod?.passingScore}%</span> to pass and earn your certification.</p>
+                  <h3 className="text-3xl font-black text-slate-800 mb-2">{t('sp.wt.notQuite', 'Not Quite There')}</h3>
+                  <p className="text-slate-500 text-sm mb-2">{t('sp.wt.scored', 'You scored {n}%.').split('{n}%')[0]}<span className="font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md">{result.score}%</span>{t('sp.wt.scored', 'You scored {n}%.').split('{n}%')[1]}</p>
+                  <p className="text-slate-500 text-sm mb-8">{t('sp.wt.need', 'You need {n}% to pass and earn your certification.').split('{n}%')[0]}<span className="font-bold">{result.passingScore ?? mod?.passingScore}%</span>{t('sp.wt.need', 'You need {n}% to pass and earn your certification.').split('{n}%')[1]}</p>
                   
-                  <button onClick={() => { setResult(null); setAnswers({}); setVideoWatched(false); }} className="w-full py-4 bg-slate-800 hover:bg-slate-900 text-white rounded-[1.25rem] font-black shadow-lg shadow-slate-900/20 active:scale-[0.98] transition-all">Review & Try Again</button>
+                  <button onClick={() => { setResult(null); setAnswers({}); setVideoWatched(false); }} className="w-full py-4 bg-slate-800 hover:bg-slate-900 text-white rounded-[1.25rem] font-black shadow-lg shadow-slate-900/20 active:scale-[0.98] transition-all">{t('sp.wt.reviewAgain', 'Review & Try Again')}</button>
                 </motion.div>
               )}
             </div>
@@ -153,13 +157,13 @@ function QuizModal({ moduleId, onClose }) {
               {/* Video Section */}
               {mod?.videoUrl && !videoWatched && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-black text-zappy-600 uppercase tracking-widest px-1">Step 1: Watch Training</p>
+                  <p className="text-[11px] font-black text-zappy-600 uppercase tracking-widest px-1">{t('sp.wt.step1', 'Step 1: Watch Training')}</p>
                   <div className="relative bg-slate-900 rounded-[1.5rem] overflow-hidden shadow-xl ring-1 ring-slate-900/10" style={{ paddingTop: '56.25%' }}>
                     <iframe className="absolute inset-0 w-full h-full" src={mod.videoUrl} allow="accelerometer; autoplay; encrypted-media; gyroscope" allowFullScreen title={mod.title} />
                   </div>
                   <div className="pt-4">
                     <button onClick={() => setVideoWatched(true)} className="w-full py-4 bg-zappy-50 hover:bg-zappy-100 text-zappy-700 text-[15px] font-black rounded-[1.25rem] border border-zappy-200 transition-colors active:scale-[0.98]">
-                      I've finished watching - Take Quiz
+                      {t('sp.wt.watched', 'I\'ve finished watching - Take Quiz')}
                     </button>
                   </div>
                 </div>
@@ -169,8 +173,8 @@ function QuizModal({ moduleId, onClose }) {
               {(videoWatched || !mod?.videoUrl) && mod?.quiz?.length > 0 && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <p className="text-[11px] font-black text-zappy-600 uppercase tracking-widest px-1">Step 2: Certification Quiz</p>
-                    <span className="text-[11px] font-bold text-slate-400">{Object.keys(answers).length} / {mod.quiz.length} Answered</span>
+                    <p className="text-[11px] font-black text-zappy-600 uppercase tracking-widest px-1">{t('sp.wt.step2', 'Step 2: Certification Quiz')}</p>
+                    <span className="text-[11px] font-bold text-slate-400">{t('sp.wt.answered', '{a} / {b} Answered').replace('{a}', Object.keys(answers).length).replace('{b}', mod.quiz.length)}</span>
                   </div>
                   
                   {mod.quiz.map((q, qi) => (
@@ -197,7 +201,7 @@ function QuizModal({ moduleId, onClose }) {
                     <button onClick={handleSubmit} disabled={submitting || Object.keys(answers).length < mod.quiz.length}
                       className="w-full py-4 bg-zappy-600 hover:bg-zappy-700 text-white rounded-[1.25rem] font-black text-[15px] shadow-lg shadow-zappy-600/20 disabled:opacity-40 disabled:hover:bg-zappy-600 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                       {submitting ? <Loader2 size={18} className="animate-spin" /> : <Award size={18} />} 
-                      {submitting ? 'Evaluating...' : 'Submit Answers & Finish'}
+                      {submitting ? t('sp.wt.evaluating', 'Evaluating...') : t('sp.wt.submitFin', 'Submit Answers & Finish')}
                     </button>
                   </div>
                 </motion.div>
@@ -211,6 +215,7 @@ function QuizModal({ moduleId, onClose }) {
 }
 
 export default function WorkerTrainingPage() {
+  const t = useServiceProT();
   const nav = useNavigate();
   const { data, isLoading } = useGetTrainingModulesQuery();
   const [openModule, setOpenModule] = useState(null);
@@ -234,7 +239,7 @@ export default function WorkerTrainingPage() {
               <motion.button onClick={() => nav(-1)} whileTap={{ scale: 0.9 }} className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white shadow-sm">
                 <ArrowLeft size={20} strokeWidth={2.5} />
               </motion.button>
-              <h1 className="text-white font-black tracking-wide text-lg">Learn the job</h1>
+              <h1 className="text-white font-black tracking-wide text-lg">{t('sp.wt.title', 'Learn the job')}</h1>
               <div className="w-10 h-10" />
             </div>
 
@@ -242,14 +247,14 @@ export default function WorkerTrainingPage() {
               <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/20 shadow-inner">
                 <Award size={32} className="text-zappy-300 fill-zappy-400/20" strokeWidth={1.5} />
               </div>
-              <p className="text-white font-bold text-lg tracking-tight mb-1">Level Up Your Skills</p>
+              <p className="text-white font-bold text-lg tracking-tight mb-1">{t('sp.wt.levelUp', 'Level Up Your Skills')}</p>
               
               {certified > 0 ? (
                 <div className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-500/30 text-xs font-bold mt-1">
-                  <CheckCircle size={12} strokeWidth={3} /> {certified} Certificates Earned
+                  <CheckCircle size={12} strokeWidth={3} /> {t('sp.wt.certs', '{n} Certificates Earned').replace('{n}', certified)}
                 </div>
               ) : (
-                <p className="text-white/60 text-xs font-medium px-4">Watch videos and pass quizzes to unlock premium jobs and earn bonuses.</p>
+                <p className="text-white/60 text-xs font-medium px-4">{t('sp.wt.intro', 'Watch videos and pass quizzes to unlock premium jobs and earn bonuses.')}</p>
               )}
             </div>
           </div>
@@ -262,7 +267,7 @@ export default function WorkerTrainingPage() {
             {filters.map(f => (
               <button key={f} onClick={() => setFilter(f)}
                 className={`shrink-0 snap-start text-[13px] font-bold px-4 py-2.5 rounded-xl border-2 transition-all duration-200 capitalize shadow-sm ${filter === f ? 'bg-zappy-600 text-white border-zappy-600 shadow-zappy-600/20' : 'border-white bg-white/80 backdrop-blur-md text-slate-600 hover:border-zappy-200 hover:text-zappy-600'}`}>
-                {f}
+                {f === 'all' ? t('sp.wt.all', 'All') : diffText(t, f)}
               </button>
             ))}
           </div>
@@ -270,15 +275,15 @@ export default function WorkerTrainingPage() {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-16 bg-white rounded-[1.5rem] shadow-sm">
               <Loader2 size={28} className="animate-spin text-zappy-400 mb-3" />
-              <p className="text-sm font-semibold text-slate-400">Loading modules...</p>
+              <p className="text-sm font-semibold text-slate-400">{t('sp.wt.loadingM', 'Loading modules...')}</p>
             </div>
           ) : visible.length === 0 ? (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[1.5rem] border border-dashed border-slate-200 p-12 text-center shadow-sm">
               <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-4">
                 <BookOpen size={24} className="text-slate-300" />
               </div>
-              <p className="font-bold text-slate-500">No Modules Found</p>
-              <p className="text-sm text-slate-400 mt-1">Check back later for new training content.</p>
+              <p className="font-bold text-slate-500">{t('sp.wt.none', 'No Modules Found')}</p>
+              <p className="text-sm text-slate-400 mt-1">{t('sp.wt.noneH', 'Check back later for new training content.')}</p>
             </motion.div>
           ) : (
             <div className="space-y-4">

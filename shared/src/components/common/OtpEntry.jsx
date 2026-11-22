@@ -1,5 +1,7 @@
 import { useRef } from 'react';
 import { KeyRound } from 'lucide-react';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 /**
  * Six boxes a technician types the customer's code into.
@@ -15,12 +17,13 @@ import { KeyRound } from 'lucide-react';
 export default function OtpEntry({
   value,
   onChange,
-  title = 'Customer code',
-  hint = 'Ask the customer for their code',
+  title,
+  hint,
   tone = 'light',
   autoFocus = true,
   length = 6,
 }) {
+  const t = useServiceProT();
   const inputRef = useRef(null);
   const dark = tone === 'dark';
 
@@ -36,12 +39,12 @@ export default function OtpEntry({
           <span className={`block text-xs font-extrabold uppercase tracking-widest ${
             dark ? 'text-amber-200' : 'text-amber-700'
           }`}>
-            {title}
+            {title ? t(labelKey(title), title) : t('sp.customer_code', 'Customer code')}
           </span>
           <span className={`mt-0.5 block text-[10.5px] font-medium ${
             dark ? 'text-amber-300/50' : 'text-slate-500'
           }`}>
-            {hint}
+            {hint ? t(labelKey(hint), hint) : t('sp.ask_the_customer_for_their_code', 'Ask the customer for their code')}
           </span>
         </span>
       </div>
@@ -89,7 +92,7 @@ export default function OtpEntry({
             : 'border-slate-200 bg-slate-50 text-slate-500'
         }`}
       >
-        Tap here → enter code
+        {t('sp.tap_here_enter_code', 'Tap here → enter code')}
       </button>
     </div>
   );

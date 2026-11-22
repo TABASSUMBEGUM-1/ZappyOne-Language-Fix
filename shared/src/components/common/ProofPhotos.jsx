@@ -4,6 +4,8 @@ import { Camera, X, CheckCircle, Loader2 } from 'lucide-react';
 import { usePresignUploadMutation } from '../../services/api';
 import toast from 'react-hot-toast';
 import { prepareImage } from '../../utils/prepareImage';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 /**
  * Photographs of the finished work, taken before a job can be closed.
@@ -28,8 +30,9 @@ export default function ProofPhotos({
   max = 3,
   title,
   hint,
-  requiredNote = 'Minimum 1 photo required before marking complete',
+  requiredNote,
 }) {
+  const t = useServiceProT();
   const inputRef = useRef(null);
   const galleryRef = useRef(null);
   const [presign] = usePresignUploadMutation();
@@ -46,7 +49,7 @@ export default function ProofPhotos({
     const preview = URL.createObjectURL(file);
     onChange((prev) => {
       if (prev.length >= max) {
-        toast.error(`Maximum ${max} photos allowed`);
+        toast.error(t('sp.maximum_n_photos_allowed', 'Maximum {n} photos allowed').replace('{n}', max));
         return prev;
       }
       return [...prev, { id, preview, key: null, uploading: true }];
@@ -72,9 +75,9 @@ export default function ProofPhotos({
       onChange((prev) => prev.map((p) => (
         p.id === id ? { ...p, key: null, uploading: false, error: true } : p
       )));
-      toast.error('Could not upload the photo. Check your connection and try again - if it keeps failing, contact support.');
+      toast.error(t('sp.could_not_upload_the_photo_check_your_connection_and_try_again_if_it_keeps_failing_contact_support', 'Could not upload the photo. Check your connection and try again - if it keeps failing, contact support.'));
     }
-  }, [onChange, presign, folder, max]);
+  }, [onChange, presign, folder, max, t]);
 
   function remove(id) {
     onChange((prev) => prev.filter((p) => p.id !== id));
@@ -114,12 +117,12 @@ export default function ProofPhotos({
         </motion.div>
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-extrabold ${done ? 'text-green-800' : 'text-zappy-900'}`}>
-            {done ? 'Proof photos ready' : (title || 'Add proof-of-work photos')}
+            {done ? t('sp.proof_photos_ready', 'Proof photos ready') : (title ? t(labelKey(title), title) : t('sp.add_proof_of_work_photos', 'Add proof-of-work photos'))}
           </p>
           <p className={`text-[11px] font-medium mt-0.5 ${done ? 'text-green-600' : 'text-zappy-500'}`}>
             {done
-              ? `${ready} photo${ready > 1 ? 's' : ''} uploaded - you can add ${max - photos.length} more`
-              : (hint || requiredNote)}
+              ? (ready > 1 ? t('sp.n_photos_uploaded_you_can_add_m_more', '{n} photos uploaded - you can add {m} more') : t('sp.n_photo_uploaded_you_can_add_m_more', '{n} photo uploaded - you can add {m} more')).replace('{n}', ready).replace('{m}', max - photos.length)
+              : (hint ? t(labelKey(hint), hint) : requiredNote ? t(labelKey(requiredNote), requiredNote) : t('sp.minimum_1_photo_required_before_marking_complete', 'Minimum 1 photo required before marking complete'))}
           </p>
         </div>
         {/* Counter pill */}
@@ -135,7 +138,7 @@ export default function ProofPhotos({
         <div className="grid grid-cols-3 gap-2 px-4 pb-3">
           {photos.map((photo) => (
             <div key={photo.id} className="relative aspect-square">
-              <img src={photo.preview} alt="Proof"
+              <img src={photo.preview} alt={t('sp.proof', 'Proof')}
                 className={`w-full h-full object-cover rounded-2xl ${
                   photo.error ? 'ring-2 ring-red-400' : photo.uploading ? 'ring-2 ring-zappy-300' : 'ring-2 ring-green-400'
                 }`}
@@ -144,7 +147,7 @@ export default function ProofPhotos({
               {photo.uploading ? (
                 <div className="absolute inset-0 bg-black/50 rounded-2xl flex flex-col items-center justify-center gap-1">
                   <Loader2 size={18} className="text-white animate-spin" />
-                  <p className="text-[9px] text-white font-bold">Uploading…</p>
+                  <p className="text-[9px] text-white font-bold">{t('sp.uploading', 'Uploading…')}</p>
                 </div>
               ) : (
                 <>
@@ -179,14 +182,14 @@ export default function ProofPhotos({
             className="w-full py-3 rounded-xl bg-white text-zappy-700 font-bold text-sm ring-1 ring-zappy-200 flex items-center justify-center gap-2"
           >
             <Camera size={17} strokeWidth={2} />
-            <span>{photos.length === 0 ? 'Take Proof Photo' : 'Add Another Photo'}</span>
+            <span>{photos.length === 0 ? t('sp.take_proof_photo', 'Take Proof Photo') : t('sp.add_another_photo', 'Add Another Photo')}</span>
             {photos.length === 0 && (
-              <span className="ml-1 text-[10px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded-full">Required</span>
+              <span className="ml-1 text-[10px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded-full">{t('sp.required', 'Required')}</span>
             )}
           </button>
           {/* A photo already taken (the camera would not open, or it was shot moments ago): from the gallery instead. */}
           <button type="button" onClick={() => galleryRef.current?.click()} className="mt-2 w-full py-2 text-[12.5px] font-semibold text-zappy-700">
-            Upload from gallery instead
+            {t('sp.upload_from_gallery_instead', 'Upload from gallery instead')}
           </button>
         </div>
       )}

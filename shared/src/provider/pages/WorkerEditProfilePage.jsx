@@ -18,6 +18,7 @@ import {
 import { STAFF_PORTAL, PARTNER_ONLY } from '../staffPortal';
 import toast from 'react-hot-toast';
 import { PRO_GENDERS, PRO_GENDER_HINT } from '../jobFlows';
+import { useServiceProT } from '../../i18n/I18nProvider';
 
 // Skills come from the LIVE admin catalog (/api/catalog/services), never a hardcoded
 // list — a hardcoded set silently drifts from the catalog, and dispatch matches
@@ -25,37 +26,37 @@ import { PRO_GENDERS, PRO_GENDER_HINT } from '../jobFlows';
 
 const ALL_NAV_SECTIONS = [
   {
-    title: 'Earnings & Finance',
+    title: 'Earnings & Finance', tk: 'sec.fin',
     items: [
-      { to: '/worker/earnings',  Icon: BarChart2,    label: 'Earnings Breakdown',  desc: 'Per-job breakdown & payslip',      color: 'indigo' },
-      { to: '/worker/goals',     Icon: Target,       label: 'Earning targets',       desc: 'Daily & weekly targets',           color: 'purple' },
-      { to: '/worker/bank',      Icon: Building2,    label: 'Bank & UPI Accounts',  desc: 'Manage payment destinations',      color: 'blue' },
-      { to: '/worker/withdraw',  Icon: CreditCard,   label: 'Withdraw Earnings',    desc: 'Transfer to bank or UPI',          color: 'emerald' },
+      { to: '/worker/earnings',  Icon: BarChart2,    k: 'earnings', label: 'Earnings Breakdown',  desc: 'Per-job breakdown & payslip',      color: 'indigo' },
+      { to: '/worker/goals',     Icon: Target,       k: 'goals', label: 'Earning targets',       desc: 'Daily & weekly targets',           color: 'purple' },
+      { to: '/worker/bank',      Icon: Building2,    k: 'bank', label: 'Bank & UPI Accounts',  desc: 'Manage payment destinations',      color: 'blue' },
+      { to: '/worker/withdraw',  Icon: CreditCard,   k: 'withdraw', label: 'Withdraw Earnings',    desc: 'Transfer to bank or UPI',          color: 'emerald' },
     ],
   },
   {
-    title: 'Services & Growth',
+    title: 'Services & Growth', tk: 'sec.grow',
     items: [
       // Replaces "Skills & Specialisation": what a worker may do is decided by
       // verification per service, not by a list they set themselves.
-      { to: '/provider/onboarding', Icon: ShieldCheck, label: 'Services & Verification', desc: 'What you are approved to work on', color: 'emerald' },
-      { to: '/worker/training',  Icon: GraduationCap,label: 'Training & Certification', desc: 'Video courses + quiz certs',   color: 'rose' },
-      { to: '/worker/reviews',   Icon: Star,         label: 'My reviews',               desc: 'What customers said about you', color: 'orange' },
-      { to: '/worker/appeals',   Icon: AlertCircle,  label: 'Ask us to recheck',                  desc: 'If you think a penalty is wrong',            color: 'orange' },
+      { to: '/provider/onboarding', Icon: ShieldCheck, k: 'services', label: 'Services & Verification', desc: 'What you are approved to work on', color: 'emerald' },
+      { to: '/worker/training',  Icon: GraduationCap,k: 'training', label: 'Training & Certification', desc: 'Video courses + quiz certs',   color: 'rose' },
+      { to: '/worker/reviews',   Icon: Star,         k: 'reviews', label: 'My reviews',               desc: 'What customers said about you', color: 'orange' },
+      { to: '/worker/appeals',   Icon: AlertCircle,  k: 'appeals', label: 'Ask us to recheck',                  desc: 'If you think a penalty is wrong',            color: 'orange' },
     ],
   },
   {
-    title: 'How you are doing',
+    title: 'How you are doing', tk: 'sec.how',
     items: [
-      { to: '/worker/goals',     Icon: TrendingUp,   label: 'Zone Benchmark',       desc: 'See how you rank nearby',          color: 'cyan' },
-      { to: '/worker/kyc',       Icon: Shield,       label: 'ID documents',        desc: 'Verification & compliance',        color: 'slate' },
+      { to: '/worker/goals',     Icon: TrendingUp,   k: 'zone', label: 'Zone Benchmark',       desc: 'See how you rank nearby',          color: 'cyan' },
+      { to: '/worker/kyc',       Icon: Shield,       k: 'kyc', label: 'ID documents',        desc: 'Verification & compliance',        color: 'slate' },
     ],
   },
 ];
 
 // Rakshak (ZappyOne staff only): no per-job money pages; their shifts, salary and leave instead.
 const NAV_SECTIONS = STAFF_PORTAL
-  ? [{ title: 'My work', items: [{ to: '/worker/shifts', Icon: CalendarDays, label: 'Shifts, salary & leave', desc: 'Book shifts, see your month', color: 'indigo' }] },
+  ? [{ title: 'My work', tk: 'sec.work', items: [{ to: '/worker/shifts', Icon: CalendarDays, k: 'shifts', label: 'Shifts, salary & leave', desc: 'Book shifts, see your month', color: 'indigo' }] },
     ...ALL_NAV_SECTIONS.map((s) => ({ ...s, items: s.items.filter((i) => !PARTNER_ONLY.has(i.to)) })).filter((s) => s.items.length)]
   : ALL_NAV_SECTIONS;
 
@@ -69,7 +70,10 @@ const COLOR_MAP = {
   rose: { bg: 'bg-rose-50', icon: 'text-rose-600' },
 };
 
+const GENDER_KEY = { female: 'g.female', male: 'g.male', other: 'g.other' };
+
 export default function WorkerEditProfilePage() {
+  const t = useServiceProT();
   const nav = useNavigate();
   const { data: meData, isLoading } = useGetWorkerMeQuery();
   const { data: account } = useAccountMeQuery();
@@ -99,10 +103,10 @@ export default function WorkerEditProfilePage() {
   async function saveCredentials() {
     try {
       const r = await setCredentials({ username: username.trim() }).unwrap();
-      toast.success(`Worker ID saved: ${r.username}. Sign in with it and your password.`);
+      toast.success(t('sp.wep.widSaved', 'Worker ID saved: {n}. Sign in with it and your password.').replace('{n}', r.username));
       setUsername('');
     } catch (err) {
-      toast.error(err.data?.error || 'Could not save your Worker ID');
+      toast.error(err.data?.error || t('sp.wep.widFail', 'Could not save your Worker ID'));
     }
   }
 
@@ -114,20 +118,20 @@ export default function WorkerEditProfilePage() {
   }
 
   const handleSave = async () => {
-    if (!name.trim()) return toast.error('Name is required');
+    if (!name.trim()) return toast.error(t('sp.wep.nameReq', 'Name is required'));
 
     const body = {};
     if (name.trim() !== (me?.name ?? ''))  body.name   = name.trim();
     if (bio.trim()  !== (me?.bio  ?? ''))  body.bio    = bio.trim();
     if (gender !== (me?.gender ?? null)) body.gender = gender;
 
-    if (!Object.keys(body).length) { toast.success('No changes'); return; }
+    if (!Object.keys(body).length) { toast.success(t('sp.wep.noChange', 'No changes')); return; }
 
     const res = await updateProfile(body);
     if (res.error) {
-      toast.error(res.error?.data?.error || 'Failed to save. Try again.');
+      toast.error(res.error?.data?.error || t('sp.wep.saveFail', 'Failed to save. Try again.'));
     } else {
-      toast.success('Profile updated!');
+      toast.success(t('sp.wep.updated', 'Profile updated!'));
       nav('/worker');
     }
   };
@@ -146,11 +150,11 @@ export default function WorkerEditProfilePage() {
         <button onClick={() => nav('/worker')} className="p-2 rounded-lg hover:bg-slate-100">
           <ArrowLeft size={20} className="text-slate-600" />
         </button>
-        <h1 className="font-semibold text-slate-800">Profile & Settings</h1>
+        <h1 className="font-semibold text-slate-800">{t('sp.wep.title', 'Profile & Settings')}</h1>
         <button onClick={handleSave} disabled={isSaving}
           className="ml-auto flex items-center gap-1.5 bg-zappy-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50">
           {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-          {isSaving ? 'Saving…' : 'Save'}
+          {isSaving ? t('sp.wep.saving', 'Saving…') : t('sp.wep.save', 'Save')}
         </button>
       </div>
 
@@ -160,14 +164,14 @@ export default function WorkerEditProfilePage() {
         <div data-field="photo" className="bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm">
           <ProfilePhoto url={account?.photoUrl} role="worker" size={64} />
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-slate-800 truncate">{me?.name || 'Your Name'}</p>
+            <p className="font-bold text-slate-800 truncate">{me?.name || t('sp.wep.yourName', 'Your Name')}</p>
             <p className="text-xs text-slate-500 mt-0.5">
-              ⭐ {me?.rating?.toFixed(1) ?? '-'}, {me?.completedJobs ?? 0} jobs completed
+              ⭐ {t('sp.wep.stats', '{r}, {n} jobs completed').replace('{r}', me?.rating?.toFixed(1) ?? '-').replace('{n}', me?.completedJobs ?? 0)}
             </p>
           </div>
           {me?.trust?.isVerified && (
             <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-              <Shield size={9} /> Verified
+              <Shield size={9} /> {t('sp.wep.verified', 'Verified')}
             </span>
           )}
         </div>
@@ -176,9 +180,9 @@ export default function WorkerEditProfilePage() {
         <div data-field="name" className="bg-white rounded-2xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <User size={15} className="text-zappy-500" />
-            <span className="text-sm font-semibold text-slate-700">Display Name</span>
+            <span className="text-sm font-semibold text-slate-700">{t('sp.wep.display', 'Display Name')}</span>
           </div>
-          <input value={name} onChange={e => setName(e.target.value)} maxLength={100} placeholder="Your full name"
+          <input value={name} onChange={e => setName(e.target.value)} maxLength={100} placeholder={t('sp.wep.fullName', 'Your full name')}
             className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-zappy-300 transition" />
         </div>
 
@@ -186,21 +190,21 @@ export default function WorkerEditProfilePage() {
         <div className="bg-white rounded-2xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <FileText size={15} className="text-zappy-500" />
-            <span className="text-sm font-semibold text-slate-700">Bio</span>
+            <span className="text-sm font-semibold text-slate-700">{t('sp.wep.bio', 'Bio')}</span>
             <span className="ml-auto text-xs text-slate-400">{bio.length}/300</span>
           </div>
           <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={300} rows={3}
-            placeholder="Describe your experience - shown to customers when they view your profile…"
+            placeholder={t('sp.wep.bioPh', 'Describe your experience - shown to customers when they view your profile…')}
             className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 resize-none focus:outline-none focus:ring-2 focus:ring-zappy-300 transition" />
         </div>
 
         <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <span className="text-sm font-semibold text-slate-700">Gender</span>
-          <p className="mt-0.5 mb-3 text-xs text-slate-500">{PRO_GENDER_HINT}</p>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Gender">
+          <span className="text-sm font-semibold text-slate-700">{t('sp.wep.gender', 'Gender')}</span>
+          <p className="mt-0.5 mb-3 text-xs text-slate-500">{PRO_GENDER_HINT === 'Optional. Customers who ask for a woman or a man pro (beauty, massage) are matched only with pros who set it.' ? t('sp.wep.genderHint', 'Optional. Customers who ask for a woman or a man pro (beauty, massage) are matched only with pros who set it.') : PRO_GENDER_HINT}</p>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('sp.wep.gender', 'Gender')}>
             {PRO_GENDERS.map(([value, label]) => (
               <button key={value} type="button" role="radio" aria-checked={gender === value} onClick={() => setGender(gender === value ? null : value)}
-                className={`rounded-full border px-4 py-1.5 text-sm font-semibold ${gender === value ? 'border-zappy-600 bg-zappy-50 text-zappy-700' : 'border-slate-200 text-slate-600'}`}>{label}</button>
+                className={`rounded-full border px-4 py-1.5 text-sm font-semibold ${gender === value ? 'border-zappy-600 bg-zappy-50 text-zappy-700' : 'border-slate-200 text-slate-600'}`}>{GENDER_KEY[value] ? t('sp.wep.' + GENDER_KEY[value], label) : label}</button>
             ))}
           </div>
         </div>
@@ -215,7 +219,7 @@ export default function WorkerEditProfilePage() {
         <div className="bg-white rounded-2xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <ShieldCheck size={15} className="text-emerald-500" />
-            <span className="text-sm font-semibold text-slate-700">Services you're verified for</span>
+            <span className="text-sm font-semibold text-slate-700">{t('sp.wep.verifiedFor', 'Services you\'re verified for')}</span>
           </div>
 
           {verifiedServices.length > 0 ? (
@@ -232,7 +236,7 @@ export default function WorkerEditProfilePage() {
             </div>
           ) : (
             <p className="text-xs text-slate-500">
-              Nothing yet - choose what you work on and get verified to start receiving jobs.
+              {t('sp.wep.noneYet', 'Nothing yet - choose what you work on and get verified to start receiving jobs.')}
             </p>
           )}
 
@@ -240,7 +244,7 @@ export default function WorkerEditProfilePage() {
             onClick={() => nav('/provider/onboarding')}
             className="mt-3 flex items-center gap-0.5 text-xs text-zappy-600 hover:underline"
           >
-            Manage services &amp; verification <ChevronRight size={11} />
+            {t('sp.wep.manage', 'Manage services & verification')} <ChevronRight size={11} />
           </button>
         </div>
 
@@ -250,16 +254,16 @@ export default function WorkerEditProfilePage() {
         <div className="rounded-card border border-line bg-white p-4">
           <div className="flex items-center gap-2">
             <KeyRound size={15} className="text-zappy-600" />
-            <span className="text-[15px] font-bold text-ink-900">Worker ID</span>
+            <span className="text-[15px] font-bold text-ink-900">{t('sp.wep.wid', 'Worker ID')}</span>
           </div>
           <p className="mt-0.5 text-[13px] text-ink-500">
-            {me?.username ? `Yours is ${me.username}. Sign in with it and your password.` : 'Optional: a short ID to sign in with instead of your phone number.'}
+            {me?.username ? t('sp.wep.widYours', 'Yours is {n}. Sign in with it and your password.').replace('{n}', me.username) : t('sp.wep.widOpt', 'Optional: a short ID to sign in with instead of your phone number.')}
           </p>
           <div className="mt-3 flex gap-2">
             <input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} maxLength={30}
-              placeholder={me?.username || 'e.g. ravi_kumar'} className="input min-w-0 flex-1" aria-label="Worker ID" />
+              placeholder={me?.username || t('sp.wep.widPh', 'e.g. ravi_kumar')} className="input min-w-0 flex-1" aria-label={t('sp.wep.wid', 'Worker ID')} />
             <button onClick={saveCredentials} disabled={savingCreds || username.trim().length < 3} className="btn-primary px-4">
-              {savingCreds && <Loader2 size={14} className="animate-spin" />} Save
+              {savingCreds && <Loader2 size={14} className="animate-spin" />} {t('sp.wep.save', 'Save')}
             </button>
           </div>
         </div>
@@ -267,9 +271,9 @@ export default function WorkerEditProfilePage() {
         {/* Navigation hub */}
         {NAV_SECTIONS.map(section => (
           <div key={section.title}>
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1 mb-2">{section.title}</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1 mb-2">{t('sp.wep.' + section.tk, section.title)}</p>
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-100">
-              {section.items.map(({ to, Icon, label, desc, color }) => {
+              {section.items.map(({ to, Icon, label, desc, color, k }) => {
                 const c = COLOR_MAP[color] ?? COLOR_MAP.slate;
                 return (
                   <button key={to + label} onClick={() => nav(to)}
@@ -278,8 +282,8 @@ export default function WorkerEditProfilePage() {
                       <Icon size={16} className={c.icon} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-800">{label}</p>
-                      <p className="text-xs text-slate-500 truncate">{desc}</p>
+                      <p className="text-sm font-semibold text-slate-800">{t('sp.wep.' + k, label)}</p>
+                      <p className="text-xs text-slate-500 truncate">{t('sp.wep.' + k + 'D', desc)}</p>
                     </div>
                     <ChevronRight size={14} className="text-slate-300 shrink-0" />
                   </button>

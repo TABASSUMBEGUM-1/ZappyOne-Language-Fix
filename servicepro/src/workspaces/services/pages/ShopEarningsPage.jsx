@@ -21,7 +21,7 @@ export default function ShopEarningsPage() {
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-10">
       <header className="page-header"><div className="page-header-inner">
-        <button onClick={() => nav('/shop')} className="back-btn"><ArrowLeft size={18} strokeWidth={2.5} /></button>
+        <button onClick={() => nav('/shop')} className="back-btn" aria-label={t('sp.back', 'Back')}><ArrowLeft size={18} strokeWidth={2.5} /></button>
         <h1 className="h-card">{t('sp.earnings', 'Earnings')}</h1>
       </div></header>
 
@@ -65,7 +65,7 @@ export default function ShopEarningsPage() {
 
 
             <p className="text-[11px] text-slate-400 text-center pt-2">
-              Earnings across all technicians linked to your shop.
+              {t('sp.earn.note', 'Earnings across all technicians linked to your shop.')}
             </p>
           </>
         )}

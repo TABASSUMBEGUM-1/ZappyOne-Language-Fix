@@ -17,10 +17,10 @@ import { selectAuth } from '../../modules/auth/authSlice';
 import { getSocket } from '../../services/socket';
 import toast from 'react-hot-toast';
 import {
-  NOTIFICATION_TABS as TABS, NOTIFICATION_TAB_TYPES as TAB_TYPES, timeAgo, groupByDay, notificationPath as deepLinkPath,
-  emptyNotificationText,
+  NOTIFICATION_TABS as TABS, NOTIFICATION_TAB_TYPES as TAB_TYPES, groupByDay, notificationPath as deepLinkPath,
 } from '../workerNotifications';
 import { useLivePoll } from '../../hooks/useSocket';
+import { useServiceProT } from '../../i18n/I18nProvider';
 
 /* Worker-specific type → visual config */
 const TYPE_CFG = {
@@ -53,8 +53,20 @@ const TYPE_CFG = {
 };
 const DEFAULT_CFG = { emoji: '🔔', label: 'Notification', bg: 'bg-slate-50', ring: 'ring-slate-200', color: 'text-slate-600', Icon: Bell };
 
+/* Notification time, translated (workerNotifications.timeAgo is shared with the mobile apps, so it stays English) */
+function timeAgoT(t, d) {
+  const m = Math.floor((Date.now() - new Date(d)) / 60000);
+  if (m < 1) return t('sp.wn.justNow', 'Just now');
+  if (m < 60) return t('sp.wn.mAgo', '{n}m ago').replace('{n}', m);
+  const h = Math.floor(m / 60);
+  if (h < 24) return t('sp.wn.hAgo', '{n}h ago').replace('{n}', h);
+  const days = Math.floor(h / 24);
+  return days === 1 ? t('sp.wn.yesterday', 'Yesterday') : t('sp.wn.dAgo', '{n}d ago').replace('{n}', days);
+}
+
 /* Single notification card */
 function NotifCard({ n, onRead, nav }) {
+  const t = useServiceProT();
   const cfg = TYPE_CFG[n.type] ?? DEFAULT_CFG;
   const { Icon } = cfg;
   const unread = !n.readAt;
@@ -86,7 +98,7 @@ function NotifCard({ n, onRead, nav }) {
           <p className={`text-sm font-bold leading-tight ${unread ? 'text-slate-900' : 'text-slate-600'}`}>{n.title}</p>
           <div className="flex items-center gap-1.5 shrink-0">
             {unread && <span className="w-2 h-2 rounded-full bg-zappy-500 shrink-0" />}
-            <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">{timeAgo(n.createdAt)}</span>
+            <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">{timeAgoT(t, n.createdAt)}</span>
           </div>
         </div>
         {n.body && (
@@ -94,7 +106,7 @@ function NotifCard({ n, onRead, nav }) {
         )}
         <div className="flex items-center gap-1 mt-1.5">
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
-            {cfg.label}
+            {t('sp.wn.ty.' + (TYPE_CFG[n.type] ? n.type : 'default'), cfg.label)}
           </span>
         </div>
       </div>
@@ -122,14 +134,21 @@ function DaySection({ label, items, onRead, nav }) {
 
 /* Empty state */
 function EmptyState({ tab }) {
+  const t = useServiceProT();
+  const tabName = TABS.find((x) => x.id === tab);
+  const title = tab === 'all' ? t('sp.wn.emptyAll', 'No notifications yet') : t('sp.wn.emptyTab', 'No {tab} notifications').replace('{tab}', tabName ? t('sp.wn.tab.' + tab, tabName.label).toLowerCase() : tab);
+  const body = tab === 'kyc' ? t('sp.wn.emptyKyc', 'KYC updates from admin will appear here')
+    : tab === 'earnings' ? t('sp.wn.emptyEarn', 'Earnings, payouts and penalties will appear here')
+      : tab === 'jobs' ? t('sp.wn.emptyJobs', 'Job events will appear here')
+        : t('sp.wn.caughtUp', 'You\'re all caught up!');
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4 text-center px-8">
       <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center">
         <Bell size={28} className="text-slate-300" />
       </div>
       <div>
-        <p className="font-semibold text-slate-700">{emptyNotificationText(tab).title}</p>
-        <p className="text-sm text-slate-400 mt-1">{emptyNotificationText(tab).body}</p>
+        <p className="font-semibold text-slate-700">{title}</p>
+        <p className="text-sm text-slate-400 mt-1">{body}</p>
       </div>
     </div>
   );
@@ -137,6 +156,7 @@ function EmptyState({ tab }) {
 
 /* Root */
 export default function WorkerNotificationsPage() {
+  const t = useServiceProT();
   const nav  = useNavigate();
   const { accessToken: token } = useSelector(selectAuth);
   const [tab, setTab]          = useState('all');
@@ -187,9 +207,9 @@ export default function WorkerNotificationsPage() {
       setLocalItems((prev) =>
         (prev ?? serverItems).map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() }))
       );
-      toast.success('All marked as read');
+      toast.success(t('sp.wn.markedOk', 'All marked as read'));
       refetch();
-    } catch (err) { toast.error('Failed'); }
+    } catch (err) { toast.error(t('sp.wn.failed', 'Failed')); }
   }
 
   // Filter by tab
@@ -211,9 +231,9 @@ export default function WorkerNotificationsPage() {
               <ArrowLeft size={17} strokeWidth={2.5} />
             </button>
             <div>
-              <h1 className="font-bold text-slate-900 leading-tight">Notifications</h1>
+              <h1 className="font-bold text-slate-900 leading-tight">{t('sp.wn.title', 'Notifications')}</h1>
               {unread > 0 && (
-                <p className="text-[11px] text-zappy-600 font-semibold">{unread} unread</p>
+                <p className="text-[11px] text-zappy-600 font-semibold">{t('sp.wn.unread', '{n} unread').replace('{n}', unread)}</p>
               )}
             </div>
           </div>
@@ -224,30 +244,30 @@ export default function WorkerNotificationsPage() {
               className="flex items-center gap-1.5 text-xs font-semibold text-zappy-600 hover:text-zappy-800 transition px-3 py-1.5 rounded-xl hover:bg-zappy-50"
             >
               <CheckCheck size={13} />
-              Mark all read
+              {t('sp.wn.markAll', 'Mark all read')}
             </button>
           )}
         </div>
 
         {/* tab bar */}
         <div className="max-w-lg lg:max-w-2xl mx-auto px-4 pb-3 flex gap-1">
-          {TABS.map((t) => {
-            const tabUnread = t.id === 'all'
+          {TABS.map((tb) => {
+            const tabUnread = tb.id === 'all'
               ? unread
-              : items.filter((n) => !n.readAt && TAB_TYPES[t.id]?.includes(n.type)).length;
+              : items.filter((n) => !n.readAt && TAB_TYPES[tb.id]?.includes(n.type)).length;
             return (
               <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
+                key={tb.id}
+                onClick={() => setTab(tb.id)}
                 className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                  tab === t.id
+                  tab === tb.id
                     ? 'bg-zappy-600 text-white'
                     : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                 }`}
               >
-                {t.label}
+                {t('sp.wn.tab.' + tb.id, tb.label)}
                 {tabUnread > 0 && (
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab === t.id ? 'bg-white text-zappy-600' : 'bg-red-500 text-white'}`}>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab === tb.id ? 'bg-white text-zappy-600' : 'bg-red-500 text-white'}`}>
                     {tabUnread}
                   </span>
                 )}
@@ -263,9 +283,9 @@ export default function WorkerNotificationsPage() {
           <EmptyState tab={tab} />
         ) : (
           <>
-            <DaySection label="Today"     items={groups.today}     onRead={handleMarkRead} nav={nav} />
-            <DaySection label="Yesterday" items={groups.yesterday} onRead={handleMarkRead} nav={nav} />
-            <DaySection label="Earlier"   items={groups.earlier}   onRead={handleMarkRead} nav={nav} />
+            <DaySection label={t('sp.wn.today', 'Today')} items={groups.today}     onRead={handleMarkRead} nav={nav} />
+            <DaySection label={t('sp.wn.yesterday', 'Yesterday')} items={groups.yesterday} onRead={handleMarkRead} nav={nav} />
+            <DaySection label={t('sp.wn.earlier', 'Earlier')} items={groups.earlier}   onRead={handleMarkRead} nav={nav} />
           </>
         )}
       </div>

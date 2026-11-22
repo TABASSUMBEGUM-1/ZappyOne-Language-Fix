@@ -2,7 +2,9 @@
  * How each booking state looks to a partner. The labels, next steps and filters
  * are shared with the ServicePro app (shared/events/partnerBookings).
  */
+import { useT } from '@shared/i18n/I18nProvider';
 import { PARTNER_STATUS_LABEL, NEXT_STEP, FILTERS } from '@shared/events/partnerBookings';
+import { tl } from '../../lib/labels';
 
 export { NEXT_STEP, FILTERS };
 
@@ -19,6 +21,7 @@ const TONE = {
 export const STATUS = Object.fromEntries(Object.entries(PARTNER_STATUS_LABEL).map(([k, label]) => [k, { label, tone: TONE[k] }]));
 
 export function StatusChip({ status }) {
+  const t = useT();
   const s = STATUS[status] || { label: status, tone: 'bg-sunken text-ink-700' };
-  return <span className={`chip ${s.tone}`}>{s.label}</span>;
+  return <span className={`chip ${s.tone}`}>{STATUS[status] ? tl(t, s.label) : s.label}</span>;
 }

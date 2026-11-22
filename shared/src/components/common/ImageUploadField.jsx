@@ -3,6 +3,8 @@ import { Upload, Loader2, X, ImageIcon } from 'lucide-react';
 import { usePresignUploadMutation } from '../../services/api';
 import toast from 'react-hot-toast';
 import { prepareImage } from '../../utils/prepareImage';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 /**
  * Pick an image from the device. Never ask anyone to paste a URL.
@@ -21,10 +23,12 @@ export default function ImageUploadField({
   value,
   onChange,
   folder = 'uploads',
-  label = 'image',
+  label: labelProp,
   accept = 'image/*',
   maxMb = 5,
 }) {
+  const t = useServiceProT();
+  const label = labelProp ? t(labelKey(labelProp), labelProp) : t('sp.image', 'image');
   const inputRef = useRef(null);
   const [presign] = usePresignUploadMutation();
   const [busy, setBusy] = useState(false);
@@ -34,7 +38,7 @@ export default function ImageUploadField({
     const file = await prepareImage(picked);
     if (!file) return;
     if (file.size > maxMb * 1024 * 1024) {
-      toast.error(`That file is over ${maxMb}MB - pick a smaller one`);
+      toast.error(t('sp.that_file_is_over_n_mb_pick_a_smaller_one', 'That file is over {n}MB - pick a smaller one').replace('{n}', maxMb));
       return;
     }
 
@@ -62,9 +66,9 @@ export default function ImageUploadField({
       // Show it immediately — a private bucket will not serve the stored key
       // back until the next read signs it.
       setPreview(URL.createObjectURL(file));
-      toast.success(`${label[0].toUpperCase()}${label.slice(1)} uploaded`);
+      toast.success(t('sp.label_uploaded', '{label} uploaded').replace('{label}', `${label[0].toUpperCase()}${label.slice(1)}`));
     } catch (err) {
-      toast.error(err?.data?.error || `Could not upload that ${label}`);
+      toast.error(err?.data?.error || t('sp.could_not_upload_that_label', 'Could not upload that {label}').replace('{label}', label));
     } finally {
       setBusy(false);
     }
@@ -83,15 +87,15 @@ export default function ImageUploadField({
           className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-600 transition hover:border-blue-300 hover:text-blue-600 disabled:opacity-50"
         >
           {busy
-            ? <><Loader2 size={13} className="animate-spin" /> Uploading…</>
-            : <><Upload size={13} /> {value ? `Replace ${label}` : `Upload ${label}`}</>}
+            ? <><Loader2 size={13} className="animate-spin" /> {t('sp.uploading', 'Uploading…')}</>
+            : <><Upload size={13} /> {(value ? t('sp.replace_label', 'Replace {label}') : t('sp.upload_label', 'Upload {label}')).replace('{label}', label)}</>}
         </button>
 
         {value && (
           <button
             type="button"
             onClick={() => { onChange(''); setPreview(null); }}
-            title={`Remove ${label}`}
+            title={t('sp.remove_label', 'Remove {label}').replace('{label}', label)}
             className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-400 transition hover:bg-red-50 hover:text-red-500"
           >
             <X size={13} />

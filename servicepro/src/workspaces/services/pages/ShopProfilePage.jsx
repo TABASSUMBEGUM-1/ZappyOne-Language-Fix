@@ -83,7 +83,7 @@ export default function ShopProfilePage() {
   async function handleCoverUpload(picked) {
     const file = await prepareImage(picked);
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) return toast.error('Image too large - max 5MB');
+    if (file.size > 5 * 1024 * 1024) return toast.error(t('sp.pf.imgBig', 'Image too large - max 5MB'));
     try {
       setUploadingCover(true);
       const { data: signed } = await presign({ folder: 'shop', contentType: file.type || 'image/jpeg' });
@@ -123,16 +123,16 @@ export default function ShopProfilePage() {
         }),
       }).unwrap();
       draft.saved(form);
-      toast.success('Profile updated');
+      toast.success(t('sp.pf.updated', 'Profile updated'));
     } catch (err) {
       toast.error(err?.data?.error || t('sp.pf.updateFail', 'Failed to update profile'));
     }
   }
 
-  if (isError && !form) return <LoadFailed what="Your shop" onRetry={refetch} />;
+  if (isError && !form) return <LoadFailed what={t('sp.pf.yourShop', 'Your shop')} onRetry={refetch} />;
   if (isLoading || !form) {
     return (
-      <PageSkeleton kind="form" label="Loading your shop" />
+      <PageSkeleton kind="form" label={t('sp.pf.loadingShop', 'Loading your shop')} />
     );
   }
 
@@ -152,7 +152,7 @@ export default function ShopProfilePage() {
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-32">
       <header className="page-header"><div className="page-header-inner">
-        <button onClick={() => nav('/shop')} className="back-btn"><ArrowLeft size={18} strokeWidth={2.5} /></button>
+        <button onClick={() => nav('/shop')} className="back-btn" aria-label={t('sp.back', 'Back')}><ArrowLeft size={18} strokeWidth={2.5} /></button>
         <h1 className="h-card">{t('sp.pf.title', 'Shop Profile')}</h1>
       </div></header>
 
@@ -163,10 +163,10 @@ export default function ShopProfilePage() {
 
         {/* Cover photo */}
         <div data-field="photo" className="card">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Cover Photo</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">{t('sp.pf.coverPhoto', 'Cover Photo')}</p>
           <label className={`relative block aspect-[16/9] rounded-xl overflow-hidden bg-slate-100 border-2 border-dashed border-slate-200 cursor-pointer ${uploadingCover ? 'opacity-60' : ''}`}>
             {coverPreview || (form.coverImageUrl && form.coverImageUrl.startsWith('http')) ? (
-              <img src={coverPreview || form.coverImageUrl} alt="Shop cover" className="w-full h-full object-cover" />
+              <img src={coverPreview || form.coverImageUrl} alt={t('sp.pf.coverAlt', 'Shop cover')} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 text-slate-400">
                 {uploadingCover ? <Loader2 size={20} className="animate-spin" /> : <ImageIcon size={22} strokeWidth={1.5} />}
@@ -181,7 +181,7 @@ export default function ShopProfilePage() {
         {/* Basic info */}
         <div className="card space-y-3">
           <div data-field="businessName">
-            <label className="text-[12px] font-bold text-slate-700 block mb-1.5">Business Name <span className="text-red-500">*</span></label>
+            <label className="text-[12px] font-bold text-slate-700 block mb-1.5">{t('sp.pf.bizName', 'Business Name')} <span className="text-red-500">*</span></label>
             <input value={form.businessName} onChange={(e) => setForm((p) => ({ ...p, businessName: e.target.value }))}
               className="input text-sm w-full" placeholder={t('sp.pf.bizNameEg', 'e.g. Sharma Mobile Repair')} />
           </div>
@@ -191,13 +191,13 @@ export default function ShopProfilePage() {
               className="input text-sm w-full" placeholder={t('sp.pf.categoryEg', 'e.g. Mobile & Laptop Repair')} />
           </div>
           <div data-field="bio">
-            <label className="text-[12px] font-bold text-slate-700 block mb-1.5">About your shop</label>
+            <label className="text-[12px] font-bold text-slate-700 block mb-1.5">{t('sp.pf.about', 'About your shop')}</label>
             <textarea rows={3} value={form.bio} onChange={(e) => setForm((p) => ({ ...p, bio: e.target.value }))}
               className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-zappy-100 focus:border-zappy-400 resize-none"
               placeholder={t('sp.pf.aboutEg', 'Tell customers what makes your shop trustworthy…')} />
           </div>
           <div data-field="years">
-            <label className="text-[12px] font-bold text-slate-700 block mb-1.5">Years in business</label>
+            <label className="text-[12px] font-bold text-slate-700 block mb-1.5">{t('sp.pf.years', 'Years in business')}</label>
             <input type="number" min="0" value={form.yearsActive} onChange={(e) => setForm((p) => ({ ...p, yearsActive: e.target.value }))}
               className="input text-sm w-full" placeholder={t('sp.pf.yearsEg', 'e.g. 5')} />
           </div>
@@ -205,7 +205,7 @@ export default function ShopProfilePage() {
 
         {/* Address */}
         <div data-field="address" className="card space-y-3">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Shop Address</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t('sp.pf.shopAddr', 'Shop Address')}</p>
           <p className="text-[11px] text-slate-400">
             {t('sp.pf.addressHint', 'Customers are matched against this pin, so put it on the shop door.')}
           </p>
@@ -239,7 +239,7 @@ export default function ShopProfilePage() {
 
         {/* Opening hours */}
         <div data-field="hours" className="card">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Opening Hours</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t('sp.pf.hours', 'Opening Hours')}</p>
           <p className="mt-0.5 mb-3 text-[11px] text-slate-400">
             {t('sp.pf.hoursHint', 'Customers see these before booking. A day left closed takes no bookings.')}
           </p>
@@ -250,7 +250,7 @@ export default function ShopProfilePage() {
         <div className="card">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t('sp.pf.services', 'Services You Offer')}</p>
           <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
-            Set by verification, not by this form - customers rely on it meaning something.
+            {t('sp.pf.setByVerif', 'Set by verification, not by this form - customers rely on it meaning something.')}
           </p>
           <button
             type="button"

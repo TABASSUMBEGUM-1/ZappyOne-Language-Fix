@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CornerDownLeft, Search } from 'lucide-react';
+import { useServiceProT } from '../../i18n/I18nProvider';
 
 const norm = (s) => String(s || '').toLowerCase();
 
@@ -18,6 +19,7 @@ export function usePaletteKeys(setOpen) {
 
 /** items: [{ id, label, group?, hint?, Icon?, keywords?, onSelect }] */
 export default function CommandPalette({ open, onClose, items, placeholder = 'Go to a page…' }) {
+  const t = useServiceProT();
   const [q, setQ] = useState('');
   const [at, setAt] = useState(0);
   const input = useRef(null);
@@ -48,7 +50,7 @@ export default function CommandPalette({ open, onClose, items, placeholder = 'Go
 
   return (
     <div className="fixed inset-0 z-[400] flex items-start justify-center bg-slate-900/40 px-4 pt-[12vh]" onMouseDown={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Go to a page" className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-label={t('sp.go_to_a_page', 'Go to a page')} className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2.5 border-b border-slate-100 px-4">
           <Search size={17} className="shrink-0 text-slate-400" aria-hidden="true" />
           <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKey} placeholder={placeholder}
@@ -57,7 +59,7 @@ export default function CommandPalette({ open, onClose, items, placeholder = 'Go
           <kbd className="hidden rounded border border-slate-200 px-1.5 py-0.5 text-[11px] font-semibold text-slate-400 sm:block">Esc</kbd>
         </div>
         <ul ref={list} id="palette-list" role="listbox" className="max-h-[50vh] overflow-y-auto p-1.5">
-          {shown.length === 0 && <li className="px-3 py-8 text-center text-[14px] text-slate-500">Nothing matches &ldquo;{q}&rdquo;</li>}
+          {shown.length === 0 && <li className="px-3 py-8 text-center text-[14px] text-slate-500">{t('sp.nothing_matches_q', 'Nothing matches “{q}”').replace('{q}', q)}</li>}
           {shown.map((item, i) => (
             <li key={item.id} id={`palette-${item.id}`} data-i={i} role="option" aria-selected={i === at}
               onMouseMove={() => setAt(i)} onClick={() => pick(item)}
@@ -70,7 +72,7 @@ export default function CommandPalette({ open, onClose, items, placeholder = 'Go
           ))}
         </ul>
         <p className="border-t border-slate-100 px-4 py-2 text-[11.5px] text-slate-400">
-          <kbd className="font-semibold">↑</kbd> <kbd className="font-semibold">↓</kbd> to move · <kbd className="font-semibold">Enter</kbd> to open · <kbd className="font-semibold">Ctrl K</kbd> or <kbd className="font-semibold">/</kbd> from anywhere
+          <kbd className="font-semibold">↑</kbd> <kbd className="font-semibold">↓</kbd> {t('sp.to_move', 'to move')} · <kbd className="font-semibold">Enter</kbd> {t('sp.to_open', 'to open')} · <kbd className="font-semibold">Ctrl K</kbd> {t('sp.or', 'or')} <kbd className="font-semibold">/</kbd> {t('sp.from_anywhere', 'from anywhere')}
         </p>
       </div>
     </div>

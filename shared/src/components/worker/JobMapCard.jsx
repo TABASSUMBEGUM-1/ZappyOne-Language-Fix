@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Navigation, MapPin, Loader2 } from 'lucide-react';
 import { useGeolocation } from '../../hooks/useGeolocation';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 // The map library is large: loaded only when a job screen shows a map.
 const LiveTrackingMap = lazy(() => import('../../modules/tracking/LiveTrackingMap'));
@@ -19,7 +21,9 @@ const km = (a, b) => {
  * provider's own position, how far, and one tap into turn-by-turn navigation.
  * Every worker job screen (repair, pet, helping) uses this one card.
  */
-export default function JobMapCard({ to, label = 'Customer location', live = true }) {
+export default function JobMapCard({ to, label, live = true }) {
+  const t = useServiceProT();
+  const shown = label ? t(labelKey(label), label) : t('sp.customer_location', 'Customer location');
   const { watch } = useGeolocation();
   const [me, setMe] = useState(null);
 
@@ -36,18 +40,18 @@ export default function JobMapCard({ to, label = 'Customer location', live = tru
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="relative h-[220px] sm:h-[280px] lg:h-[320px]">
         <Suspense fallback={<div className="flex h-full items-center justify-center bg-slate-50"><Loader2 size={20} className="animate-spin text-slate-400" /></div>}>
-          <LiveTrackingMap pickup={to} workerLocation={me} status="on_the_way" height="100%" pickupLabel={label} workerLabel="You" />
+          <LiveTrackingMap pickup={to} workerLocation={me} status="on_the_way" height="100%" pickupLabel={shown} workerLabel={t('sp.you', 'You')} />
         </Suspense>
       </div>
       <div className="flex items-center gap-3 p-3">
         <MapPin size={18} className="shrink-0 text-zappy-600" />
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{label}{distance != null && `, ${distance < 1 ? `${Math.round(distance * 1000)} m` : `${distance.toFixed(1)} km`} away`}</p>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{shown}{distance != null && `, ${distance < 1 ? t('sp.n_m_away', '{n} m away').replace('{n}', Math.round(distance * 1000)) : t('sp.n_km_away', '{n} km away').replace('{n}', distance.toFixed(1))}`}</p>
           <p className="truncate text-sm font-semibold text-[#0F172A]">{to.address || `${to.lat.toFixed(5)}, ${to.lng.toFixed(5)}`}</p>
         </div>
         <a href={directions} target="_blank" rel="noreferrer"
           className="flex shrink-0 items-center gap-1.5 rounded-xl bg-zappy-600 px-3.5 py-2 text-sm font-bold text-white hover:bg-zappy-700">
-          <Navigation size={14} /> Navigate
+          <Navigation size={14} /> {t('sp.navigate', 'Navigate')}
         </a>
       </div>
     </div>

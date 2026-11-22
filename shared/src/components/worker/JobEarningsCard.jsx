@@ -1,17 +1,21 @@
 import { Loader2, Wallet } from 'lucide-react';
 import { useJobEarningsQuery } from '../../services/api';
 import { formatPaise } from '../../utils/money';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 function Lines({ rows = [] }) {
+  const t = useServiceProT();
   return rows.map((r) => (
     <div key={r.label} className="flex items-start justify-between gap-3 text-[13px]">
-      <span className="text-slate-600">{r.label}{r.note && <span className="block text-[11px] text-slate-400">{r.note}</span>}</span>
+      <span className="text-slate-600">{t(labelKey(r.label), r.label)}{r.note && <span className="block text-[11px] text-slate-400">{t(labelKey(r.note), r.note)}</span>}</span>
       <span className="shrink-0 font-semibold tabular-nums text-[#0F172A]">{r.paise < 0 ? `− ${formatPaise(-r.paise)}` : formatPaise(r.paise)}</span>
     </div>
   ));
 }
 
 function Block({ title, totalPaise, rows, tone = 'slate' }) {
+  const t = useServiceProT();
   const tones = {
     slate: 'bg-slate-50',
     zappy: 'bg-amber-50/60',
@@ -20,7 +24,7 @@ function Block({ title, totalPaise, rows, tone = 'slate' }) {
   return (
     <div className={`space-y-1.5 rounded-xl p-3 ${tones[tone]}`}>
       <div className="flex items-center justify-between">
-        <p className={`text-sm font-bold ${tone === 'you' ? 'text-emerald-800' : 'text-[#0F172A]'}`}>{title}</p>
+        <p className={`text-sm font-bold ${tone === 'you' ? 'text-emerald-800' : 'text-[#0F172A]'}`}>{t(labelKey(title), title)}</p>
         <p className={`text-base font-black tabular-nums ${tone === 'you' ? 'text-emerald-700' : 'text-[#0F172A]'}`}>{formatPaise(totalPaise)}</p>
       </div>
       <Lines rows={rows} />
@@ -34,6 +38,7 @@ function Block({ title, totalPaise, rows, tone = 'slate' }) {
  * so it matches the Earnings page. Every worker job screen uses this one card.
  */
 export default function JobEarningsCard({ jobId }) {
+  const t = useServiceProT();
   const { data, isLoading } = useJobEarningsQuery(jobId);
   const e = data?.earnings;
   if (isLoading) return <div className="card flex justify-center py-6"><Loader2 size={18} className="animate-spin text-slate-400" /></div>;
@@ -41,14 +46,14 @@ export default function JobEarningsCard({ jobId }) {
 
   return (
     <div className="card space-y-2.5">
-      <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500"><Wallet size={14} /> Payment breakdown</p>
+      <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500"><Wallet size={14} /> {t('sp.payment_breakdown', 'Payment breakdown')}</p>
       <Block title="Customer paid" totalPaise={e.customerPaidPaise} />
       <Block title="ZappyOne" totalPaise={e.zappyKeepsPaise} tone="zappy" />
       <Block title="You earn" totalPaise={e.youEarnPaise} rows={e.yours} tone="you" />
       <p className="text-[12px] leading-relaxed text-slate-600">
         {e.cash
-          ? `You collected ${formatPaise(e.customerPaidPaise)}. ZappyOne's ${formatPaise(e.zappyKeepsPaise)} is added to what you pay ZappyOne, so you keep ${formatPaise(e.youEarnPaise)}.`
-          : `The customer paid online. Your ${formatPaise(e.youEarnPaise)} goes to your wallet.`}
+          ? t('sp.you_collected_paid_zappyone_s_fee_is_added_to_what_you_pay_zappyone_so_you_keep_earn', 'You collected {paid}. ZappyOne\'s {fee} is added to what you pay ZappyOne, so you keep {earn}.').replace('{paid}', formatPaise(e.customerPaidPaise)).replace('{fee}', formatPaise(e.zappyKeepsPaise)).replace('{earn}', formatPaise(e.youEarnPaise))
+          : t('sp.the_customer_paid_online_your_earn_goes_to_your_wallet', 'The customer paid online. Your {earn} goes to your wallet.').replace('{earn}', formatPaise(e.youEarnPaise))}
       </p>
     </div>
   );

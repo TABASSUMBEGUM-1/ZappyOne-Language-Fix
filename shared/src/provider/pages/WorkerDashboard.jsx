@@ -41,6 +41,8 @@ import {
 } from '../../components/worker/DashboardUI';
 import toast from 'react-hot-toast';
 import { useLivePoll } from '../../hooks/useSocket';
+import { useI18n, useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 /**
  * Rakshak home — the partner-app home every gig worker knows.
@@ -56,6 +58,7 @@ import { useLivePoll } from '../../hooks/useSocket';
 const KINDS = ['repair', 'pet', 'helping'];
 
 function NotifBell({ token, onTap }) {
+  const t = useServiceProT();
   const { data } = useListNotificationsQuery({ page: 1, unreadOnly: true }, { skip: !token, pollingInterval: useLivePoll(60000) });
   const [bump, setBump] = useState(0);
   useEffect(() => {
@@ -70,7 +73,7 @@ function NotifBell({ token, onTap }) {
     <button
       type="button"
       onClick={onTap}
-      aria-label={`Notifications${count ? `, ${count} unread` : ''}`}
+      aria-label={count ? t('sp.wdash.notifN', 'Notifications, {n} unread').replace('{n}', count) : t('sp.wdash.notif', 'Notifications')}
       className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
     >
       <Bell size={17} strokeWidth={2.2} />
@@ -84,6 +87,8 @@ function NotifBell({ token, onTap }) {
 }
 
 export default function WorkerDashboard() {
+  const t = useServiceProT();
+  const { lang } = useI18n();
   // ZappyOne staff see their shift and salary here (server workforce/); partners get { staff: false }.
   const { data: staffMe } = useWorkforceMeQuery();
   const nav = useNavigate();
@@ -139,7 +144,7 @@ export default function WorkerDashboard() {
     const socket = getSocket(token);
     const onRejected = ({ reason }) => {
       dispatch(setOnline(false));
-      toast.error(reason ? `Documents not approved: ${reason}` : 'ZappyOne could not approve your documents. Please send them again.', { duration: 8000 });
+      toast.error(reason ? t('sp.wdash.kycRej', 'Documents not approved: {n}').replace('{n}', reason) : t('sp.wdash.kycRej2', 'ZappyOne could not approve your documents. Please send them again.'), { duration: 8000 });
       refetchMe?.();
     };
     socket.on('kyc.rejected', onRejected);
@@ -164,21 +169,21 @@ export default function WorkerDashboard() {
   if (meData && !me?.onboardingComplete) return <WorkerOnboarding onComplete={refetchMe} />;
 
   async function toggleOnline() {
-    if (!kycApproved) { toast.error('Get approved for a service first, then go online'); nav('/provider/onboarding'); return; }
+    if (!kycApproved) { toast.error(t('sp.wdash.needApp', 'Get approved for a service first, then go online')); nav('/provider/onboarding'); return; }
     setToggling(true);
     try {
       if (isOnline) {
         await goOffline().unwrap();
         setAreaName(null);
-        toast.success('You are offline. No new work will ring.');
+        toast.success(t('sp.wdash.nowOff', 'You are offline. No new work will ring.'));
       } else {
         const pos = await getCurrent();
         // The server refuses worse than 500 m (a laptop's IP guess); 100–500 m works, with a tip.
         if (pos.accuracy > 100 && pos.accuracy <= 500) {
-          toast('Your location is not clear. Go near a window or outside.', { duration: 5000 });
+          toast(t('sp.wdash.weak', 'Your location is not clear. Go near a window or outside.'), { duration: 5000 });
         }
         await goOnline({ lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy ?? null }).unwrap();
-        toast.success('You are online. New work near you will ring.');
+        toast.success(t('sp.wdash.nowOn', 'You are online. New work near you will ring.'));
         // Allowed once, a job also shows as a phone notification while this tab is in the background.
         try { if (window.Notification?.permission === 'default') window.Notification.requestPermission(); } catch { /* not supported */ }
         reverseGeocode(pos.lat, pos.lng)
@@ -191,7 +196,7 @@ export default function WorkerDashboard() {
         toast.error(err.data.error);
         if (err.data.job?.link) nav(err.data.job.link);
       } else {
-        toast.error(err?.data?.error || err?.message || 'Could not change your status');
+        toast.error(err?.data?.error || err?.message || t('sp.wdash.statusFail', 'Could not change your status'));
       }
     } finally {
       setToggling(false);
@@ -209,7 +214,7 @@ export default function WorkerDashboard() {
     nav('/worker/login');
   }
 
-  const firstName = (me?.name || 'there').trim().split(/\s+/)[0];
+  const firstName = (me?.name || t('sp.wdash.there', 'there')).trim().split(/\s+/)[0];
   const initials = (me?.name || 'W').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   const rating = ratingLabel(me);
 
@@ -218,10 +223,10 @@ export default function WorkerDashboard() {
 
   const stats = [
     // Staff are salaried (provider/staffPortal): no per-job earnings tile on Rakshak.
-    ...(STAFF_PORTAL ? [] : [{ Icon: BadgeIndianRupee, tone: 'green', label: 'Today', value: inr(todayData?.earningsRupees ?? 0), sub: 'Earnings', onClick: () => nav('/worker/earnings') }]),
-    { Icon: Briefcase, tone: 'blue', label: 'Jobs today', value: todayData?.jobs ?? 0, sub: 'Completed', onClick: () => nav('/worker/work') },
-    { Icon: Clock, tone: 'cyan', label: 'Online', value: isOnline ? hm(onlineSec) : 'Off', sub: isOnline ? 'This session' : 'Go online' },
-    { Icon: Star, tone: 'amber', label: 'Rating', value: rating, sub: `${me?.completedJobs ?? 0} job${(me?.completedJobs ?? 0) === 1 ? '' : 's'}`, onClick: () => nav('/worker/reviews') },
+    ...(STAFF_PORTAL ? [] : [{ Icon: BadgeIndianRupee, tone: 'green', label: t('sp.wdash.today', 'Today'), value: inr(todayData?.earningsRupees ?? 0), sub: t('sp.wdash.earnings', 'Earnings'), onClick: () => nav('/worker/earnings') }]),
+    { Icon: Briefcase, tone: 'blue', label: t('sp.wdash.jobsToday', 'Jobs today'), value: todayData?.jobs ?? 0, sub: t('sp.wdash.completed', 'Completed'), onClick: () => nav('/worker/work') },
+    { Icon: Clock, tone: 'cyan', label: t('sp.wdash.online', 'Online'), value: isOnline ? hm(onlineSec) : t('sp.wdash.off', 'Off'), sub: isOnline ? t('sp.wdash.session', 'This session') : t('sp.wdash.goOnline', 'Go online') },
+    { Icon: Star, tone: 'amber', label: t('sp.wdash.rating', 'Rating'), value: rating, sub: (me?.completedJobs ?? 0) === 1 ? t('sp.wdash.job1', '1 job') : t('sp.wdash.jobN', '{n} jobs').replace('{n}', me?.completedJobs ?? 0), onClick: () => nav('/worker/reviews') },
   ];
 
   return (
@@ -239,7 +244,7 @@ export default function WorkerDashboard() {
             >
               <div className="flex items-center justify-between px-2 py-2">
                 <ZappyWordmark size={22} />
-                <button type="button" onClick={() => setDrawerOpen(false)} className="rounded-full p-1.5 hover:bg-slate-100" aria-label="Close menu">
+                <button type="button" onClick={() => setDrawerOpen(false)} className="rounded-full p-1.5 hover:bg-slate-100" aria-label={t('sp.wdash.closeMenu', 'Close menu')}>
                   <X size={18} className="text-slate-500" />
                 </button>
               </div>
@@ -252,16 +257,16 @@ export default function WorkerDashboard() {
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-slate-600 hover:bg-slate-100"
                   >
                     <item.Icon size={18} strokeWidth={2.2} />
-                    <span className="flex-1 text-left">{item.label}</span>
+                    <span className="flex-1 text-left">{t(labelKey(item.label), item.label)}</span>
                   </button>
                 ))}
                 {STAFF_PORTAL && (
                   <a href={`tel:+91${STAFF_HELP_PHONE}`} className="flex w-full items-center gap-3 rounded-xl bg-rose-50 px-3 py-2.5 text-[14px] font-bold text-rose-700">
-                    <PhoneCall size={18} /> <span>Call ZappyOne help</span>
+                    <PhoneCall size={18} /> <span>{t('sp.wdash.callHelp', 'Call ZappyOne help')}</span>
                   </a>
                 )}
                 <button type="button" onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-rose-600 hover:bg-rose-50">
-                  <LogOut size={18} /> <span>Sign out</span>
+                  <LogOut size={18} /> <span>{t('sp.wdash.signOut', 'Sign out')}</span>
                 </button>
               </nav>
             </motion.aside>
@@ -272,11 +277,11 @@ export default function WorkerDashboard() {
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 lg:px-8">
           <div className="flex min-w-0 items-center gap-2.5">
-            <button type="button" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-slate-100 lg:hidden" onClick={() => setDrawerOpen(true)} aria-label="Open menu">
+            <button type="button" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-slate-100 lg:hidden" onClick={() => setDrawerOpen(true)} aria-label={t('sp.wdash.openMenu', 'Open menu')}>
               <Menu size={20} className="text-slate-700" />
             </button>
             <span className="lg:hidden"><ZappyWordmark size={20} /></span>
-            <h1 className="hidden truncate text-[18px] font-bold text-navy lg:block">Hello, {firstName}</h1>
+            <h1 className="hidden truncate text-[18px] font-bold text-navy lg:block">{t('sp.wdash.hello', 'Hello, {n}').replace('{n}', firstName)}</h1>
             {/* On a big screen the greeting card is not shown: where they are lives up here instead. */}
             {isOnline && (
               <span className="hidden min-w-0 lg:block">
@@ -289,7 +294,7 @@ export default function WorkerDashboard() {
               <OnlineControl isOnline={isOnline} busy={toggling} disabled={!kycApproved} onToggle={toggleOnline} />
             </div>
             <NotifBell token={token} onTap={() => nav('/worker/notifications')} />
-            <button type="button" onClick={() => nav('/worker/profile')} aria-label="Profile">
+            <button type="button" onClick={() => nav('/worker/profile')} aria-label={t('sp.wdash.profile', 'Profile')}>
               <Avatar url={avatarUrl} initials={initials} size={36} />
             </button>
           </div>
@@ -307,9 +312,9 @@ export default function WorkerDashboard() {
             <ShieldCheck size={18} className={kycStatus === 'rejected' ? 'text-red-600' : 'text-amber-600'} />
             <span className="min-w-0 flex-1">
               <span className="block text-[14px] font-semibold text-navy">
-                {kycBannerText(kycStatus)}
+                {t(kycStatus === 'pending_review' ? 'sp.wdash.kyc.pending' : kycStatus === 'rejected' ? 'sp.wdash.kyc.rejected' : 'sp.wdash.kyc.none', kycBannerText(kycStatus))}
               </span>
-              <span className="block text-[12px] text-slate-500">You verify once. Your ID is reused for every service you add.</span>
+              <span className="block text-[12px] text-slate-500">{t('sp.wdash.verifyOnce', 'You verify once. Your ID is reused for every service you add.')}</span>
             </span>
             <ChevronRight size={18} className="shrink-0 text-slate-400" />
           </button>
@@ -334,8 +339,8 @@ export default function WorkerDashboard() {
         <div className="grid gap-5 lg:grid-cols-3">
           <div className="space-y-5 lg:col-span-2">
             <Panel
-              title="In your hands"
-              action={<button type="button" onClick={() => nav('/worker/work')} className="text-[13px] font-semibold text-zappy-600 hover:underline">All work</button>}
+              title={t('sp.wdash.inHands', 'In your hands')}
+              action={<button type="button" onClick={() => nav('/worker/work')} className="text-[13px] font-semibold text-zappy-600 hover:underline">{t('sp.wdash.allWork', 'All work')}</button>}
             >
               {mine.length ? (
                 <div className="space-y-2">
@@ -354,21 +359,21 @@ export default function WorkerDashboard() {
                       <ChevronRight size={16} className="shrink-0 text-slate-400" />
                     </button>
                   ))}
-                  {mine.length > 3 && <p className="text-[12.5px] text-slate-500">and {mine.length - 3} more on your Work page</p>}
+                  {mine.length > 3 && <p className="text-[12.5px] text-slate-500">{t('sp.wdash.more', 'and {n} more on your Work page').replace('{n}', mine.length - 3)}</p>}
                 </div>
               ) : (
-                <p className="text-[14px] text-slate-500">Nothing in hand. {isOnline ? 'New work will ring when it comes in.' : 'Go online to start getting work.'}</p>
+                <p className="text-[14px] text-slate-500">{t('sp.wdash.nothing', 'Nothing in hand.')} {isOnline ? t('sp.wdash.willRing', 'New work will ring when it comes in.') : t('sp.wdash.goStart', 'Go online to start getting work.')}</p>
               )}
             </Panel>
 
             <Panel
-              title={`Open near you${open.length ? `, ${open.length}` : ''}`}
-              action={open.length > 0 && <button type="button" onClick={() => nav('/worker/work')} className="text-[13px] font-semibold text-zappy-600 hover:underline">See all</button>}
+              title={`${t('sp.wdash.openNear', 'Open near you')}${open.length ? `, ${open.length}` : ''}`}
+              action={open.length > 0 && <button type="button" onClick={() => nav('/worker/work')} className="text-[13px] font-semibold text-zappy-600 hover:underline">{t('sp.wdash.seeAll', 'See all')}</button>}
             >
               {!isOnline ? (
                 <button type="button" onClick={toggleOnline} disabled={toggling} className="flex w-full items-center gap-3 rounded-xl bg-zappy-50 px-3.5 py-3 text-left">
                   <Radio size={18} className="text-zappy-600" />
-                  <span className="flex-1 text-[14px] font-medium text-navy">Go online to see and take open work near you</span>
+                  <span className="flex-1 text-[14px] font-medium text-navy">{t('sp.wdash.goSee', 'Go online to see and take open work near you')}</span>
                   <ChevronRight size={16} className="text-slate-400" />
                 </button>
               ) : open.length ? (
@@ -383,7 +388,7 @@ export default function WorkerDashboard() {
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[14px] font-semibold capitalize text-navy">{j.service}, {j.title}</span>
                         <span className="flex items-center gap-1 truncate text-[12.5px] text-slate-500">
-                          <MapPin size={12} /> {[j.km != null ? `${j.km} km` : null, j.where].filter(Boolean).join(', ')}
+                          <MapPin size={12} /> {[j.km != null ? t('sp.wdash.km', '{n} km').replace('{n}', j.km) : null, j.where].filter(Boolean).join(', ')}
                         </span>
                       </span>
                       {!STAFF_PORTAL && <span className="shrink-0 text-[15px] font-bold tabular-nums text-emerald-700">{formatPaise(j.earningPaise)}</span>}
@@ -392,7 +397,7 @@ export default function WorkerDashboard() {
                 </div>
               ) : (
                 <p className="text-[14px] text-slate-500">
-                  {notApproved.length ? 'Get verified for more services to see open work here.' : 'No open work near you right now.'}
+                  {notApproved.length ? t('sp.wdash.getVerified', 'Get verified for more services to see open work here.') : t('sp.wdash.noOpen', 'No open work near you right now.')}
                 </p>
               )}
             </Panel>
@@ -404,7 +409,7 @@ export default function WorkerDashboard() {
               <EarningsOverview
                 weekRupees={weekData?.earningsRupees ?? 0}
                 deltaPct={deltaPct}
-                points={week.map((d) => ({ label: new Date(d.date).toLocaleDateString('en-IN', { weekday: 'short' }), value: Math.round(d.earningsPaise / 100) }))}
+                points={week.map((d) => ({ label: new Date(d.date).toLocaleDateString(`${lang}-IN`, { weekday: 'short' }), value: Math.round(d.earningsPaise / 100) }))}
                 onViewDetails={() => nav('/worker/earnings')}
               />
             )}

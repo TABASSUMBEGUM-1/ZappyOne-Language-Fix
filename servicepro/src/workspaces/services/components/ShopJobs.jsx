@@ -24,7 +24,7 @@ export default function ShopJobs({ kinds = ['repair', 'pet'] }) {
   const { mine: jobs, isLoading, refetch } = useProviderJobs({ kinds });
 
   if (isLoading) {
-    return <div className="space-y-2" role="status" aria-label="Loading jobs">{[0, 1, 2].map((i) => <div key={i} className="flex items-center gap-3 py-1.5"><Bone className="h-9 w-9 rounded-xl" /><div className="flex-1 space-y-1.5"><Bone className="h-3.5 w-2/5" /><Bone className="h-3 w-3/5" /></div></div>)}</div>;
+    return <div className="space-y-2" role="status" aria-label={t('sp.jobs.loading', 'Loading jobs')}>{[0, 1, 2].map((i) => <div key={i} className="flex items-center gap-3 py-1.5"><Bone className="h-9 w-9 rounded-xl" /><div className="flex-1 space-y-1.5"><Bone className="h-3.5 w-2/5" /><Bone className="h-3 w-3/5" /></div></div>)}</div>;
   }
 
   if (!jobs.length) {
