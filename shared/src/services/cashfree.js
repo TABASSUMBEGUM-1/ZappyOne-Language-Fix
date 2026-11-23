@@ -1,4 +1,6 @@
 import logoUrl from '@assets/web/logo.png';
+import { spText as tr } from '../i18n/spText';
+import { labelKey } from '../i18n/translations';
 /**
  * Cashfree JS SDK wrapper.
  *
@@ -63,16 +65,16 @@ function showZappySheet(amountPaise, purpose) {
             <img src="${logoUrl}" alt="" width="32" height="32" style="width:32px;height:32px;object-fit:contain" />
             <span style="font-size:15px;font-weight:600">ZappyOne</span>
           </div>
-          <button id="__zappy_close__" type="button" aria-label="Close" style="border:none;background:transparent;
+          <button id="__zappy_close__" type="button" aria-label="${esc(tr('sp.close', 'Close'))}" style="border:none;background:transparent;
             width:36px;height:36px;border-radius:10px;font-size:22px;line-height:1;color:#64748B;cursor:pointer">&times;</button>
         </div>
-        <p style="margin:18px 0 0;font-size:13px;color:#64748B">${esc(purpose || 'Payment')}</p>
+        <p style="margin:18px 0 0;font-size:13px;color:#64748B">${esc(purpose ? tr(labelKey(purpose), purpose) : tr('sp.payment', 'Payment'))}</p>
         <p style="margin:2px 0 0;font-size:32px;font-weight:700;letter-spacing:-0.5px">&#8377;${esc(rupees)}</p>
         <button id="__zappy_pay__" type="button" style="margin-top:20px;width:100%;height:50px;border:none;border-radius:12px;
-          background:#1F4FD8;color:#fff;font:600 16px Figtree,system-ui,sans-serif;cursor:pointer">Pay &#8377;${esc(rupees)}</button>
+          background:#1F4FD8;color:#fff;font:600 16px Figtree,system-ui,sans-serif;cursor:pointer">${esc(tr('sp.pay', 'Pay'))} &#8377;${esc(rupees)}</button>
         <button id="__zappy_cancel__" type="button" style="margin-top:6px;width:100%;height:44px;border:none;background:transparent;
-          color:#475569;font:500 14px Figtree,system-ui,sans-serif;cursor:pointer">Not now</button>
-        <p style="margin:8px 0 0;text-align:center;font-size:12px;color:#94A3B8">UPI, cards and net banking &middot; processed securely by Cashfree</p>
+          color:#475569;font:500 14px Figtree,system-ui,sans-serif;cursor:pointer">${esc(tr('sp.not_now', 'Not now'))}</button>
+        <p style="margin:8px 0 0;text-align:center;font-size:12px;color:#94A3B8">${esc(tr('sp.upi_cards_and_net_banking_processed_securely_by_cashfree', 'UPI, cards and net banking · processed securely by Cashfree'))}</p>
       </div>`;
 
     document.body.appendChild(overlay);

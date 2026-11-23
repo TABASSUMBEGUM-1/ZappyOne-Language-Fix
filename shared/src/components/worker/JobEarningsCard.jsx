@@ -47,9 +47,9 @@ export default function JobEarningsCard({ jobId }) {
   return (
     <div className="card space-y-2.5">
       <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500"><Wallet size={14} /> {t('sp.payment_breakdown', 'Payment breakdown')}</p>
-      <Block title="Customer paid" totalPaise={e.customerPaidPaise} />
+      <Block title={t('sp.customer_paid', 'Customer paid')} totalPaise={e.customerPaidPaise} />
       <Block title="ZappyOne" totalPaise={e.zappyKeepsPaise} tone="zappy" />
-      <Block title="You earn" totalPaise={e.youEarnPaise} rows={e.yours} tone="you" />
+      <Block title={t('sp.you_earn', 'You earn')} totalPaise={e.youEarnPaise} rows={e.yours} tone="you" />
       <p className="text-[12px] leading-relaxed text-slate-600">
         {e.cash
           ? t('sp.you_collected_paid_zappyone_s_fee_is_added_to_what_you_pay_zappyone_so_you_keep_earn', 'You collected {paid}. ZappyOne\'s {fee} is added to what you pay ZappyOne, so you keep {earn}.').replace('{paid}', formatPaise(e.customerPaidPaise)).replace('{fee}', formatPaise(e.zappyKeepsPaise)).replace('{earn}', formatPaise(e.youEarnPaise))

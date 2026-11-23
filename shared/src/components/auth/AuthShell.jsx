@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Check } from 'lucide-react';
+import { useServiceProT } from '../../i18n/I18nProvider';
 
 // The sign-in frame for every ZappyOne website: a moving photo panel saying what this site is for (a band on top on a phone), and the form.
 export default function AuthShell({ photos = [], eyebrow, pitch, points = [], title, subtitle, children, footer }) {
@@ -96,6 +97,7 @@ const START_MIN = 6;
 
 // A pro on the way: the route draws itself, a dot travels it with the minutes counting down, and the customer's pin pulses on arrival. Illustration of live tracking, no data.
 function RouteLine({ className, still }) {
+  const t = useServiceProT();
   const d = 'M12 108 C 60 108, 58 52, 110 58 S 170 20, 206 22';
   const [trip, setTrip] = useState(0);
   const [mins, setMins] = useState(still ? 0 : START_MIN);
@@ -104,8 +106,8 @@ function RouteLine({ className, still }) {
     const began = Date.now();
     setMins(START_MIN);
     const tick = setInterval(() => {
-      const t = Date.now() - began;
-      setMins(t >= TRIP_MS ? 0 : Math.max(1, Math.ceil(START_MIN * (1 - t / TRIP_MS))));
+      const elapsed = Date.now() - began;
+      setMins(elapsed >= TRIP_MS ? 0 : Math.max(1, Math.ceil(START_MIN * (1 - elapsed / TRIP_MS))));
     }, 100);
     const next = setTimeout(() => setTrip((n) => n + 1), TRIP_MS + REST_MS);
     return () => { clearInterval(tick); clearTimeout(next); };
@@ -119,11 +121,11 @@ function RouteLine({ className, still }) {
             {!still && mins > 0 && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />}
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
           </span>
-          <span className="text-[11px] font-semibold text-ink-500">Live tracking</span>
+          <span className="text-[11px] font-semibold text-ink-500">{t('sp.live_tracking', 'Live tracking')}</span>
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.span key={mins} className="text-[12px] font-extrabold tabular-nums text-ink-900"
               initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }} transition={{ duration: 0.18 }}>
-              {mins > 0 ? `${mins} min` : 'Arrived'}
+              {mins > 0 ? t('sp.in_n_min', '{n} min').replace('{n}', mins) : t('sp.arrived', 'Arrived')}
             </motion.span>
           </AnimatePresence>
         </motion.div>

@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { reportApiFailure, setReporterToken } from '../utils/errorReporter';
 import { Mutex } from 'async-mutex';
 import toast from 'react-hot-toast';
+import { spText as tr } from '../i18n/spText';
 import { setAuth, logout } from '../modules/auth/authSlice';
 import { adminApiPath } from '../config/admin';
 import { TAG_TYPES, bindApi, endpoints } from './endpoints';
@@ -12,7 +13,7 @@ let _sessionReplacedAt = 0;
 function sessionReplacedToast() {
   if (Date.now() - _sessionReplacedAt < 4000) return;
   _sessionReplacedAt = Date.now();
-  toast.error('You were signed out - your account was opened on another device.', { id: 'session-replaced', duration: 5000 });
+  toast.error(tr('sp.you_were_signed_out_your_account_was_opened_on_another_device', 'You were signed out - your account was opened on another device.'), { id: 'session-replaced', duration: 5000 });
 }
 
 const rawBaseQuery = fetchBaseQuery({

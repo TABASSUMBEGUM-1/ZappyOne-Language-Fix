@@ -1,5 +1,8 @@
+import { useServiceProT } from '../../i18n/I18nProvider';
+
 // An Indian mobile number: the +91 is fixed, so it is shown as text, never as a menu that does nothing.
 export default function PhoneField({ value, onChange, onEnter, maxDigits = 10, autoFocus = true }) {
+  const t = useServiceProT();
   return (
     <label className="flex h-[52px] items-center overflow-hidden rounded-btn border border-line-strong bg-white transition focus-within:border-zappy-600 focus-within:ring-2 focus-within:ring-zappy-100">
       <span className="flex h-full items-center border-r border-line bg-canvas px-3.5 text-[15px] font-semibold text-ink-700">+91</span>
@@ -7,8 +10,8 @@ export default function PhoneField({ value, onChange, onEnter, maxDigits = 10, a
         type="tel"
         inputMode="numeric"
         autoComplete="tel-national"
-        aria-label="Mobile number"
-        placeholder="Mobile number"
+        aria-label={t('sp.mobile_number', 'Mobile number')}
+        placeholder={t('sp.mobile_number', 'Mobile number')}
         value={value}
         onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, maxDigits))}
         onKeyDown={(e) => e.key === 'Enter' && onEnter?.()}

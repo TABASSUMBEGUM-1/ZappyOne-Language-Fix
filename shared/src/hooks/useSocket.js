@@ -8,6 +8,7 @@ import {
   setDispatchMessage, setWorkersNotified, setDispatchBoost,
 } from '../modules/order/orderSlice';
 import toast from 'react-hot-toast';
+import { spText as tr } from '../i18n/spText';
 
 const STATUS_MSG = {
   searching:   'Finding a nearby worker…',
@@ -241,14 +242,14 @@ export function useJobRealtime({ alerts = false } = {}) {
         playAcceptedAlert();
         toast.success('Your pro accepted. They are getting ready to come to you.', { duration: 7000 });
       }
-      if (p?.tipPaise > 0) toast.success(`₹${Math.round(p.tipPaise / 100)} tip from your customer. It is all yours.`, { duration: 6000 });
+      if (p?.tipPaise > 0) toast.success(tr('sp.n_tip_from_your_customer_it_is_all_yours', '₹{n} tip from your customer. It is all yours.').replace('{n}', Math.round(p.tipPaise / 100)), { duration: 6000 });
     };
     // Quote events are repair-only and carry no id; the repair lists are small.
     const onQuote = () => refresh(['RepairBookings']);
     const onAvailable = (p) => {
       if (OPEN_TAGS[p?.kind]) refresh([OPEN_TAGS[p.kind]]);
       if (alerts) {
-        toast(`New job near you${p.area ? `, ${p.area}` : ''}`, { duration: 6000 });
+        toast(`${tr('sp.new_job_near_you', 'New job near you')}${p.area ? `, ${p.area}` : ''}`, { duration: 6000 });
       }
     };
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DRAFT_PREFIX as PREFIX } from '../utils/formDrafts';
+import { useServiceProT } from '../i18n/I18nProvider';
 const TTL_MS = 3 * 24 * 3600 * 1000;
 const read = (k) => { try { const d = JSON.parse(localStorage.getItem(k)); return d && Date.now() - d.at < TTL_MS ? d.form : null; } catch { return null; } };
 const drop = (k) => { try { localStorage.removeItem(k); } catch { /* storage off */ } };
@@ -41,11 +42,12 @@ export function useFormDraft(key, form, setForm) {
 
 // Shown at the top of a form whose unsaved edits came back after a refresh.
 export function DraftRestored({ show, onDiscard }) {
+  const t = useServiceProT();
   if (!show) return null;
   return (
     <div role="status" className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-zappy-200 bg-zappy-50 px-3 py-2 text-[12.5px] font-semibold text-zappy-800">
-      <span>Your unsaved changes are back.</span>
-      <button type="button" onClick={onDiscard} className="shrink-0 font-bold underline">Discard</button>
+      <span>{t('sp.your_unsaved_changes_are_back', 'Your unsaved changes are back.')}</span>
+      <button type="button" onClick={onDiscard} className="shrink-0 font-bold underline">{t('sp.discard', 'Discard')}</button>
     </div>
   );
 }

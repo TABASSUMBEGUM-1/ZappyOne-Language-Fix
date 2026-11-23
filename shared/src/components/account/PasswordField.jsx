@@ -5,17 +5,18 @@ import { useServiceProT } from '../../i18n/I18nProvider';
 
 export { passwordChecks, passwordOk } from './passwordRules';
 
-export default function PasswordField({ id, label = 'Password', value, onChange, autoComplete = 'new-password', showRules = false, phone, placeholder }) {
+export default function PasswordField({ id, label: labelIn = 'Password', value, onChange, autoComplete = 'new-password', showRules = false, phone, placeholder }) {
   const [show, setShow] = useState(false);
   const checks = passwordChecks(value, phone);
   const t = useServiceProT();
+  const label = labelIn === 'Password' ? t('sp.password', 'Password') : labelIn;
   return (
     <div>
       <label htmlFor={id} className="mb-1.5 block text-[13px] font-semibold text-ink-700">{label}</label>
       <div className="relative">
         <input id={id} type={show ? 'text' : 'password'} value={value} onChange={(e) => onChange(e.target.value)}
           autoComplete={autoComplete} placeholder={placeholder} maxLength={72} className="input w-full pr-11" />
-        <button type="button" onClick={() => setShow((s) => !s)} aria-label={show ? 'Hide password' : 'Show password'}
+        <button type="button" onClick={() => setShow((s) => !s)} aria-label={show ? t('sp.hide_password', 'Hide password') : t('sp.show_password', 'Show password')}
           className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink-500 hover:text-ink-900">
           {show ? <EyeOff size={17} /> : <Eye size={17} />}
         </button>

@@ -48,9 +48,9 @@ export default function WeeklyHours({ hours, onChange }) {
   /** Most shops keep one weekday schedule — set it once, not six times. */
   function applyWeekdays() {
     const week = weekdaysLike(hours);
-    if (!week) return toast.error('Set one day first, then apply it to the rest');
+    if (!week) return toast.error(t('sp.set_one_day_first_then_apply_it_to_the_rest', 'Set one day first, then apply it to the rest'));
     onChange(week);
-    return toast.success('Applied Monday to Saturday');
+    return toast.success(t('sp.applied_monday_to_saturday', 'Applied Monday to Saturday'));
   }
 
   return (

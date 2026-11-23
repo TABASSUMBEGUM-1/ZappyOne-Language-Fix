@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import { usePresignUploadMutation, useSetAccountPhotoMutation } from '../../services/api';
 import { updateProfile } from '../../modules/auth/authSlice';
 import { prepareImage } from '../../utils/prepareImage';
+import { useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
 
 const FOLDER = { shop: 'shop', event_partner: 'event-photos' };
 const MAX_MB = 8;
@@ -19,7 +21,9 @@ const MAX_MB = 8;
  *   size   circle size in px
  *   label  what the photo is ("Your photo", "Shop photo")
  */
-export default function ProfilePhoto({ url, role = 'user', size = 88, label = 'Your photo', onSaved }) {
+export default function ProfilePhoto({ url, role = 'user', size = 88, label: labelIn = 'Your photo', onSaved }) {
+  const t = useServiceProT();
+  const label = t(labelKey(labelIn), labelIn);
   const dispatch = useDispatch();
   const input = useRef(null);
   const [preview, setPreview] = useState(null);
@@ -33,8 +37,8 @@ export default function ProfilePhoto({ url, role = 'user', size = 88, label = 'Y
     e.target.value = '';
     if (!picked) return;
     const file = await prepareImage(picked);
-    if (!file.type.startsWith('image/')) { toast.error('Choose a photo.'); return; }
-    if (file.size > MAX_MB * 1024 * 1024) { toast.error(`That photo is over ${MAX_MB}MB. Choose a smaller one.`); return; }
+    if (!file.type.startsWith('image/')) { toast.error(t('sp.choose_a_photo', 'Choose a photo.')); return; }
+    if (file.size > MAX_MB * 1024 * 1024) { toast.error(t('sp.that_photo_is_over_n_mb_choose_a_smaller_one', 'That photo is over {n}MB. Choose a smaller one.').replace('{n}', MAX_MB)); return; }
     setPreview(URL.createObjectURL(file));
     setUploading(true);
     try {
@@ -43,18 +47,18 @@ export default function ProfilePhoto({ url, role = 'user', size = 88, label = 'Y
       if (!put.ok) throw new Error('upload');
       const st = await save(signed.key).unwrap();
       dispatch(updateProfile({ avatar: st.photoUrl }));
-      toast.success('Photo saved');
+      toast.success(t('sp.photo_saved', 'Photo saved'));
       onSaved?.(st);
     } catch (err) {
       setPreview(null);
-      toast.error(err?.data?.error || 'The photo did not upload. Check your connection and try again.');
+      toast.error(err?.data?.error || t('sp.the_photo_did_not_upload_check_your_connection_and_try_again', 'The photo did not upload. Check your connection and try again.'));
     } finally { setUploading(false); }
   }
 
   const shown = preview || url;
   return (
     <div className="flex flex-col items-center gap-2">
-      <button type="button" onClick={() => input.current?.click()} disabled={busy} aria-label={shown ? `Change ${label.toLowerCase()}` : `Add ${label.toLowerCase()}`}
+      <button type="button" onClick={() => input.current?.click()} disabled={busy} aria-label={(shown ? t('sp.change_x', 'Change {x}') : t('sp.add_x', 'Add {x}')).replace('{x}', label.toLowerCase())}
         className="relative rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-zappy-600 focus-visible:ring-offset-2"
         style={{ width: size, height: size }}>
         <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border border-line bg-sunken">
@@ -65,7 +69,7 @@ export default function ProfilePhoto({ url, role = 'user', size = 88, label = 'Y
         </span>
       </button>
       <input ref={input} type="file" accept="image/*" className="hidden" onChange={pick} />
-      <span className="text-[13px] font-semibold text-zappy-600">{shown ? 'Change photo' : 'Add a photo'}</span>
+      <span className="text-[13px] font-semibold text-zappy-600">{shown ? t('sp.change_photo', 'Change photo') : t('sp.add_a_photo', 'Add a photo')}</span>
     </div>
   );
 }

@@ -11,6 +11,14 @@ import {
   useCreateTicketMutation, useAddTicketMessageMutation,
 } from '../../services/api';
 import { useLivePoll } from '../../hooks/useSocket';
+import { useI18n, useServiceProT } from '../../i18n/I18nProvider';
+import { labelKey } from '../../i18n/translations';
+
+// Dates follow the chosen language in the Service Pro app only; the customer app keeps its own format.
+function useDateLang() {
+  const { lang } = useI18n();
+  return import.meta.env.VITE_CLIENT_SURFACE === 'servicepro' ? lang : 'en';
+}
 
 // Talk to ZappyOne: customers and partners raise help, complaints and feature requests here and chat with the team (server engagement/support-notify).
 const CATEGORIES = {
@@ -49,11 +57,12 @@ const STATUS_META = {
 };
 
 function StatusBadge({ status }) {
+  const t = useServiceProT();
   const m = STATUS_META[status] || STATUS_META.open;
   return (
     <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${m.cls}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${m.dot}`} />
-      {m.label}
+      {t(labelKey(m.label), m.label)}
     </span>
   );
 }
@@ -61,6 +70,8 @@ function StatusBadge({ status }) {
 const PRIORITY_SLA = { urgent: 1, high: 2, normal: 4, low: 24 };
 
 function TicketThread({ ticketId, onBack }) {
+  const t = useServiceProT();
+  const dl = useDateLang();
   // Checked every few seconds while open, so replies arrive like a chat.
   const { data, isLoading, refetch } = useGetTicketQuery(ticketId, { pollingInterval: useLivePoll(8000) });
   const [addMsg, { isLoading: sending }] = useAddTicketMessageMutation();
@@ -69,14 +80,14 @@ function TicketThread({ ticketId, onBack }) {
   const ticket = data?.ticket;
 
   async function handleSend() {
-    const t = text.trim();
-    if (!t) return;
+    const body = text.trim();
+    if (!body) return;
     try {
-      await addMsg({ id: ticketId, text: t }).unwrap();
+      await addMsg({ id: ticketId, text: body }).unwrap();
       setText('');
       refetch();
     } catch {
-      toast.error('Could not send message');
+      toast.error(t('sp.could_not_send_message', 'Could not send message'));
     }
   }
 
@@ -112,8 +123,8 @@ function TicketThread({ ticketId, onBack }) {
           }`}>
             <Clock size={10} />
             {slaBreached
-              ? 'Response overdue - escalated to senior team'
-              : `Expected reply within ${slaLeft}h`
+              ? t('sp.response_overdue_escalated_to_senior_team', 'Response overdue - escalated to senior team')
+              : t('sp.expected_reply_within_n_h', 'Expected reply within {n}h').replace('{n}', slaLeft)
             }
           </div>
         )}
@@ -136,7 +147,7 @@ function TicketThread({ ticketId, onBack }) {
                 )}
                 <p className="text-sm leading-relaxed">{msg.text}</p>
                 <p className={`text-[10px] mt-1 ${isSupport ? 'text-slate-400' : 'text-white/50'}`}>
-                  {new Date(msg.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  {new Date(msg.at).toLocaleString(`${dl}-IN`, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
             </div>
@@ -147,9 +158,9 @@ function TicketThread({ ticketId, onBack }) {
           <div className="rounded-xl bg-green-50 border border-green-100 p-3 flex items-start gap-2">
             <CheckCircle2 size={16} className="text-green-600 shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-bold text-green-700">Ticket resolved</p>
+              <p className="text-xs font-bold text-green-700">{t('sp.ticket_resolved', 'Ticket resolved')}</p>
               <p className="text-xs text-green-600 mt-0.5">
-                {ticket.resolutionNote || 'Your issue has been addressed. If you have further questions, open a new ticket.'}
+                {ticket.resolutionNote || t('sp.your_issue_has_been_addressed_if_you_have_further_questions_open_a_new_ticket', 'Your issue has been addressed. If you have further questions, open a new ticket.')}
               </p>
             </div>
           </div>
@@ -161,7 +172,7 @@ function TicketThread({ ticketId, onBack }) {
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder="Reply to support…"
+            placeholder={t('sp.reply_to_support', 'Reply to support…')}
             rows={2}
             className="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />
@@ -179,6 +190,7 @@ function TicketThread({ ticketId, onBack }) {
 }
 
 function NewTicketForm({ audience, onClose, onCreated }) {
+  const t = useServiceProT();
   const [createTicket, { isLoading }] = useCreateTicketMutation();
   const [form, setForm] = useState({
     category: '',
@@ -198,11 +210,11 @@ function NewTicketForm({ audience, onClose, onCreated }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.category || !form.subject.trim() || !form.description.trim()) {
-      toast.error('Category, subject and description are required');
+      toast.error(t('sp.category_subject_and_description_are_required', 'Category, subject and description are required'));
       return;
     }
     if (form.description.trim().length < 10) {
-      toast.error('Description must be at least 10 characters');
+      toast.error(t('sp.description_must_be_at_least_10_characters', 'Description must be at least 10 characters'));
       return;
     }
     try {
@@ -212,10 +224,10 @@ function NewTicketForm({ audience, onClose, onCreated }) {
         description: form.description.trim(),
         priority: form.priority,
       }).unwrap();
-      toast.success("Sent. We'll reply here and send you a notification.");
+      toast.success(t('sp.sent_we_ll_reply_here_and_send_you_a_notification', "Sent. We'll reply here and send you a notification."));
       onCreated(res.ticket._id);
     } catch (err) {
-      toast.error(err?.data?.error || 'Could not create ticket');
+      toast.error(err?.data?.error || t('sp.could_not_create_ticket', 'Could not create ticket'));
     }
   }
 
@@ -232,7 +244,7 @@ function NewTicketForm({ audience, onClose, onCreated }) {
       >
         <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mt-3 mb-4" />
         <div className="flex items-center justify-between px-5 mb-4">
-          <p className="font-extrabold text-lg text-[#0F172A]">Talk to ZappyOne</p>
+          <p className="font-extrabold text-lg text-[#0F172A]">{t('sp.talk_to_zappyone', 'Talk to ZappyOne')}</p>
           <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
             <X size={16} />
           </button>
@@ -240,7 +252,7 @@ function NewTicketForm({ audience, onClose, onCreated }) {
 
         <form onSubmit={handleSubmit} className="px-5 space-y-3 max-h-[70vh] overflow-y-auto">
           <div>
-            <p className="text-xs font-bold text-slate-500 mb-1.5">What is it about? *</p>
+            <p className="text-xs font-bold text-slate-500 mb-1.5">{t('sp.what_is_it_about', 'What is it about?')} *</p>
             <div className="grid grid-cols-2 gap-2">
               {CATEGORIES[audience].map(cat => (
                 <button
@@ -253,27 +265,27 @@ function NewTicketForm({ audience, onClose, onCreated }) {
                       : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
                   }`}
                 >
-                  {cat.label}
+                  {t(labelKey(cat.label), cat.label)}
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <p className="text-xs font-bold text-slate-500 mb-1.5">Subject *</p>
+            <p className="text-xs font-bold text-slate-500 mb-1.5">{t('sp.subject', 'Subject')} *</p>
             <input
               className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder={form.category === 'feature_request' ? 'The feature in a few words' : 'A short summary'}
+              placeholder={form.category === 'feature_request' ? t('sp.the_feature_in_a_few_words', 'The feature in a few words') : t('sp.a_short_summary', 'A short summary')}
               maxLength={200}
               {...f('subject')}
             />
           </div>
 
           <div>
-            <p className="text-xs font-bold text-slate-500 mb-1.5">Description *</p>
+            <p className="text-xs font-bold text-slate-500 mb-1.5">{t('sp.description', 'Description')} *</p>
             <textarea
               className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              placeholder={form.category === 'feature_request' ? 'What should it do, and how would it help you?' : 'Tell us what happened, so we can fix it'}
+              placeholder={form.category === 'feature_request' ? t('sp.what_should_it_do_and_how_would_it_help_you', 'What should it do, and how would it help you?') : t('sp.tell_us_what_happened_so_we_can_fix_it', 'Tell us what happened, so we can fix it')}
               rows={4}
               value={form.description}
               onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
@@ -282,7 +294,7 @@ function NewTicketForm({ audience, onClose, onCreated }) {
 
 
           <div>
-            <p className="text-xs font-bold text-slate-500 mb-1.5">Priority</p>
+            <p className="text-xs font-bold text-slate-500 mb-1.5">{t('sp.priority', 'Priority')}</p>
             <div className="flex gap-2">
               {['low', 'normal', 'high', 'urgent'].map(p => (
                 <button
@@ -295,24 +307,24 @@ function NewTicketForm({ audience, onClose, onCreated }) {
                       : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  {p}
+                  {t(labelKey(p.charAt(0).toUpperCase() + p.slice(1)), p.charAt(0).toUpperCase() + p.slice(1))}
                 </button>
               ))}
             </div>
             <p className="text-[10px] text-slate-400 mt-1">
-              Expected reply: {PRIORITY_SLA[form.priority] || 4}h for {form.priority} priority
+              {t('sp.expected_reply_h_h_for_p_priority', 'Expected reply: {h}h for {p} priority').replace('{h}', PRIORITY_SLA[form.priority] || 4).replace('{p}', t(labelKey(form.priority.charAt(0).toUpperCase() + form.priority.slice(1)), form.priority))}
             </p>
           </div>
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 h-12 rounded-2xl border border-slate-200 font-bold text-slate-700">
-              Cancel
+              {t('sp.cancel', 'Cancel')}
             </button>
             <button type="submit" disabled={isLoading}
               className="flex-1 h-12 rounded-2xl bg-[#0F172A] text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50">
               {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-              {isLoading ? 'Sending…' : 'Send to ZappyOne'}
+              {isLoading ? t('sp.sending', 'Sending…') : t('sp.send_to_zappyone', 'Send to ZappyOne')}
             </button>
           </div>
         </form>
@@ -323,6 +335,8 @@ function NewTicketForm({ audience, onClose, onCreated }) {
 
 // `audience` picks the topics (customer or partner); `backTo` is where the header's back goes. A notification link opens its conversation (?ticket=).
 export default function SupportPage({ audience = 'customer', backTo = '/profile' }) {
+  const t = useServiceProT();
+  const dl = useDateLang();
   const nav = useNavigate();
   const [params] = useSearchParams();
   const { data, isLoading, refetch } = useGetMyTicketsQuery(undefined, { pollingInterval: useLivePoll(30000) });
@@ -349,18 +363,18 @@ export default function SupportPage({ audience = 'customer', backTo = '/profile'
       <div className="min-h-screen bg-[#F9FAFB] pb-40">
         <header className="sticky top-0 z-20" style={{ background: 'rgba(15,23,42,0.97)' }}>
           <div className="w-full max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
-            <button onClick={() => nav(backTo)} aria-label="Back" className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
+            <button onClick={() => nav(backTo)} aria-label={t('sp.back', 'Back')} className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
               <ChevronLeft size={16} className="text-white" />
             </button>
             <h1 className="font-black text-white flex-1 flex items-center gap-2">
               <HeadphonesIcon size={16} className="text-zappy-400" />
-              Talk to ZappyOne
+              {t('sp.talk_to_zappyone', 'Talk to ZappyOne')}
             </h1>
             <button
               onClick={() => setShowNew(true)}
               className="flex items-center gap-1.5 text-xs font-bold text-white bg-white/15 px-3 py-1.5 rounded-full hover:bg-white/25 transition"
             >
-              <Plus size={13} /> New message
+              <Plus size={13} /> {t('sp.new_message', 'New message')}
             </button>
           </div>
         </header>
@@ -368,17 +382,17 @@ export default function SupportPage({ audience = 'customer', backTo = '/profile'
         <div className="w-full max-w-2xl mx-auto px-4 pt-4 space-y-4">
           <div className="bg-zappy-900/80 border border-zappy-800/50 rounded-2xl p-4 text-white flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-zappy-300 uppercase tracking-wider">Direct Email Support</p>
+              <p className="text-xs font-bold text-zappy-300 uppercase tracking-wider">{t('sp.direct_email_support', 'Direct Email Support')}</p>
               <a href="mailto:support@zappyone.com" className="text-sm font-extrabold text-white hover:text-zappy-200 transition">
                 support@zappyone.com
               </a>
-              <p className="text-[11px] text-slate-400">24/7 Dedicated Customer Resolution Desk</p>
+              <p className="text-[11px] text-slate-400">{t('sp.24_7_dedicated_customer_resolution_desk', '24/7 Dedicated Customer Resolution Desk')}</p>
             </div>
             <a
               href="mailto:support@zappyone.com"
               className="px-3 py-1.5 bg-zappy-600 hover:bg-zappy-500 text-white text-xs font-bold rounded-xl transition"
             >
-              Email Us
+              {t('sp.email_us', 'Email Us')}
             </a>
           </div>
           {isLoading ? (
@@ -390,23 +404,22 @@ export default function SupportPage({ audience = 'customer', backTo = '/profile'
               <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
                 <HeadphonesIcon size={24} strokeWidth={1.5} className="text-slate-400" />
               </div>
-              <p className="font-bold text-slate-900">Nothing here yet</p>
+              <p className="font-bold text-slate-900">{t('sp.nothing_here_yet', 'Nothing here yet')}</p>
               <p className="text-sm text-slate-400 mt-1 leading-relaxed">
-                Ask for help, raise a complaint or suggest a feature.<br />The ZappyOne team replies right here.
+                {t('sp.ask_for_help_raise_a_complaint_or_suggest_a_feature', 'Ask for help, raise a complaint or suggest a feature.')}<br />{t('sp.the_zappyone_team_replies_right_here', 'The ZappyOne team replies right here.')}
               </p>
               <button onClick={() => setShowNew(true)} className="mt-4 btn-primary text-sm">
-                Message ZappyOne
+                {t('sp.message_zappyone', 'Message ZappyOne')}
               </button>
             </div>
           ) : (
             <div className="space-y-2.5">
-              {tickets.map(t => {
-                const slaDeadline = new Date(t.slaDeadline);
-                const awaiting = t.status === 'waiting_user';
+              {tickets.map(tk => {
+                const awaiting = tk.status === 'waiting_user';
                 return (
                   <motion.button
-                    key={t._id}
-                    onClick={() => setActiveId(t._id)}
+                    key={tk._id}
+                    onClick={() => setActiveId(tk._id)}
                     className="w-full bg-white rounded-2xl ring-1 ring-slate-100 p-4 text-left hover:bg-slate-50 transition"
                     style={{ boxShadow: awaiting ? '0 4px 16px rgba(245,158,11,0.12)' : '0 2px 8px rgba(0,0,0,0.04)' }}
                     whileHover={{ y: -1 }}
@@ -414,28 +427,28 @@ export default function SupportPage({ audience = 'customer', backTo = '/profile'
                   >
                     {awaiting && (
                       <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-lg mb-2 w-fit">
-                        <AlertCircle size={10} /> Action required - reply to support
+                        <AlertCircle size={10} /> {t('sp.action_required_reply_to_support', 'Action required - reply to support')}
                       </div>
                     )}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm text-slate-900 truncate">{t.subject}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{TOPIC[t.category] || t.category}</p>
+                        <p className="font-bold text-sm text-slate-900 truncate">{tk.subject}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{TOPIC[tk.category] ? t(labelKey(TOPIC[tk.category]), TOPIC[tk.category]) : tk.category}</p>
                       </div>
-                      <StatusBadge status={t.status} />
+                      <StatusBadge status={tk.status} />
                     </div>
                     <div className="flex items-center gap-4 mt-2.5">
                       <span className="text-[10px] text-slate-400 flex items-center gap-1">
                         <Clock size={9} />
-                        {new Date(t.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        {new Date(tk.createdAt).toLocaleDateString(`${dl}-IN`, { day: 'numeric', month: 'short' })}
                       </span>
-                      {t.messages?.length > 0 && (
+                      {tk.messages?.length > 0 && (
                         <span className="text-[10px] text-slate-400 flex items-center gap-1">
                           <MessageCircle size={9} />
-                          {t.messages.length} messages
+                          {t('sp.n_messages', '{n} messages').replace('{n}', tk.messages.length)}
                         </span>
                       )}
-                      <span className="text-[10px] font-bold text-blue-600 ml-auto">View →</span>
+                      <span className="text-[10px] font-bold text-blue-600 ml-auto">{t('sp.view', 'View')} →</span>
                     </div>
                   </motion.button>
                 );

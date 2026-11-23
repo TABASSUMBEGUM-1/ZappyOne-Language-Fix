@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { RotateCw, Loader2 } from 'lucide-react';
 import { useResendOtpMutation } from '../../services/api';
+import { useServiceProT } from '../../i18n/I18nProvider';
 
 /**
  * Resend OTP — shared across every login panel (user, worker, admin, partner).
@@ -41,6 +42,7 @@ export default function ResendOtp({
     warn:     dark ? 'text-amber-300'                         : 'text-amber-600',
     error:    dark ? 'text-rose-300'                          : 'text-rose-600',
   };
+  const t = useServiceProT();
   const [resend, { isLoading }] = useResendOtpMutation();
   const [secsLeft, setSecsLeft] = useState(cooldownSec);
   const [left, setLeft] = useState(initialResendsLeft);
@@ -75,11 +77,11 @@ export default function ResendOtp({
       if (typeof data.resendsLeft === 'number') setLeft(data.resendsLeft);
       startCountdown(data.cooldownSec ?? cooldownSec);
       setNote('');
-      toast.success('OTP sent again');
+      toast.success(t('sp.otp_sent_again', 'OTP sent again'));
       onResent?.(data);
     } catch (err) {
       const code = err?.data?.code;
-      const msg  = err?.data?.error || 'Could not resend OTP';
+      const msg  = err?.data?.error || t('sp.could_not_resend_otp', 'Could not resend OTP');
 
       if (code === 'OTP_COOLDOWN') {
         // Server is authoritative — resync our countdown to its retryAfterMs.
@@ -99,7 +101,7 @@ export default function ResendOtp({
       if (code === 'OTP_SEND_FAILED') {
         // Provider hiccup — not the user's fault, let them retry immediately.
         startCountdown(0);
-        setNote('Sending failed. Tap resend to try again.');
+        setNote(t('sp.sending_failed_tap_resend_to_try_again', 'Sending failed. Tap resend to try again.'));
         toast.error(msg);
         return;
       }
@@ -118,7 +120,7 @@ export default function ResendOtp({
           onClick={onStartOver}
           className={`text-[13px] font-bold underline underline-offset-2 ${T.action}`}
         >
-          Start over with a new OTP
+          {t('sp.start_over_with_a_new_otp', 'Start over with a new OTP')}
         </button>
       </div>
     );
@@ -137,15 +139,15 @@ export default function ResendOtp({
         }`}
       >
         {isLoading
-          ? <><Loader2 size={13} className="animate-spin" /> Sending…</>
+          ? <><Loader2 size={13} className="animate-spin" /> {t('sp.sending', 'Sending…')}</>
           : waiting
-            ? <>Resend OTP in {secsLeft}s</>
-            : <><RotateCw size={13} /> Resend OTP</>}
+            ? <>{t('sp.resend_otp_in_n_s', 'Resend OTP in {n}s').replace('{n}', secsLeft)}</>
+            : <><RotateCw size={13} /> {t('sp.resend_otp', 'Resend OTP')}</>}
       </button>
 
       {!waiting && !isLoading && left > 0 && (
         <p className={`text-[11px] mt-1 ${T.muted}`}>
-          {left} resend{left !== 1 ? 's' : ''} left
+          {(left === 1 ? t('sp.n_resend_left', '{n} resend left') : t('sp.n_resends_left', '{n} resends left')).replace('{n}', left)}
         </p>
       )}
       {note && <p className={`text-[11px] mt-1 ${T.warn}`}>{note}</p>}

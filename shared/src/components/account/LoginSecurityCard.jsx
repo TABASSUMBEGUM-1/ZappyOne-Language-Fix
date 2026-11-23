@@ -4,7 +4,7 @@ import { KeyRound, Mail, Loader2, CheckCircle2, Clock } from 'lucide-react';
 import { useAccountMeQuery, useSetAccountPasswordMutation, useStartEmailVerificationMutation } from '../../services/api';
 import PasswordField, { passwordOk } from './PasswordField';
 import { passwordChangeOpensAt } from './passwordRules';
-import { useServiceProT } from '../../i18n/I18nProvider';
+import { useI18n, useServiceProT } from '../../i18n/I18nProvider';
 
 /** Password and email after setup: change the password, add or change the email, resend its link. */
 export default function LoginSecurityCard({ className = '' }) {
@@ -16,6 +16,8 @@ export default function LoginSecurityCard({ className = '' }) {
   const [pw, setPw] = useState('');
   const [email, setEmail] = useState('');
   const t = useServiceProT();
+  const { lang: chosen } = useI18n();
+  const dl = import.meta.env.VITE_CLIENT_SURFACE === 'servicepro' ? chosen : 'en';
 
   if (!st) return null;
   const pwOpensAt = st.hasPassword ? passwordChangeOpensAt(st.passwordSetAt) : null;
@@ -51,18 +53,18 @@ export default function LoginSecurityCard({ className = '' }) {
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-btn bg-sunken text-ink-700"><KeyRound size={16} /></span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[14px] font-semibold text-ink-900">Password</span>
-            <span className="block text-[12px] text-ink-500">{st.hasPassword ? `Set${st.passwordSetAt ? ` on ${new Date(st.passwordSetAt).toLocaleDateString('en-IN')}` : ''}${pwOpensAt ? `. You can change it again after ${pwOpensAt.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}` : 'Not set: you sign in with an OTP each time'}</span>
+            <span className="block text-[14px] font-semibold text-ink-900">{t('sp.password', 'Password')}</span>
+            <span className="block text-[12px] text-ink-500">{st.hasPassword ? `${st.passwordSetAt ? t('sp.set_on_d', 'Set on {d}').replace('{d}', new Date(st.passwordSetAt).toLocaleDateString(`${dl}-IN`)) : t('sp.set', 'Set')}${pwOpensAt ? `. ${t('sp.you_can_change_it_again_after_d', 'You can change it again after {d}').replace('{d}', pwOpensAt.toLocaleString(`${dl}-IN`, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))}` : ''}` : t('sp.not_set_you_sign_in_with_an_otp_each_time', 'Not set: you sign in with an OTP each time')}</span>
           </span>
-          <button type="button" disabled={!!pwOpensAt} onClick={() => setOpen(open === 'password' ? null : 'password')} className="btn-outline min-h-[36px] px-3 text-[13px] disabled:opacity-40">{st.hasPassword ? 'Change' : 'Set'}</button>
+          <button type="button" disabled={!!pwOpensAt} onClick={() => setOpen(open === 'password' ? null : 'password')} className="btn-outline min-h-[36px] px-3 text-[13px] disabled:opacity-40">{st.hasPassword ? t('sp.change', 'Change') : t('sp.set', 'Set')}</button>
         </div>
         {open === 'password' && (
           <form onSubmit={savePw} className="mt-3 space-y-3">
-            {st.hasPassword && <PasswordField id="ls-cur" label="Current password" value={cur} onChange={setCur} autoComplete="current-password" />}
-            <PasswordField id="ls-new" label="New password" value={pw} onChange={setPw} showRules phone={st.phone} />
-            {samePw && <p className="text-[12px] font-semibold text-amber-700">Choose a password different from your current one.</p>}
+            {st.hasPassword && <PasswordField id="ls-cur" label={t('sp.current_password', 'Current password')} value={cur} onChange={setCur} autoComplete="current-password" />}
+            <PasswordField id="ls-new" label={t('sp.new_password', 'New password')} value={pw} onChange={setPw} showRules phone={st.phone} />
+            {samePw && <p className="text-[12px] font-semibold text-amber-700">{t('sp.choose_a_password_different_from_your_current_one', 'Choose a password different from your current one.')}</p>}
             <button type="submit" disabled={savingPw || !passwordOk(pw, st.phone) || (st.hasPassword && !cur) || samePw} className="btn-primary w-full">
-              {savingPw && <Loader2 size={16} className="animate-spin" />} Save password
+              {savingPw && <Loader2 size={16} className="animate-spin" />} {t('sp.save_password', 'Save password')}
             </button>
           </form>
         )}
