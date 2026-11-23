@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Clock3, Eye, ImageIcon, Loader2, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { Clock3, Eye, ImageIcon, Loader2, Pencil, Plus, Sparkles, Tag, Trash2, X } from 'lucide-react';
 import {
   useProviderMenuQuery, useSaveProviderMenuItemMutation, useRemoveProviderMenuItemMutation,
-  useAdjustProviderMenuMutation, useStartMenuFromSamplesMutation,
+  useAdjustProviderMenuMutation, useStartMenuFromSamplesMutation, useSetProviderMenuOfferMutation,
 } from '../../../services/api';
+import { OFFER_CHOICES, END_CHOICES, sameOffer, offerBody } from '../../offerChoices';
 import PhotoTiles from '../../../components/common/PhotoTiles';
 import PriceNotice from '../PriceNotice';
-import { useServiceProT } from '../../../i18n/I18nProvider';
+import { useI18n, useServiceProT } from '../../../i18n/I18nProvider';
 import { labelKey } from '../../../i18n/translations';
 
 const rupees = (p) => `₹${Math.round((p || 0) / 100).toLocaleString('en-IN')}`;
@@ -87,7 +88,7 @@ export default function MenuEditor({ vertical, onNext, nextLabel }) {
                 {item.photoUrl ? <img src={item.photoUrl} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-ink-400"><ImageIcon size={18} /><span className="text-[10px] font-semibold">{t('sp.add_photo', 'Add photo')}</span></span>}
               </button>
               <div className="min-w-0 flex-1">
-                <p className="font-bold text-ink-900">{item.name}{item.own && <span className="ml-1.5 rounded-full bg-sunken px-2 py-0.5 align-middle text-[10.5px] font-bold text-ink-500">{t('sp.your_job', 'Your job')}</span>}</p>
+                <p className="font-bold text-ink-900">{item.name}{item.own && <span className="ml-1.5 rounded-full bg-sunken px-2 py-0.5 align-middle text-[10.5px] font-bold text-ink-500">{t('sp.your_job', 'Your job')}</span>}{item.offer && <span className="ml-1.5 rounded-full bg-emerald-50 px-2 py-0.5 align-middle text-[10.5px] font-bold text-emerald-700">{t(labelKey(item.offer.label), item.offer.label)}</span>}</p>
                 <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12.5px] text-ink-500">
                   {item.minutes && <span className="flex items-center gap-1"><Clock3 size={12} /> {t('sp.n_min', '~{n} min').replace('{n}', item.minutes)}</span>}
                   <span className="font-semibold text-ink-700">
@@ -273,6 +274,8 @@ function ItemSheet({ vertical, types, item, suggestions, onClose }) {
           </div>
         </div>
 
+        {!isNew && item.offered && <OfferPicker vertical={vertical} item={item} types={types} />}
+
         <div className="mt-6 flex gap-2">
           {!isNew && item.offered && (
             <button type="button" onClick={drop} disabled={removing} className="btn-secondary h-12 px-4 text-red-700"><Trash2 size={16} /> {t('sp.remove', 'Remove')}</button>
@@ -283,5 +286,60 @@ function ItemSheet({ vertical, types, item, suggestions, onClose }) {
         </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+// One tap puts an offer on this job or takes it off; the server sends back what customers will pay.
+function OfferPicker({ vertical, item, types }) {
+  const t = useServiceProT();
+  const { lang: chosen } = useI18n();
+  const dl = import.meta.env.VITE_CLIENT_SURFACE === 'servicepro' ? chosen : 'en';
+  const [offer, setOffer] = useState(item.offer || null);
+  const [days, setDays] = useState(item.offer?.endsAt ? -1 : 0);
+  const [save, { isLoading }] = useSetProviderMenuOfferMutation();
+  const first = types.find((ty) => item.prices?.[ty.code] != null);
+
+  async function choose(choice, d = days) {
+    try {
+      const res = await save({ vertical, repairCode: item.repairCode, offer: offerBody(choice, d) }).unwrap();
+      setOffer(res.items.find((i) => i.repairCode === item.repairCode)?.offer || null);
+      toast.success(choice ? t('sp.offer_is_live', 'Offer is live') : t('sp.offer_removed', 'Offer removed'));
+    } catch (e) { toast.error(e?.data?.error || t('sp.could_not_save_the_offer', 'Could not save the offer')); }
+  }
+
+  return (
+    <div className="mt-5 rounded-card border border-line p-4">
+      <p className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-700"><Tag size={14} /> {t('sp.offer', 'Offer')} <span className="font-normal text-ink-500">({t('sp.optional', 'optional')})</span></p>
+      <p className="text-[12px] text-ink-500">{t('sp.customers_see_your_offer_price_with_your_normal_price_crossed_out_stop_it_any_time', 'Customers see your offer price with your normal price crossed out. Stop it any time.')}</p>
+      <div className="mt-2.5 flex flex-wrap gap-1.5" role="radiogroup" aria-label={t('sp.offer', 'Offer')}>
+        {OFFER_CHOICES.map((c) => (
+          <button key={c.label} type="button" role="radio" aria-checked={sameOffer(c.offer, offer)} disabled={isLoading} onClick={() => choose(c.offer)}
+            className={`rounded-full border px-3 py-1.5 text-[13px] font-semibold transition ${sameOffer(c.offer, offer) ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-line text-ink-700 hover:border-emerald-400'}`}>
+            {t(labelKey(c.label), c.label)}
+          </button>
+        ))}
+      </div>
+      {offer && (
+        <>
+          <div className="mt-2.5 flex flex-wrap gap-1.5" role="radiogroup" aria-label={t('sp.how_long', 'How long')}>
+            {END_CHOICES.map((e) => (
+              <button key={e.days} type="button" role="radio" aria-checked={days === e.days} disabled={isLoading} onClick={() => { setDays(e.days); choose(offer, e.days); }}
+                className={`rounded-full border px-3 py-1 text-[12px] font-semibold ${days === e.days ? 'border-ink-900 bg-ink-900 text-white' : 'border-line text-ink-500 hover:border-ink-400'}`}>
+                {t(labelKey(e.label), e.label)}
+              </button>
+            ))}
+          </div>
+          {first && offer.prices?.[first.code] != null && (
+            <p className="mt-2.5 text-[13px] text-ink-700">
+              {t('sp.customers_pay_a_instead_of_b', 'Customers pay {a} instead of {b}').split(/(\{a\}|\{b\})/).map((part, i) => {
+                if (part === '{a}') return <b key={i} className="text-emerald-700">{rupees(offer.prices[first.code])}</b>;
+                if (part === '{b}') return <s key={i} className="text-ink-400">{rupees(item.prices[first.code])}</s>;
+                return part;
+              })}{types.length > 1 ? ` ${t('sp.for_name', 'for {name}').replace('{name}', first.name)}` : ''} · {offer.endsAt ? t('sp.ends_d', 'Ends {d}').replace('{d}', new Date(offer.endsAt).toLocaleDateString(`${dl}-IN`, { day: 'numeric', month: 'short' })) : t('sp.no_end_date', 'No end date')}
+            </p>
+          )}
+        </>
+      )}
+    </div>
   );
 }
